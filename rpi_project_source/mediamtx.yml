@@ -1,0 +1,29 @@
+# MediaMTX Configuration for RCSIM - Native RPi Camera Mode
+# Using built-in rpiCamera source (stable approach from working version)
+
+logLevel: info
+logDestinations: [stdout]
+
+# API - Listen on all interfaces for Tailscale support
+api: yes
+apiAddress: 0.0.0.0:9997
+
+# RTSP Server - Listen on all interfaces for Tailscale support
+rtsp: yes
+rtspAddress: 0.0.0.0:8554
+protocols: [udp, multicast, tcp]
+
+# WebRTC for PC - Listen on all interfaces for Tailscale support
+webrtc: yes
+webrtcAddress: 0.0.0.0:8889
+webrtcICEServers: []
+
+paths:
+  camera_ai:
+    # NATIVE RPI CAMERA MODE
+    # MediaMTX directly manages the camera without external scripts
+    source: rpiCamera
+    rpiCameraWidth: 1280
+    rpiCameraHeight: 720
+    rpiCameraFPS: 30
+    rpiCameraBitrate: 5000000  # 5 Mbps for high quality

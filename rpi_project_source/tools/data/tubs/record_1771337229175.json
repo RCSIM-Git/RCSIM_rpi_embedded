@@ -1,0 +1,1 @@
+{"timestamp": 1771337229175, "frame": "frame_1771337229175.jpg", "detections": [{"class_name": "cone", "bbox": [0.34345634808577585, 0.4, 0.44345634808577583, 0.6], "conf": 0.9, "class_id": 0}, {"class_name": "wall", "bbox": [0.7955194173418937, 0.2, 0.8455194173418937, 0.8], "conf": 0.85, "class_id": 1}], "num_objects": 2}

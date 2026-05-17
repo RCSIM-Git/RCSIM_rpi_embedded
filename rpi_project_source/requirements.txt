@@ -1,0 +1,30 @@
+# --- START OF FILE requirements.txt ---
+# Core
+psutil
+PyYAML
+dacite
+
+# Hardware / IO
+smbus2
+pyserial
+python-prctl
+rpi-lgpio
+adafruit-circuitpython-pca9685
+adafruit-blinka
+adafruit-circuitpython-bno08x
+adafruit-circuitpython-bmp3xx
+
+# Network
+aiohttp
+aiortc
+
+netifaces
+
+# GPS
+pynmeagps
+
+# AI / SLAM
+# (Note: BreezySLAM is installed from source in Dockerfile)
+
+# MAVLink
+pymavlink==2.4.41

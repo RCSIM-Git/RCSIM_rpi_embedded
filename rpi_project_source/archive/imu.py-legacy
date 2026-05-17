@@ -1,0 +1,525 @@
+#!/usr/bin/env python3
+"""
+Moduł do obsługi i automatycznego wykrywania różnych czujników IMU.
+Module for handling and auto-detecting various IMU sensors.
+"""
+import logging
+import time
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Tuple
+
+# Mapowanie adresów I2C i rejestrów dla różnych czujników
+# I2C address and register mapping for various sensors
+try:
+    from mpu9250_jmdev.registers import (MPU6500_WHO_AM_I_RESPONSE,
+                                         MPU9050_ADDRESS_68,
+                                         MPU9250_WHO_AM_I_RESPONSE, WHO_AM_I)
+except ImportError:
+    MPU9050_ADDRESS_68 = 0x68
+    WHO_AM_I = 0x75
+    MPU9250_WHO_AM_I_RESPONSE = 0x71
+    MPU6500_WHO_AM_I_RESPONSE = 0x70
+
+# Próba importu bibliotek sprzętowych
+# Attempt to import hardware libraries
+try:
+    import adafruit_bno08x
+    import adafruit_mpu6050
+    import busio
+    import smbus2
+    from adafruit_bno08x.i2c import BNO08X_I2C
+    from mpu9250_jmdev.mpu_9250 import MPU9250
+
+    HW_AVAILABLE = True
+except ImportError:
+    HW_AVAILABLE = False
+
+
+class BaseIMU(ABC):
+    """
+    Abstrakcyjna klasa bazowa dla czujników IMU.
+    Abstract base class for IMU sensors.
+    """
+
+    def __init__(self, logger: logging.Logger) -> None:
+        """
+        Inicjalizuje bazowy IMU.
+        Initializes the base IMU.
+
+        Args:
+            logger (logging.Logger): Obiekt loggera. / Logger object.
+        """
+        self.logger: logging.Logger = logger
+        self.name: str = "Unknown IMU"
+        self.accel_bias: List[float] = [0.0, 0.0, 0.0]
+        self.gyro_bias: List[float] = [0.0, 0.0, 0.0]
+
+    @abstractmethod
+    def read_data(self) -> Dict[str, float]:
+        """
+        Odczytuje surowe dane z czujnika IMU.
+        Reads raw data from the IMU sensor.
+
+        Returns:
+            Dict[str, float]: Słownik z danymi (ax, ay, az, gx, gy, gz, mx, my, mz).
+                              Dictionary with data (ax, ay, az, gx, gy, gz, mx, my, mz).
+        """
+
+    @abstractmethod
+    def is_ok(self) -> bool:
+        """
+        Sprawdza poprawność połączenia i działania czujnika.
+        Checks if the sensor is connected and working correctly.
+
+        Returns:
+            bool: True jeśli czujnik jest sprawny. / True if the sensor is functional.
+        """
+
+    def get_component_status(self) -> str:
+        """
+        Zwraca status komponentów czujnika.
+        Returns the status of the sensor components.
+
+        Returns:
+            str: Opis statusu komponentów. / Component status description.
+        """
+        return ""
+
+    def calibrate(self, samples: int = 200) -> None:
+        """
+        Przeprowadza kalibrację czujnika (akcelerometr i żyroskop).
+        Performs sensor calibration (accelerometer and gyroscope).
+
+        Args:
+            samples (int): Liczba próbek do zebrania. / Number of samples to collect.
+        """
+        self.logger.info(f"Rozpoczynanie kalibracji dla {self.name}...")
+        temp_accel = [0.0, 0.0, 0.0]
+        temp_gyro = [0.0, 0.0, 0.0]
+
+        # Rozgrzewanie czujnika / Warming up the sensor
+        for _ in range(50):
+            self.read_data()
+            time.sleep(0.01)
+
+        # Zbieranie próbek / Collecting samples
+        for _ in range(samples):
+            data = self.read_data()
+            temp_accel[0] += data.get("ax", 0.0)
+            temp_accel[1] += data.get("ay", 0.0)
+            temp_accel[2] += data.get("az", 0.0)
+            temp_gyro[0] += data.get("gx", 0.0)
+            temp_gyro[1] += data.get("gy", 0.0)
+            temp_gyro[2] += data.get("gz", 0.0)
+            time.sleep(0.01)
+
+        # Obliczanie średniej / Calculating average
+        self.accel_bias = [v / samples for v in temp_accel]
+        # Usuwanie grawitacji z osi Z / Removing gravity from Z axis
+        self.accel_bias[2] -= 9.81
+        self.gyro_bias = [v / samples for v in temp_gyro]
+
+        self.logger.info(f"Kalibracja {self.name} zakończona.")
+        self.logger.debug(f"Accel Bias: {self.accel_bias}")
+        self.logger.debug(f"Gyro Bias: {self.gyro_bias}")
+
+    def cleanup(self) -> None:
+        """
+        Czyści zasoby i zamyka połączenia.
+        Cleans up resources and closes connections.
+        """
+        if hasattr(self, "smbus") and self.smbus:
+            try:
+                self.smbus.close()
+            except Exception:
+                pass
+
+
+class BNO085_IMU(BaseIMU):
+    """
+    Obsługuje czujnik BNO085 (9-osiowy system orientacji).
+    Handles the BNO085 sensor (9-axis orientation system).
+    """
+
+    _BNO085_ADDRESS = 0x4A
+
+    def __init__(self, i2c: "busio.I2C", logger: logging.Logger) -> None:
+        """
+        Inicjalizuje BNO085.
+        Initializes the BNO085.
+        """
+        super().__init__(logger)
+        self.name = "BNO085"
+        self.bno: Optional[Any] = None
+        try:
+            self.bno = BNO08X_I2C(i2c, address=self._BNO085_ADDRESS)
+            self.bno.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
+            self.bno.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
+            self.bno.enable_feature(adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
+            self.logger.info(f"{self.name} initialized successfully.")
+        except Exception as e:
+            self.logger.error(f"Błąd inicjalizacji {self.name}: {e}")
+
+    def is_ok(self) -> bool:
+        return self.bno is not None
+
+    def read_data(self) -> Dict[str, float]:
+        data = {}
+        if self.bno:
+            try:
+                ax, ay, az = self.bno.acceleration
+                gx, gy, gz = self.bno.gyro
+                mx, my, mz = self.bno.magnetic
+                data.update(
+                    {
+                        "ax": ax,
+                        "ay": ay,
+                        "az": az,
+                        "gx": gx,
+                        "gy": gy,
+                        "gz": gz,
+                        "mx": mx,
+                        "my": my,
+                        "mz": mz,
+                    }
+                )
+            except Exception as e:
+                self.logger.warning(f"Błąd odczytu danych z BNO085: {e}")
+        return data
+
+    def calibrate(self, samples: int = 200) -> None:
+        """
+        BNO085 wykonuje autokalibrację wewnętrznie.
+        BNO085 performs autocalibration internally.
+        """
+        self.logger.info(f"Kalibracja nie jest wymagana dla {self.name} (wbudowana).")
+
+
+class MPU9250_IMU(BaseIMU):
+    """
+    Obsługuje czujnik MPU-9250 oraz MPU-6500.
+    Handles the MPU-9250 and MPU-6500 sensor.
+    """
+
+    def __init__(
+        self,
+        smbus: "smbus2.SMBus",
+        logger: logging.Logger,
+        address: Optional[int] = None,
+    ) -> None:
+        """
+        Inicjalizuje MPU-9250/6500.
+        Initializes MPU-9250/6500.
+        """
+        super().__init__(logger)
+        if address is None:
+            address = MPU9050_ADDRESS_68
+        self.name = "MPU-9250/6500"
+        self.mpu: Optional[Any] = None
+        try:
+            self.mpu = MPU9250(bus=smbus, address=address)
+            self.mpu.configure()
+            self.calibrate()  # Perform initial calibration
+            self.logger.info(f"{self.name} initialized successfully.")
+        except Exception as e:
+            self.logger.error(f"Błąd inicjalizacji {self.name}: {e}")
+
+    def is_ok(self) -> bool:
+        return self.mpu is not None
+
+    def read_data(self) -> Dict[str, float]:
+        data = {}
+        if self.mpu:
+            try:
+                accel = self.mpu.read_accel()
+                gyro = self.mpu.read_gyro()
+                mag = self.mpu.read_mag()
+                temp = self.mpu.read_temp()
+                data.update(
+                    {
+                        "ax": accel[0] - self.accel_bias[0],
+                        "ay": accel[1] - self.accel_bias[1],
+                        "az": accel[2] - self.accel_bias[2],
+                        "gx": gyro[0] - self.gyro_bias[0],
+                        "gy": gyro[1] - self.gyro_bias[1],
+                        "gz": gyro[2] - self.gyro_bias[2],
+                        "mx": mag[0],
+                        "my": mag[1],
+                        "mz": mag[2],
+                        "temp": temp,
+                    }
+                )
+            except Exception as e:
+                self.logger.debug(f"Błąd odczytu MPU9250: {e}")
+        return data
+
+
+class GY87_IMU(BaseIMU):
+    """
+    Obsługuje zintegrowany czujnik GY-87 (MPU6050 + QMC5883L + BMP180).
+    Handles the integrated GY-87 sensor (MPU6050 + QMC5883L + BMP180).
+    """
+
+    _MPU6050_ADDRESS = 0x68
+    _QMC5883L_ADDRESS = 0x0D
+    _BMP180_ADDRESS = 0x77
+
+    def __init__(
+        self, i2c: "busio.I2C", smbus: "smbus2.SMBus", logger: logging.Logger
+    ) -> None:
+        """
+        Inicjalizuje GY-87.
+        Initializes GY-87.
+        """
+        super().__init__(logger)
+        self.name = "GY-87"
+        self.smbus = smbus
+        self.mpu: Optional[Any] = None
+        self.qmc_ok: bool = False
+        self.bmp_ok: bool = False
+        self.bmp_cal_coeffs: Dict[str, int] = {}
+        self.reference_pressure: float = 1013.25
+
+        self._initialize_mpu(i2c)
+        self._initialize_qmc()
+        self._initialize_bmp()
+
+        if self.is_ok():
+            self.calibrate()
+            self.logger.info(f"{self.name} initialized successfully.")
+
+    def is_ok(self) -> bool:
+        """
+        GY-87 jest OK, jeśli działa chociaż główny MPU6050.
+        GY-87 is OK if at least the main MPU6050 is working.
+        """
+        return self.mpu is not None
+
+    def get_component_status(self) -> str:
+        s = []
+        if not self.qmc_ok:
+            s.append("Brak QMC")
+        if not self.bmp_ok:
+            s.append("Brak BMP")
+        return f" ({', '.join(s)})" if s else ""
+
+    def _initialize_mpu(self, i2c: "busio.I2C") -> None:
+        try:
+            self.mpu = adafruit_mpu6050.MPU6050(i2c, address=self._MPU6050_ADDRESS)
+        except Exception as e:
+            self.logger.error(f"Błąd MPU6050 w GY-87: {e}")
+
+    def _initialize_qmc(self) -> None:
+        try:
+            # Initialize QMC5883L (Magnetometer)
+            self.smbus.write_byte_data(self._QMC5883L_ADDRESS, 0x09, 0b00011101)
+            self.qmc_ok = True
+        except Exception:
+            self.qmc_ok = False
+
+    def _initialize_bmp(self) -> None:
+        try:
+            # Check BMP180 ID
+            if self.smbus.read_byte_data(self._BMP180_ADDRESS, 0xD0) != 0x55:
+                raise IOError("Zły ID BMP180")
+
+            # Read calibration coefficients
+            regs = self.smbus.read_i2c_block_data(self._BMP180_ADDRESS, 0xAA, 22)
+            keys = [
+                "AC1",
+                "AC2",
+                "AC3",
+                "AC4",
+                "AC5",
+                "AC6",
+                "B1",
+                "B2",
+                "MB",
+                "MC",
+                "MD",
+            ]
+            for i, k in enumerate(keys):
+                v = (regs[i * 2] << 8) | regs[i * 2 + 1]
+                # Convert to signed short
+                if (
+                    k in ["AC1", "AC2", "AC3", "B1", "B2", "MB", "MC", "MD"]
+                    and v > 32767
+                ):
+                    v -= 65536
+                self.bmp_cal_coeffs[k] = v
+            self.bmp_ok = True
+        except Exception:
+            self.bmp_ok = False
+
+    def read_data(self) -> Dict[str, float]:
+        d = {
+            "ax": 0.0,
+            "ay": 0.0,
+            "az": 0.0,
+            "gx": 0.0,
+            "gy": 0.0,
+            "gz": 0.0,
+            "mx": 0.0,
+            "my": 0.0,
+            "mz": 0.0,
+            "temp": 0.0,
+            "pressure": 0.0,
+            "altitude": 0.0,
+        }
+
+        # Read MPU6050 (Accel/Gyro/Temp)
+        if self.mpu:
+            try:
+                ax, ay, az = self.mpu.acceleration
+                gx, gy, gz = self.mpu.gyro
+                d.update(
+                    {
+                        "ax": ax - self.accel_bias[0],
+                        "ay": ay - self.accel_bias[1],
+                        "az": az - self.accel_bias[2],
+                        "gx": gx - self.gyro_bias[0],
+                        "gy": gy - self.gyro_bias[1],
+                        "gz": gz - self.gyro_bias[2],
+                        "temp": self.mpu.temperature,
+                    }
+                )
+            except Exception:
+                pass
+
+        # Read QMC5883L (Magnetometer)
+        if self.qmc_ok:
+            try:
+                r = self.smbus.read_i2c_block_data(self._QMC5883L_ADDRESS, 0, 6)
+                mx, my, mz = [(r[i * 2 + 1] << 8) | r[i * 2] for i in range(3)]
+                # Convert to signed
+                mx -= (1 << 16) if mx & 0x8000 else 0
+                my -= (1 << 16) if my & 0x8000 else 0
+                mz -= (1 << 16) if mz & 0x8000 else 0
+                d.update({"mx": float(mx), "my": float(my), "mz": float(mz)})
+            except Exception:
+                pass
+
+        # Read BMP180 (Pressure/Altitude/Temp fallback)
+        if self.bmp_ok:
+            t, p = self._read_bmp_data()
+            if p is not None:
+                d.update(
+                    {
+                        "pressure": p,
+                        "altitude": 44330.0
+                        * (1 - (p / self.reference_pressure) ** 0.190295),
+                    }
+                )
+                if d["temp"] == 0 and t is not None:
+                    d["temp"] = t
+        return d
+
+    def _read_bmp_data(self) -> Tuple[Optional[float], Optional[float]]:
+        """
+        Odczytuje dane surowe z BMP180 i przelicza je.
+        Reads raw data from BMP180 and calculates values.
+        """
+        try:
+            c = self.bmp_cal_coeffs
+            # Request temperature
+            self.smbus.write_byte_data(self._BMP180_ADDRESS, 0xF4, 0x2E)
+            time.sleep(0.005)
+            utd = self.smbus.read_i2c_block_data(self._BMP180_ADDRESS, 0xF6, 2)
+            ut = (utd[0] << 8) | utd[1]
+
+            # Request pressure (oss=3 for high resolution)
+            oss = 3
+            self.smbus.write_byte_data(self._BMP180_ADDRESS, 0xF4, 0x34 + (oss << 6))
+            time.sleep(0.026)
+            upd = self.smbus.read_i2c_block_data(self._BMP180_ADDRESS, 0xF6, 3)
+            up = ((upd[0] << 16) | (upd[1] << 8) | upd[2]) >> (8 - oss)
+
+            # Calculate Temperature
+            x1 = (ut - c["AC6"]) * c["AC5"] // 32768
+            x2 = c["MC"] * 2048 // (x1 + c["MD"])
+            b5 = x1 + x2
+            t = ((b5 + 8) // 16) / 10.0
+
+            # Calculate Pressure
+            b6 = b5 - 4000
+            x1 = (c["B2"] * (b6 * b6 // 4096)) // 2048
+            x2 = c["AC2"] * b6 // 2048
+            x3 = x1 + x2
+            b3 = (((c["AC1"] * 4 + x3) << oss) + 2) // 4
+            x1 = c["AC3"] * b6 // 8192
+            x2 = (c["B1"] * (b6 * b6 // 4096)) // 65536
+            x3 = ((x1 + x2) + 2) // 4
+            b4 = c["AC4"] * (x3 + 32768) // 32768
+            b7 = (up - b3) * (50000 >> oss)
+            if b7 < 0x80000000:
+                p = (b7 * 2) // b4
+            else:
+                p = (b7 // b4) * 2
+            x1 = (p // 256) ** 2
+            x1 = (x1 * 3038) // 65536
+            x2 = (-7357 * p) // 65536
+            pressure_pa = p + (x1 + x2 + 3791) // 16
+
+            return t, pressure_pa / 100.0  # Return pressure in hPa
+        except Exception:
+            return None, None
+
+
+def imu_autodetect(
+    i2c: "busio.I2C", smbus: "smbus2.SMBus", logger: logging.Logger
+) -> Optional[BaseIMU]:
+    """
+    Wykrywa i inicjalizuje obsługiwany czujnik IMU na magistrali I2C.
+    Detects and initializes a supported IMU sensor on the I2C bus.
+
+    Args:
+        i2c (busio.I2C): Obiekt magistrali I2C (CircuitPython).
+        smbus (smbus2.SMBus): Obiekt magistrali SMBus.
+        logger (logging.Logger): Logger.
+
+    Returns:
+        Optional[BaseIMU]: Zainicjalizowany obiekt IMU lub None.
+                           Initialized IMU object or None.
+    """
+    if not HW_AVAILABLE:
+        logger.warning(
+            "Brak bibliotek sprzętowych (adafruit_blinka, smbus2). IMU nieaktywne."
+        )
+        return None
+
+    try:
+        # Skanowanie adresu I2C
+        while not i2c.try_lock():
+            pass
+        addrs = i2c.scan()
+        i2c.unlock()
+
+        logger.info(f"Wykryte adresy I2C: {[hex(a) for a in addrs]}")
+
+        # Priorytet 1: BNO085 (najlepszy)
+        if 0x4A in addrs:
+            logger.info("Wykryto BNO085 (High Precision IMU).")
+            return BNO085_IMU(i2c, logger)
+
+        # Priorytet 2: GY-87 (złożony) lub MPU-9250
+        if 0x68 in addrs:
+            # Sprawdź czy to GY-87 (ma też magnetometr QMC5883L i barometr BMP180)
+            if 0x0D in addrs and 0x77 in addrs:
+                logger.info("Wykryto GY-87 (Integrated Module).")
+                return GY87_IMU(i2c, smbus, logger)
+
+            # Sprawdź WHO_AM_I dla MPU-9250
+            try:
+                who = smbus.read_byte_data(MPU9050_ADDRESS_68, WHO_AM_I)
+                if who in [MPU9250_WHO_AM_I_RESPONSE, MPU6500_WHO_AM_I_RESPONSE]:
+                    logger.info("Wykryto MPU-9250/6500.")
+                    return MPU9250_IMU(smbus, logger)
+            except Exception:
+                pass
+
+        logger.warning("Nie znaleziono żadnego w pełni obsługiwanego czujnika IMU.")
+
+    except Exception as e:
+        logger.critical(f"Krytyczny błąd podczas wykrywania IMU: {e}", exc_info=True)
+
+    return None

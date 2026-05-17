@@ -1,0 +1,123 @@
+{
+    "pc_ip": "100.91.21.9",
+    "main_loop_freq_hz": 20,
+    "comm_mode": "AUTO",
+    "comm_protocol": "MAVLINK",
+    "mavlink_connection": "/dev/ttyAMA3:115200",
+    "system_id": 10,
+    "ntrip": {
+        "enabled": true,
+        "user": "gonzo94pl",
+        "password": "50415041",
+        "host": "system.asgeupos.pl",
+        "port": 2101,
+        "mountpoint": "RTN4G_VRS_RTCM32"
+    },
+    "hardware": {
+        "imu": {
+            "driver": "auto"
+        },
+        "gps": {
+            "enabled": true,
+            "port": "/dev/ttyAMA0",
+            "baudrate": 115200
+        },
+        "lidar": {
+            "enabled": true,
+            "port": "/dev/rcsim/lidar",
+            "baudrate": 115200
+        },
+        "pca9685": {
+            "oscillator_freq": 25000000,
+            "auto_calibrate": true,
+            "calibration_channel": 15,
+            "calibration_gpio": 17,
+            "oe_pin": 27
+        }
+    },
+    "camera": {
+        "mode": "rtsp",
+        "rtsp_url": "rtsp://127.0.0.1:8554/camera_ai",
+        "local_device": "/dev/rcsim/camera",
+        "resolution": [
+            1920,
+            1080
+        ],
+        "fps": 30,
+        "port": "cam0"
+    },
+    "video": {
+        "engine": "native",
+        "resolution": [
+            1920,
+            1080
+        ],
+        "fps": 30
+    },
+    "ai": {
+        "hef_path": "models/yolov11n.hef",
+        "input_size": [
+            640,
+            640
+        ],
+        "classes": [
+            "cone",
+            "wall",
+            "person",
+            "car"
+        ]
+    },
+    "autonomous_navigation": {
+        "enabled": true,
+        "yolo": {
+            "confidence_threshold": 0.45,
+            "nms_iou_threshold": 0.45,
+            "max_detections": 50,
+            "classes_to_avoid": [
+                "person",
+                "cone",
+                "obstacle",
+                "car"
+            ]
+        },
+        "grid": {
+            "resolution_m": 0.05,
+            "size_cells": [
+                200,
+                200
+            ],
+            "inflation_radius_cells": 4,
+            "inflation_value": 0.8,
+            "max_age_sec": 3.0
+        },
+        "pure_pursuit": {
+            "lookahead_distance_m": 1.2,
+            "lookahead_gain": 0.5,
+            "max_curvature": 2.0,
+            "min_speed_mps": 0.3,
+            "max_speed_mps": 1.8,
+            "speed_reduction_factor": 0.6,
+            "pure_pursuit_gain": 0.8
+        },
+        "safety": {
+            "min_obstacle_distance_m": 0.4,
+            "emergency_stop_distance_m": 0.25,
+            "imu_crash_g_threshold": 5.0
+        },
+        "debug": {
+            "enabled": true,
+            "snapshot_interval_sec": 5.0,
+            "snapshot_dir": "debug_logs/snapshots",
+            "save_grid_as_png": true,
+            "save_detections_overlay": true,
+            "max_snapshot_files": 500
+        }
+    },
+    "slam": {
+        "enabled": true,
+        "map_size_pixels": 800,
+        "map_size_meters": 32.0,
+        "scan_size": 360,
+        "update_interval_s": 0.1
+    }
+}

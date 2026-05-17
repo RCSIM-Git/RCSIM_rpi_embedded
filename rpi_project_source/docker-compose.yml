@@ -1,0 +1,46 @@
+services:
+  # Główna aplikacja sterująca (Python)
+  rcsim:
+    container_name: rcsim_industrial
+    build: .
+    image: rcsim_image:latest
+    network_mode: "host"
+    privileged: true
+    restart: unless-stopped
+
+    devices:
+      # Dostęp do I2C, UART, GPIO
+      - "/dev/i2c-1:/dev/i2c-1"
+      - "/dev/serial0:/dev/serial0"
+      - "/dev/ttyAMA0:/dev/ttyAMA0"
+      - "/dev/ttyAMA1:/dev/ttyAMA1"
+      - "/dev/ttyAMA2:/dev/ttyAMA2"
+      - "/dev/ttyAMA3:/dev/ttyAMA3"
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+      - "/dev/ttyUSB1:/dev/ttyUSB1"
+      - "/dev/gpiochip4:/dev/gpiochip4"
+      - "/dev/watchdog:/dev/watchdog"
+      - "/dev/hailo0:/dev/hailo0"
+      - "/dev/video10:/dev/video10"
+      - "/dev/video11:/dev/video11"
+      - "/dev/video12:/dev/video12"
+      - "/dev/video13:/dev/video13"
+      - "/dev/video14:/dev/video14"
+      - "/dev/video15:/dev/video15"
+      - "/dev/vchiq:/dev/vchiq"
+
+    volumes:
+      - ./config.json:/app/config.json
+      - ./logs:/app/logs
+      # Source code mounts — enables Hot Deploy persistence across restarts
+      - ./core:/app/core
+      - ./logic:/app/logic
+      - ./modules:/app/modules
+      - /run/udev:/run/udev:ro
+
+    healthcheck:
+      test: ["CMD", "bash", "-c", "timeout 1 bash -c 'echo >/dev/tcp/127.0.0.1/8554' && timeout 1 bash -c 'echo >/dev/tcp/127.0.0.1/12348'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

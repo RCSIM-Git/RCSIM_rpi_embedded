@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA & Mobile Meta -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0a0a">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <title>RCSIM COCKPIT</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Video Stream -->
+    <div id="video-wrapper">
+        <video id="camera-view" autoplay playsinline muted></video>
+        <div id="video-overlay"></div>
+    </div>
+    
+    <!-- HUD Overlay -->
+    <div id="hud-container">
+        <!-- Top Bar: Connectivity & Mode -->
+        <header id="top-bar">
+            <div class="hud-panel glass" id="system-status">
+                <div id="conn-indicator" class="dot red"></div>
+                <span class="label">RCSIM:</span>
+                <span id="conn-text" class="value">DISCONNECTED</span>
+            </div>
+            
+            <div class="hud-panel glass" id="mode-display">
+                <span class="label">MODE:</span>
+                <span id="current-mode" class="value text-cyan">MANUAL</span>
+            </div>
+
+            <button id="arm-btn" class="hud-panel glass btn disarmed">
+                <span class="arm-label">SYSTEM</span>
+                <span class="arm-status">DISARMED</span>
+            </button>
+        </header>
+
+        <!-- Main HUD Area (Telemetry) -->
+        <main id="telemetry-grid">
+            <div class="telemetry-panel left glass">
+                <div class="telemetry-item">
+                    <span class="label">SPEED</span>
+                    <div class="value-group">
+                        <span id="speed-val" class="value big">0.0</span>
+                        <span class="unit">m/s</span>
+                    </div>
+                </div>
+                <div class="telemetry-item">
+                    <span class="label">THROTTLE</span>
+                    <div class="bar-container">
+                        <div id="thr-bar" class="bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="telemetry-panel right glass">
+                <div class="telemetry-item">
+                    <span class="label">BATTERY</span>
+                    <div class="value-group">
+                        <span id="batt-val" class="value">0.0</span>
+                        <span class="unit">V</span>
+                    </div>
+                </div>
+                <div class="telemetry-item">
+                    <span class="label">STEERING</span>
+                    <div class="bar-container center">
+                        <div id="str-bar" class="bar"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Gamepad Status & Emergency -->
+        <footer id="bottom-bar">
+            <div id="gamepad-info" class="hud-panel glass hidden">
+                <span class="icon">🎮</span>
+                <span id="pad-name" class="value small">Gamepad Active</span>
+            </div>
+            
+            <button id="emergency-toggle" class="hud-panel glass mini">
+                <span>UI CONTROLS</span>
+            </button>
+        </footer>
+    </div>
+
+    <!-- Hidden UI Joysticks (Emergency only) -->
+    <div id="joystick-zone" class="hidden"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

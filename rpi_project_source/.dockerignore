@@ -1,0 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs and databases
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.old
+*~
+
+# Cache directories
+.cache/
+.pytest_cache/
+.mypy_cache/
+__pycache__/
+tile_cache/
+
+# Config backups
+*.json.bak
+*.json.backup
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+*kopia*.txt
+docker-compose*.txt
+
+# Documentation that doesn't need to be in container
+*.md
+README*
+CHANGELOG*
+LICENSE
+TODO*
+INSTRUKCJA*
+DEBUG*
+DIAGNOSTYKA*
+KONFIGURACJA*
+NAPRAWA*
+ROZWIAZANIE*
+ROZWIĄZANIE*
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Session logs (if any in the source)
+logs/
+session_*/
+*.csv
+
+# Map files if not needed
+map.html
+web_assets/

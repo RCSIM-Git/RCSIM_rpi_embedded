@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RCSIM Command Center</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #00bcd4;
+            --danger-color: #ff5252;
+            --warning-color: #ffb74d;
+            --success-color: #66bb6a;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: var(--panel-bg);
+            padding: 0 20px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #333;
+            font-weight: bold;
+        }
+
+        .status-ok {
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .status-err {
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        #map-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #sidebar {
+            width: 300px;
+            background-color: var(--panel-bg);
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: #2c2c2c;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 0.9rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .bar-container {
+            width: 100%;
+            height: 6px;
+            background: #444;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        #console-log {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #ccc;
+            height: 150px;
+            overflow-y: auto;
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        /* Overlay UI on Map */
+        #map-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+        }
+
+        .overlay-stat {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: cyan;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>
+            <span>RCSIM1602</span>
+            <span id="conn-status" class="status-badge status-err">DISCONNECTED</span>
+            <span id="mode-status" class="status-badge">MANUAL</span>
+        </h1>
+        <div>
+            <!-- Header Controls -->
+        </div>
+    </header>
+
+    <main>
+        <div id="map-container">
+            <canvas id="viz-canvas"></canvas>
+            <div id="map-overlay">
+                <div class="overlay-stat" id="fps-stat">FPS: 0</div>
+                <div class="overlay-stat" id="pose-stat">Pose: 0, 0</div>
+            </div>
+        </div>
+
+        <aside id="sidebar">
+            <div class="card">
+                <h3>System Status</h3>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">CPU Temp</span>
+                        <span class="stat-value" id="cpu-temp">--°C</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Battery</span>
+                        <span class="stat-value" id="bat-voltage">-- V</span>
+                    </div>
+                </div>
+                <div class="stat-item" style="margin-top: 10px;">
+                    <span class="stat-label">CPU Usage</span>
+                    <div class="bar-container">
+                        <div id="cpu-bar" class="bar-fill"></div>
+                    </div>
+                </div>
+                <div class="stat-item" style="margin-top: 10px;">
+                    <span class="stat-label">RAM Usage</span>
+                    <div class="bar-container">
+                        <div id="ram-bar" class="bar-fill" style="background: #e91e63;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Sensors</h3>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">IMU Accel</span>
+                        <span class="stat-value" id="imu-acc">0.0 g</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Lidar</span>
+                        <span class="stat-value" id="lidar-status">OFF</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>AI Detections</h3>
+                <div id="ai-list" style="font-size: 0.9rem; min-height: 50px;">
+                    None
+                </div>
+            </div>
+
+            <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+                <h3>Log</h3>
+                <div id="console-log"></div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        // --- Configuration ---
+        const WS_URL = `ws://${window.location.host}/ws/telemetry`;
+        // const WS_URL = `ws://192.168.0.x:8080/ws/telemetry`; // Debug
+
+        // --- State ---
+        const state = {
+            connected: false,
+            pose: { x: 0, y: 0, theta: 0 },
+            lidar: [],
+            detections: [],
+            obstacles: [], // from OccupancyGrid (simplified)
+            history: []
+        };
+
+        // --- UI Elements ---
+        const canvas = document.getElementById('viz-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('map-container');
+        const logEl = document.getElementById('console-log');
+
+        // --- Resizing ---
+        function resize() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- Logging ---
+        function log(msg) {
+            const line = document.createElement('div');
+            line.textContent = `> ${msg}`;
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        // --- WebSocket ---
+        let ws;
+        function connect() {
+            log("Connecting to WS...");
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                state.connected = true;
+                document.getElementById('conn-status').textContent = "CONNECTED";
+                document.getElementById('conn-status').className = "status-badge status-ok";
+                log("WebSocket Connected");
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleTelemetry(msg);
+                } catch (e) {
+                    console.error("Parse error", e);
+                }
+            };
+
+            ws.onclose = () => {
+                state.connected = false;
+                document.getElementById('conn-status').textContent = "DISCONNECTED";
+                document.getElementById('conn-status').className = "status-badge status-err";
+                log("WS Closed. Retrying in 3s...");
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (e) => {
+                console.error("WS Error", e);
+            };
+        }
+
+        function handleTelemetry(data) {
+            // Updated Stats
+            if (data.mode) document.getElementById('mode-status').textContent = data.mode;
+
+            if (data.pose) {
+                state.pose = { x: data.pose[0], y: data.pose[1], theta: data.pose[2] };
+                document.getElementById('pose-stat').textContent = `Pose: ${state.pose.x.toFixed(1)}, ${state.pose.y.toFixed(1)}`;
+            }
+
+            if (data.system) {
+                document.getElementById('cpu-temp').textContent = `${data.system.cpu_temp.toFixed(1)}°C`;
+                document.getElementById('cpu-bar').style.width = `${data.system.cpu_percent}%`;
+                document.getElementById('ram-bar').style.width = `${data.system.mem_percent}%`;
+            }
+
+            if (data.battery) {
+                document.getElementById('bat-voltage').textContent = `${data.battery.voltage.toFixed(1)} V`;
+            }
+
+            if (data.imu) {
+                const ax = data.imu.ax || 0;
+                const ay = data.imu.ay || 0;
+                const az = data.imu.az || 0;
+                const mag = Math.sqrt(ax * ax + ay * ay + az * az);
+                document.getElementById('imu-acc').textContent = `${mag.toFixed(2)} g`;
+            }
+
+            if (data.lidar) {
+                // Decode Base64 Lidar
+                // Expected: Base64 string of 360 * uint16 (720 bytes)
+                try {
+                    const binaryString = atob(data.lidar);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    // Create uint16 view
+                    const dists = new Uint16Array(bytes.buffer);
+                    state.lidar = dists;
+                    document.getElementById('lidar-status').textContent = "ACTIVE";
+                    document.getElementById('lidar-status').style.color = "var(--success-color)";
+                } catch (e) {
+                    console.error("Lidar decode error", e);
+                }
+            }
+
+            if (data.ai_detections) {
+                state.detections = data.ai_detections;
+                const list = document.getElementById('ai-list');
+                list.innerHTML = state.detections.map(d =>
+                    `<div>${d.class_name} (${(d.conf * 100).toFixed(0)}%)</div>`
+                ).join('');
+                if (state.detections.length === 0) list.innerHTML = "None";
+            }
+        }
+
+        // --- Rendering ---
+        const SCALE = 50; // pixels per meter
+
+        function render() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height); // Clear
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // Transform based on robot pose (Keep robot centered)
+            // or Map Centered? Let's do Robot Centered for FPV-like map feel
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            // Draw Grid (World coords)
+            // Rotate world so robot points UP?
+            // To make robot point UP: rotate by -robot_theta - 90
+            ctx.rotate((-state.pose.theta - 90) * Math.PI / 180);
+
+            // Draw Grid Lines (1m)
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            const gridSize = SCALE;
+            const offX = (state.pose.x * SCALE) % gridSize;
+            const offY = (state.pose.y * SCALE) % gridSize;
+
+            ctx.beginPath();
+            for (let x = -cx - offX; x < cx; x += gridSize) {
+                ctx.moveTo(x, -cy * 2); ctx.lineTo(x, cy * 2);
+            }
+            for (let y = -cy - offY; y < cy; y += gridSize) {
+                ctx.moveTo(-cx * 2, y); ctx.lineTo(cx * 2, y);
+            }
+            ctx.stroke();
+
+            // Draw Lidar
+            if (state.lidar && state.lidar.length > 0) {
+                ctx.fillStyle = '#00bcd4';
+                for (let i = 0; i < 360; i++) {
+                    const distMm = state.lidar[i];
+                    if (distMm < 100 || distMm > 8000) continue;
+                    const distM = distMm / 1000.0;
+                    const angleRad = (i * Math.PI / 180); // Lidar is usually CCW?
+
+                    // Lidar points are relative to Robot
+                    // Robot is at 0,0 in this transformed context
+                    const lx = distM * Math.cos(angleRad) * SCALE;
+                    const ly = distM * Math.sin(angleRad) * SCALE;
+
+                    ctx.fillRect(lx - 1, ly - 1, 2, 2);
+                }
+            }
+
+            // Draw AI Detections (Projected)
+            // We need 3D projection or assuming flat ground.
+            // Simplified: If we have relative coordinates in detections?
+            // Usually detections are 2D bbox. We can't plot them on map easily without depth.
+            // But if we had `local_planner` logic in JS...
+            // For now, skip drawing detections on map unless we have their world position.
+
+            // Draw Robot (Centered at 0,0 locally)
+            ctx.fillStyle = '#ff5252';
+            ctx.beginPath();
+            ctx.moveTo(10, 0);
+            ctx.lineTo(-7, 7);
+            ctx.lineTo(-7, -7);
+            ctx.fill();
+
+            // Draw Trail (World path) - Requires storing world points and inverse transform
+            // Skipping for simple MVP.
+
+            ctx.restore();
+
+            requestAnimationFrame(render);
+        }
+
+        // Start
+        connect();
+        render();
+
+    </script>
+</body>
+
+</html>

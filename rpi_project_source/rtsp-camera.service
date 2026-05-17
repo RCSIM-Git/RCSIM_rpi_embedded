@@ -1,0 +1,13 @@
+[Unit]
+Description=RTSP Camera Streaming Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/bin/bash -c '/usr/bin/rpicam-vid -t 0 --width 1280 --height 720 --framerate 30 --bitrate 2500000 --intra 30 --profile baseline --level 4.0 --codec h264 --libav-format h264 --libav-video-codec-opts preset=ultrafast:tune=zerolatency --inline --listen -o - | /usr/bin/cvlc stream:///dev/stdin --sout "#rtp{sdp=rtsp://:8554/stream}" :demux=h264 :network-caching=0 :live-caching=0 --no-audio'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

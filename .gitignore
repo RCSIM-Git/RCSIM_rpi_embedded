@@ -219,3 +219,15 @@ __marimo__/
 
 # Halio 
 *.whl
+
+# RCSIM Embedded specifics
+# Exclude model weights and binary files from being tracked
+rpi_project_source/models/*.hef
+rpi_project_source/models/*.onnx
+rpi_project_source/models/*.pth
+rpi_project_source/models/*.data
+rpi_project_source/debug_logs/
+*.hef
+*.onnx
+*.pth
+*.data

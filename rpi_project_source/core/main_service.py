@@ -23,14 +23,17 @@ _HEARTBEAT_PIN_STATE = False
 _GPIO_AVAILABLE = False
 try:
     import RPi.GPIO as GPIO
+
     GPIO.setmode(GPIO.BCM)
     HEARTBEAT_PIN = 26  # Standardowy pin dla watchdoga na HAT
-    OVERRIDE_PIN = 21   # Pin wejściowy informujący o przejęciu kontroli przez RC
+    OVERRIDE_PIN = 21  # Pin wejściowy informujący o przejęciu kontroli przez RC
     GPIO.setup(HEARTBEAT_PIN, GPIO.OUT)
     GPIO.setup(OVERRIDE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     _GPIO_AVAILABLE = True
 except (ImportError, RuntimeError) as e:
-    logging.warning(f"GPIO Initialization failed: {e}. Heartbeat and Override will be disabled.")
+    logging.warning(
+        f"GPIO Initialization failed: {e}. Heartbeat and Override will be disabled."
+    )
 
 # Dodanie ścieżki głównej projektu / Add project root path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -44,6 +47,7 @@ from core.safety_supervisor import SafetyState, SafetySupervisor
 from core.telemetry_builder import TelemetryBuilder
 from core.telemetry_sender import TelemetrySender
 from core.udp_service import UDPService
+
 # Importy modułów / Module imports
 from core.utils.system_info import get_board_info
 from core.webrtc_manager import WebRTCManager
@@ -53,6 +57,7 @@ from logic.navigation_manager import NavigationManager
 from modules.ai_manager import AIManager
 from modules.camera_manager import CameraManager
 from modules.managers.hardware_manager import HardwareManager
+
 # SLAM i Planowanie [PLAN-002]
 from modules.managers.slam_manager import SlamManager
 from modules.planners.local_planner import LocalPlanner
@@ -104,6 +109,11 @@ class TelemetryWorker(threading.Thread):
 
         self.pca_armed = False  # Whether PWM controller is armed (active)
         self.extra_channels_data: dict[int, int] = {}  # Data for channels 2-15
+
+        # Gimbal Stabilization states (Plan B)
+        self.manual_pitch_offset = 0.0
+        self.manual_roll_offset = 0.0
+        self.gimbal_stabilizer = None
 
         # --- Statystyki Sieciowe / Network Stats Tracking ---
         self.last_pc_timestamp = 0.0  # PC timestamp for RTT
@@ -159,6 +169,12 @@ class TelemetryWorker(threading.Thread):
             # 1. Inicjalizacja Hardware (Silent Mode)
             hw_config = self.config.get("hardware", {})
             hw_config["ntrip"] = self.config.get("ntrip", {})
+            # V39.12: Dynamiczne przekazanie watchdog_timeout_ms do HardwareManager
+            safety_cfg = self.config.get("safety", {})
+            hw_config["watchdog_timeout_ms"] = safety_cfg.get(
+                "watchdog_timeout_ms", 500
+            )
+
             self.hw_manager = HardwareManager(hw_config, init_pca_neutral=False)
 
             # Rozpoczęcie wątku wysokiego priorytetu dla PWM
@@ -268,7 +284,7 @@ class TelemetryWorker(threading.Thread):
             ai_frame = self.camera_manager.get_ai_frame()
             if ai_frame is not None:
                 grid = self.local_planner.costmap if self.local_planner else None
-                
+
                 # Przygotowanie rozszerzonego słownika dla wektora stanu AI
                 if sensor_data is not None:
                     sensor_data["speed"] = current_speed
@@ -276,15 +292,15 @@ class TelemetryWorker(threading.Thread):
                     sensor_data["last_throttle"] = throttle
                     sensor_data["last_steering"] = steering
                     # W przyszłości można tu wyliczyć CTE i Heading Error do przekazania
-                    
+
                 can_save = self.safety_supervisor.state != SafetyState.STORAGE_LOW
                 detections, ai_controls = self.ai_manager.predict(
-                    image=ai_frame, 
+                    image=ai_frame,
                     grid=grid,
                     sensor_data=sensor_data,
                     nav_manager=self.nav_manager,
                     local_planner=self.local_planner,
-                    can_save=can_save
+                    can_save=can_save,
                 )
 
         # D2. Aktualizacja Local Planner (Fusion: Lidar + AI + IMU Terrain)
@@ -328,10 +344,14 @@ class TelemetryWorker(threading.Thread):
             )
 
         # [AI-E2E] Override planner with AI direct controls if available
-        if ai_controls and self.current_mode in ["AI_STEER_ONLY", "FULL_AUTOPILOT", "AUTONOMOUS"]:
+        if ai_controls and self.current_mode in [
+            "AI_STEER_ONLY",
+            "FULL_AUTOPILOT",
+            "AUTONOMOUS",
+        ]:
             ai_steer = ai_controls.get("steering", 0.0)
             ai_throttle = ai_controls.get("throttle", 0.0)
-            
+
             # Use AI values but keep safety_score from Geometric Planner for Reactive Stop
             planner_steer = ai_steer
             if self.current_mode in ["FULL_AUTOPILOT", "AUTONOMOUS"]:
@@ -348,9 +368,7 @@ class TelemetryWorker(threading.Thread):
             "image": ai_frame,
             "ai_detections": detections,
             "ai_controls": ai_controls,
-            "ai_status": {
-                "fps": getattr(self.ai_manager, "last_fps", 30.0)
-            },
+            "ai_status": {"fps": getattr(self.ai_manager, "last_fps", 30.0)},
             "system": sys_info,
             "planner_cmd": (planner_steer, planner_throttle, safety_score),
             "link_status": {
@@ -372,6 +390,9 @@ class TelemetryWorker(threading.Thread):
             steering, throttle = self.safety_supervisor.process_controls(
                 steering, throttle
             )
+
+            # --- GIMBAL STABILIZATION & RATE-MODE PROCESSING (PLAN B) ---
+            self._update_gimbal(sensor_data)
 
             # Actuate Hardware via ActuatorWorker (Bufferized)
             # [SAFETY] If ESP32 Watchdog has taken over (Override), we stop sending PWM to avoid I2C collisions
@@ -416,12 +437,15 @@ class TelemetryWorker(threading.Thread):
         # MAVLink link status (RF Link)
         rf_dead = not self.mavlink_service.link_active if self.mavlink_service else True
 
-        # Dynamic switching logic for AUTO mode
-        if self.comm_mode == "AUTO":
+        # Dynamic switching logic for HYBRID mode
+        if self.comm_mode == "HYBRID":
             if not rf_dead:
                 self.link_established = True  # RF Link is dominant
                 self.elrs_link_established = True
             else:
+                if self.elrs_link_established:
+                    # Reset last processed network timestamp on transitioning to VPN
+                    self.command_dispatcher.last_processed_tx_time = 0.0
                 self.link_established = not network_dead
                 self.elrs_link_established = False
         else:
@@ -487,6 +511,110 @@ class TelemetryWorker(threading.Thread):
         if self.telemetry_packet_idx % 200 == 0:  # Every ~10 seconds at 20Hz
             if self.hw_manager:
                 self.hw_manager.sensors.check_reconnect_needed()
+
+    def _update_gimbal(self, sensor_data: dict[str, Any]) -> None:
+        """
+        Zintegrowana stabilizacja i manualne sterowanie gimbalem FPV (Pitch/Roll).
+        Integrated stabilization and manual gimbal control (FPV Pitch/Roll).
+        """
+        gimbal_cfg = self.config.get("gimbal", {})
+        if not gimbal_cfg.get("enabled", False):
+            return
+
+        # Leniwa inicjalizacja GimbalStabilizer (Lazy Initialization)
+        if not hasattr(self, "gimbal_stabilizer") or self.gimbal_stabilizer is None:
+            try:
+                from modules.gimbal_stabilizer import GimbalStabilizer
+
+                self.gimbal_stabilizer = GimbalStabilizer(
+                    gimbal_cfg, logging.getLogger("GimbalStabilizer")
+                )
+            except Exception as e:
+                logging.error(f"Failed to initialize GimbalStabilizer: {e}")
+                return
+
+        imu = sensor_data.get("imu", {}) or {}
+        pitch_val = imu.get("pitch", 0.0) or 0.0
+        roll_val = imu.get("roll", 0.0) or 0.0
+
+        # Kanały sterowania gimbalem
+        pitch_ch = gimbal_cfg.get("pitch_channel", 4)
+        roll_ch = gimbal_cfg.get("roll_channel", 5)
+
+        # Pobranie manualnych sygnałów z GCS (domyślnie 1500 us)
+        manual_pitch_pulse = self.extra_channels_data.get(pitch_ch, 1500)
+        manual_roll_pulse = self.extra_channels_data.get(roll_ch, 1500)
+
+        # Maksymalne limity kątów do przeliczeń manualnych
+        pitch_max_angle = gimbal_cfg.get("pitch_max_angle", 45.0)
+        roll_max_angle = gimbal_cfg.get("roll_max_angle", 45.0)
+        pitch_min_angle = gimbal_cfg.get("pitch_min_angle", -45.0)
+        roll_min_angle = gimbal_cfg.get("roll_min_angle", -45.0)
+
+        # 1. Pitch manual offset calculation
+        pitch_mode = gimbal_cfg.get("pitch_mode", "absolute")
+        if pitch_mode == "rate":
+            # Wyznaczamy wychylenie drążka (-1.0 do 1.0)
+            deflection = (manual_pitch_pulse - 1500) / 500.0
+            # Deadband 0.05
+            if abs(deflection) < 0.05:
+                deflection = 0.0
+            speed_scale = gimbal_cfg.get("pitch_speed_scale", 30.0)
+            self.manual_pitch_offset += deflection * speed_scale * self.LOOP_TIME
+            # Przycięcie do zakresów mechanicznych
+            self.manual_pitch_offset = max(
+                pitch_min_angle, min(pitch_max_angle, self.manual_pitch_offset)
+            )
+        else:
+            # Tryb absolute
+            self.manual_pitch_offset = (
+                (manual_pitch_pulse - 1500) / 500.0
+            ) * pitch_max_angle
+
+        # 2. Roll manual offset calculation
+        roll_mode = gimbal_cfg.get("roll_mode", "absolute")
+        if roll_mode == "rate":
+            deflection = (manual_roll_pulse - 1500) / 500.0
+            if abs(deflection) < 0.05:
+                deflection = 0.0
+            speed_scale = gimbal_cfg.get("roll_speed_scale", 30.0)
+            self.manual_roll_offset += deflection * speed_scale * self.LOOP_TIME
+            self.manual_roll_offset = max(
+                roll_min_angle, min(roll_max_angle, self.manual_roll_offset)
+            )
+        else:
+            # Tryb absolute
+            self.manual_roll_offset = (
+                (manual_roll_pulse - 1500) / 500.0
+            ) * roll_max_angle
+
+        # 3. Połączenie stabilizacji horyzontu z manualnym przesunięciem (offsetem)
+        p_gain = gimbal_cfg.get("p_gain", 1.0)
+
+        # Prawidłowy znak stabilizacji: ujemne sprzężenie zwrotne do kompensacji
+        # pochylenia / Correct stabilization sign: negative feedback to compensate pitch
+        combined_pitch_angle = -pitch_val * p_gain + self.manual_pitch_offset
+        combined_roll_angle = -roll_val * p_gain + self.manual_roll_offset
+
+        # 4. Mapowanie kątów na końcowe impulsy PWM
+        final_pitch_pulse = self.gimbal_stabilizer._map_value(
+            combined_pitch_angle,
+            pitch_min_angle,
+            pitch_max_angle,
+            gimbal_cfg.get("pitch_min_pulse", 1000),
+            gimbal_cfg.get("pitch_max_pulse", 2000),
+        )
+        final_roll_pulse = self.gimbal_stabilizer._map_value(
+            combined_roll_angle,
+            roll_min_angle,
+            roll_max_angle,
+            gimbal_cfg.get("roll_min_pulse", 1000),
+            gimbal_cfg.get("roll_max_pulse", 2000),
+        )
+
+        # Zapisz gotowe sygnały do extra_channels_data
+        self.extra_channels_data[pitch_ch] = int(final_pitch_pulse)
+        self.extra_channels_data[roll_ch] = int(final_roll_pulse)
 
     def _send_mavlink_telemetry(
         self, sensor_data: dict[str, Any], telemetry_packet: dict[str, Any]
@@ -601,7 +729,9 @@ class TelemetryWorker(threading.Thread):
         self.udp_service.start()
         logging.info("✅ UDP service started on port 12346")
 
-        self.telemetry_sender = TelemetrySender(self.webrtc_service, self.udp_service, self)
+        self.telemetry_sender = TelemetrySender(
+            self.webrtc_service, self.udp_service, self
+        )
         self.telemetry_sender.start()
         logging.info("✅ Async TelemetrySender queue started")
 

@@ -70,6 +70,7 @@ class PCA9685:
         calib_ch: int = 15,
         calib_gpio: int = 17,
         oe_pin: int | None = None,
+        failsafe_timeout: float = 0.5,
     ) -> None:
         """
         Inicjalizuje układ PCA9685.
@@ -80,6 +81,7 @@ class PCA9685:
         self.calib_ch = calib_ch
         self.calib_gpio = calib_gpio
         self.oe_pin = oe_pin
+        self.FAILSAFE_TIMEOUT = failsafe_timeout
         self._last_error_time = 0.0
         self._error_msg_cooldown = 5.0
         self.logger = logger or logging.getLogger(__name__)

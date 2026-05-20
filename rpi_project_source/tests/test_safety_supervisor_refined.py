@@ -62,8 +62,8 @@ class TestSafetySupervisorRefined(unittest.TestCase):
             "battery": {"voltage": 10.0},  # Critical < 10.5
         }
         state = self.supervisor.update(sensor_data)
-        self.assertEqual(state, SafetyState.RTH)
-        self.assertIn("Low battery", self.supervisor.reason)
+        self.assertEqual(state, SafetyState.BATTERY_LIMIT)
+        self.assertIn("CRITICAL Battery", self.supervisor.reason)
 
     def test_fault_injection(self):
         self.supervisor.inject_fault("force_stop", True)

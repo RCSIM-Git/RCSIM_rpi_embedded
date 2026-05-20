@@ -69,7 +69,7 @@ class TestSafetySupervisor(unittest.TestCase):
             "battery": {"voltage": 10.0},  # < 10.5V
         }
         state = self.supervisor.update(sensor_data)
-        self.assertEqual(state, SafetyState.RTH)
+        self.assertEqual(state, SafetyState.BATTERY_LIMIT)
 
 
 if __name__ == "__main__":

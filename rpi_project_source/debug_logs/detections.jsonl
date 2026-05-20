@@ -1,3 +1,0 @@
-{"timestamp": 1708360000.0, "iso_time": "2024-02-19T10:00:00", "image_file": "snapshot_1.jpg", "detections": [{"class_name": "person", "conf": 0.95, "bbox": [0.4, 0.4, 0.6, 0.8]}, {"class_name": "car", "conf": 0.88, "bbox": [0.1, 0.2, 0.3, 0.4]}]}
-{"timestamp": 1708360005.0, "iso_time": "2024-02-19T10:00:05", "image_file": "snapshot_2.jpg", "detections": [{"class_name": "person", "conf": 0.92, "bbox": [0.42, 0.41, 0.62, 0.81]}]}
-{"timestamp": 1708360010.0, "iso_time": "2024-02-19T10:00:10", "image_file": "snapshot_3.jpg", "detections": []}

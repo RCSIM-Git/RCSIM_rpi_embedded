@@ -22,6 +22,7 @@ class SafetyState(Enum):
     RTH = "RTH"
     CRITICAL = "CRITICAL"
     STORAGE_LOW = "STORAGE_LOW"
+    BATTERY_LIMIT = "BATTERY_LIMIT"
 
 
 class SafetySupervisor:
@@ -38,9 +39,13 @@ class SafetySupervisor:
         self.stop_dist_m = safety_cfg.get("emergency_stop_dist_m", 0.3)
         self.avoid_dist_m = safety_cfg.get("avoid_dist_m", 0.8)
         self.impact_g_threshold = safety_cfg.get("impact_g_threshold", 5.0)
-        self.critical_battery_v = safety_cfg.get(
-            "critical_battery_v", 6.0
-        )  # for 2S Lipo
+        self.critical_battery_v = safety_cfg.get("critical_battery_v", 6.8)
+        self.warning_battery_v = safety_cfg.get("warning_battery_v", 7.2)
+        self.battery_failsafe_reaction = safety_cfg.get("battery_failsafe_reaction", "limit_power")
+        self.battery_throttle_limit_us = safety_cfg.get("battery_throttle_limit_us", 1750)
+        
+        # Obliczenie procentowego limitu (zakładając 1500 = 0, 2000 = 1.0)
+        self.battery_throttle_limit_pct = max(0.0, (self.battery_throttle_limit_us - 1500) / 500.0)
 
         # [NEW] [SAFETY-007] Dynamic Speed Scaling Factors
         self.thermal_throttle_mult = 1.0
@@ -116,21 +121,39 @@ class SafetySupervisor:
         ]:
             voltage = battery.get("voltage", 6.5)
             if voltage < self.critical_battery_v:
-                new_state = SafetyState.RTH
-                self.reason = f"Low battery: {voltage:.2f}V"
+                if self.battery_failsafe_reaction == "stop":
+                    new_state = SafetyState.STOP
+                    self.reason = f"CRITICAL Battery: {voltage:.2f}V -> STOP"
+                elif self.battery_failsafe_reaction == "rth":
+                    new_state = SafetyState.RTH
+                    self.reason = f"CRITICAL Battery: {voltage:.2f}V -> RTH"
+                else:
+                    new_state = SafetyState.BATTERY_LIMIT
+                    self.reason = f"CRITICAL Battery: {voltage:.2f}V -> LIMIT POWER"
 
-        # 4. Check System Critical & [SAFETY-007] Thermal Throttling
-        system = sensor_data.get("system")
-        if system and new_state != SafetyState.CRITICAL:
-            temp = system.get("cpu_temp", 0.0)
-            if temp > 85.0:
-                new_state = SafetyState.CRITICAL
-                self.reason = f"CRITICAL: CPU Temp {temp:.1f}C"
-            elif temp > 75.0:
-                # Linear throttle reduction from 100% at 75C down to 20% at 85C
-                self.thermal_throttle_mult = max(0.2, 1.0 - (temp - 75.0) / 10.0)
-                if self.thermal_throttle_mult < 0.9:
-                    self.reason = f"Thermal Throttling: {temp:.1f}C (Max Speed {self.thermal_throttle_mult*100:.0f}%)"
+        # 4. Zewnętrzna ochrona termiczna (ESC & Silnik) - Placeholder
+        # Usunięto zależność od temperatury CPU RPi (Dynamic CPU-ESC Thermal Throttling została wyłączona).
+        # Jeśli w przyszłości dostępny będzie zewnętrzny czujnik temperatury w sensor_data,
+        # poniższa logika może chronić ESC i/lub Silnik przed przegrzaniem:
+        #
+        # esc_temp: float | None = sensor_data.get("esc_temp")
+        # motor_temp: float | None = sensor_data.get("motor_temp")
+        #
+        # # Przykład wdrożenia ochrony termicznej ESC:
+        # if esc_temp is not None:
+        #     if esc_temp > 95.0:  # Próg krytyczny w stopniach Celsjusza
+        #         new_state = SafetyState.CRITICAL
+        #         self.reason = f"CRITICAL: ESC Temp {esc_temp:.1f}C"
+        #     elif esc_temp > 80.0:  # Liniowy throttling od 80C do 95C
+        #         self.thermal_throttle_mult = max(0.1, 1.0 - (esc_temp - 80.0) / 15.0)
+        #         if self.thermal_throttle_mult < 0.9:
+        #             self.reason = f"ESC Thermal Throttling: {esc_temp:.1f}C (Max Speed {self.thermal_throttle_mult*100:.0f}%)"
+        #
+        # # Przykład wdrożenia ochrony termicznej Silnika:
+        # if motor_temp is not None and new_state != SafetyState.CRITICAL:
+        #     if motor_temp > 85.0:
+        #         new_state = SafetyState.CRITICAL
+        #         self.reason = f"CRITICAL: Motor Temp {motor_temp:.1f}C"
 
         # 5. Check AI Performance & [SAFETY-007] FPS Throttling
         ai_status = sensor_data.get("ai_status")
@@ -168,6 +191,7 @@ class SafetySupervisor:
                     self.reason = "Link restored"
 
         # 7. Check Storage Usage (Stress Test #11)
+        system = sensor_data.get("system")
         storage = system.get("storage") if system else sensor_data.get("system", {}).get("storage")
         if storage and new_state not in [SafetyState.STOP, SafetyState.CRITICAL]:
             used_pct = storage.get("used_pct", 0.0)
@@ -205,6 +229,13 @@ class SafetySupervisor:
         if self.state == SafetyState.AVOID:
             # In AVOID state, we limit throttle further
             return steering, min(effective_throttle, 0.25)
+
+        if self.state == SafetyState.BATTERY_LIMIT:
+            if effective_throttle > self.battery_throttle_limit_pct:
+                effective_throttle = self.battery_throttle_limit_pct
+            elif effective_throttle < -self.battery_throttle_limit_pct:
+                effective_throttle = -self.battery_throttle_limit_pct
+            return steering, effective_throttle
 
         return steering, effective_throttle
 

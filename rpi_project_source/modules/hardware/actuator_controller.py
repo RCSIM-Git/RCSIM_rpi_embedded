@@ -128,6 +128,10 @@ class ActuatorController:
         pca_config = self.config.get("pca9685", {})
         freq = pca_config.get("frequency", 50)
 
+        # V39.12: Dynamiczny timeout watchdoga zsynchronizowany z GCS
+        wd_ms = self.config.get("watchdog_timeout_ms", 500)
+        failsafe_timeout_s = wd_ms / 1000.0
+
         try:
             self.pca = PCA9685(
                 i2c_bus=self.i2c,
@@ -139,6 +143,7 @@ class ActuatorController:
                 calib_ch=pca_config.get("calibration_channel", 15),
                 calib_gpio=pca_config.get("calibration_gpio", 17),
                 oe_pin=pca_config.get("oe_pin"),
+                failsafe_timeout=failsafe_timeout_s,
             )
 
             if self.pca.pca:

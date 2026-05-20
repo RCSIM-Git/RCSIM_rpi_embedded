@@ -147,6 +147,10 @@ class SensorAggregator:
                         logger.warning(f"Failed to read from IMU: {e}")
                         self._notified_failures.add("imu")
 
+            # Aplikacja kalibracji pokładowej / Apply onboard calibration
+            if sensor_data["imu"]:
+                self._apply_imu_calibration(sensor_data["imu"])
+
         # Wstrzykiwanie bezpiecznego bloku danych w razie uszkodzenia fizycznego IMU
         if not sensor_data["imu"]:
             sensor_data["imu"] = {
@@ -158,6 +162,10 @@ class SensorAggregator:
                 "gz": 0.0,
                 "temperature": 25.0,
             }
+
+        # Obliczenie szacowanej orientacji / Calculate estimated orientation
+        if sensor_data["imu"]:
+            self._update_imu_orientation(sensor_data["imu"])
 
         if self.gps:
             try:
@@ -200,6 +208,114 @@ class SensorAggregator:
 
         return sensor_data
 
+    def _apply_imu_calibration(self, imu_data: dict[str, Any]) -> None:
+        """
+        Aplikuje pokładowo parametry kalibracji IMU (zsynchronizowane z GCS i zapisane w config.json).
+        Applies onboard IMU calibration parameters (synced from GCS and saved in config.json).
+        """
+        calib = self.config.get("imu_calibration", {})
+        if not calib:
+            return
+
+        # Gyro Bias Calibration
+        if "gx" in imu_data and imu_data["gx"] is not None:
+            imu_data["gx"] = float(imu_data["gx"]) - calib.get("gyro_bias_x", 0.0)
+        if "gy" in imu_data and imu_data["gy"] is not None:
+            imu_data["gy"] = float(imu_data["gy"]) - calib.get("gyro_bias_y", 0.0)
+        if "gz" in imu_data and imu_data["gz"] is not None:
+            imu_data["gz"] = float(imu_data["gz"]) - calib.get("gyro_bias_z", 0.0)
+
+        # Accelerometer 6-position Calibration
+        if "ax" in imu_data and imu_data["ax"] is not None:
+            imu_data["ax"] = (
+                float(imu_data["ax"]) - calib.get("accel_offset_x", 0.0)
+            ) * calib.get("accel_scale_x", 1.0)
+        if "ay" in imu_data and imu_data["ay"] is not None:
+            imu_data["ay"] = (
+                float(imu_data["ay"]) - calib.get("accel_offset_y", 0.0)
+            ) * calib.get("accel_scale_y", 1.0)
+        if "az" in imu_data and imu_data["az"] is not None:
+            imu_data["az"] = (
+                float(imu_data["az"]) - calib.get("accel_offset_z", 0.0)
+            ) * calib.get("accel_scale_z", 1.0)
+
+        # Magnetometer Hard/Soft Iron Calibration
+        if "mx" in imu_data and imu_data["mx"] is not None:
+            imu_data["mx"] = (
+                float(imu_data["mx"]) - calib.get("mag_offset_x", 0.0)
+            ) * calib.get("mag_scale_x", 1.0)
+        if "my" in imu_data and imu_data["my"] is not None:
+            imu_data["my"] = (
+                float(imu_data["my"]) - calib.get("mag_offset_y", 0.0)
+            ) * calib.get("mag_scale_y", 1.0)
+        if "mz" in imu_data and imu_data["mz"] is not None:
+            imu_data["mz"] = (
+                float(imu_data["mz"]) - calib.get("mag_offset_z", 0.0)
+            ) * calib.get("mag_scale_z", 1.0)
+
+        # Oznacz jako skalibrowany / Mark as calibrated
+        imu_data["calibrated"] = True
+
+    def _update_imu_orientation(self, imu_data: dict[str, Any]) -> None:
+        """
+        Oblicza szacowaną orientację (pitch, roll)
+        przy użyciu szybkiego filtra komplementarnego.
+        Calculates estimated orientation (pitch, roll)
+        using a fast complementary filter.
+        """
+        import math
+        import time
+
+        now = time.time()
+        if not hasattr(self, "_last_orient_time"):
+            self._last_orient_time = now
+            self._pitch_est = 0.0
+            self._roll_est = 0.0
+
+        dt = now - self._last_orient_time
+        self._last_orient_time = now
+
+        # Zabezpieczenie przed zbyt dużym krokiem czasowym (np. pierwsza iteracja)
+        if dt <= 0.0 or dt > 0.5:
+            dt = 0.05  # Domyślny krok dla 20Hz
+
+        ax = imu_data.get("ax", 0.0)
+        ay = imu_data.get("ay", 0.0)
+        az = imu_data.get("az", 9.81)
+        gx = imu_data.get("gx", 0.0)
+        gy = imu_data.get("gy", 0.0)
+
+        if ax is None:
+            ax = 0.0
+        if ay is None:
+            ay = 0.0
+        if az is None:
+            az = 9.81
+        if gx is None:
+            gx = 0.0
+        if gy is None:
+            gy = 0.0
+
+        # Obliczenie kątów z akcelerometru (w stopniach)
+        try:
+            pitch_acc = math.atan2(ax, math.hypot(ay, az)) * (180.0 / math.pi)
+            roll_acc = math.atan2(-ay, az) * (180.0 / math.pi)
+        except Exception:
+            pitch_acc = 0.0
+            roll_acc = 0.0
+
+        # Przeliczenie żyroskopu z rad/s na stopnie/s
+        gx_deg = gx * (180.0 / math.pi)
+        gy_deg = gy * (180.0 / math.pi)
+
+        # Filtr komplementarny: 98% zintegrowanego żyroskopu + 2% z akcelerometru
+        self._pitch_est = 0.98 * (self._pitch_est + gy_deg * dt) + 0.02 * pitch_acc
+        self._roll_est = 0.98 * (self._roll_est + gx_deg * dt) + 0.02 * roll_acc
+
+        # Wstrzyknięcie obliczonych kątów do słownika IMU
+        imu_data["pitch"] = self._pitch_est
+        imu_data["roll"] = self._roll_est
+
     def calibrate_imu(self) -> bool:
         """Przekazanie instrukcji włączenia re-kalibracji żyroskopu na osi poziomej."""
         if self.imu:
@@ -216,31 +332,32 @@ class SensorAggregator:
         Attempts to reconnect missing sensors.
         """
         import time
+
         now = time.time()
         if now - self._last_reconnect_attempt < self.RECONNECT_INTERVAL:
             return
-            
+
         self._last_reconnect_attempt = now
-        
+
         # 1. IMU
         if self.imu is None:
             logger.info("Hot-plug: Attempting to reconnect IMU...")
             self._init_imu()
-            
+
         # 2. GPS
         if self.gps is None:
             gps_config = self.config.get("gps", {})
             if gps_config.get("enabled", False):
                 logger.info("Hot-plug: Attempting to reconnect GPS...")
                 self._init_gps()
-                
+
         # 3. LiDAR
         if self.lidar is None:
             lidar_config = self.config.get("lidar", {})
             if lidar_config.get("enabled", False):
                 logger.info("Hot-plug: Attempting to reconnect LiDAR...")
                 self._init_lidar()
-                
+
         # 4. UPS
         if self.ups is None:
             logger.info("Hot-plug: Attempting to reconnect UPS...")

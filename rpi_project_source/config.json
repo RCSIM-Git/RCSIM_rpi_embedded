@@ -33,7 +33,11 @@
             "calibration_channel": 15,
             "calibration_gpio": 17,
             "oe_pin": 27
-        }
+        },
+        "steering_min": 1000,
+        "steering_max": 2000,
+        "throttle_min": 1000,
+        "throttle_max": 2000
     },
     "camera": {
         "mode": "rtsp",
@@ -119,5 +123,23 @@
         "map_size_meters": 32.0,
         "scan_size": 360,
         "update_interval_s": 0.1
+    },
+    "gimbal": {
+        "enabled": true,
+        "p_gain": 1.0,
+        "pitch_channel": 4,
+        "roll_channel": 5,
+        "pitch_mode": "rate",
+        "roll_mode": "rate",
+        "pitch_speed_scale": 30.0,
+        "roll_speed_scale": 30.0,
+        "pitch_min_pulse": 1000,
+        "pitch_max_pulse": 2000,
+        "roll_min_pulse": 1000,
+        "roll_max_pulse": 2000,
+        "pitch_min_angle": -45.0,
+        "pitch_max_angle": 45.0,
+        "roll_min_angle": -45.0,
+        "roll_max_angle": 45.0
     }
 }

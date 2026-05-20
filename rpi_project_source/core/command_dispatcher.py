@@ -33,6 +33,7 @@ class CommandDispatcher:
         self.worker = worker
         self.logger = logging.getLogger("CommandDispatcher")
         self.path_assembler = BinaryPathAssembler()
+        self.last_processed_tx_time = 0.0
 
     def on_data_received(self, data: Any) -> None:
         """
@@ -125,12 +126,16 @@ class CommandDispatcher:
                 return
 
             if tx_time is not None:
+                if tx_time <= self.last_processed_tx_time:
+                    self.logger.debug(f"Odrzucono przestarzały pakiet binarny CT: tx_time={tx_time:.3f} <= last={self.last_processed_tx_time:.3f}")
+                    return
+                self.last_processed_tx_time = tx_time
                 w.last_pc_timestamp = tx_time
             else:
                 w.last_pc_timestamp = time.time()
 
-            # Priority Logic for AUTO mode
-            if w.comm_mode == "AUTO" and w.elrs_link_established:
+            # Priority Logic for HYBRID mode
+            if w.comm_mode == "HYBRID" and w.elrs_link_established:
                 # RF Link is dominant, ignore PC controls
                 return
 
@@ -176,9 +181,20 @@ class CommandDispatcher:
         if not w.pca_armed:
             return
         channels = msg.get("channels", [])
-        # Priority Logic for AUTO mode
-        if w.comm_mode == "AUTO" and w.elrs_link_established:
+        # Priority Logic for HYBRID mode
+        if w.comm_mode == "HYBRID" and w.elrs_link_established:
             return
+
+        t_pc = msg.get("t")
+        if t_pc is not None:
+            tx_time = float(t_pc)
+            if tx_time <= self.last_processed_tx_time:
+                self.logger.debug(f"Odrzucono przestarzały pakiet JSON control: t={tx_time:.3f} <= last={self.last_processed_tx_time:.3f}")
+                return
+            self.last_processed_tx_time = tx_time
+            w.last_pc_timestamp = tx_time
+        else:
+            w.last_pc_timestamp = time.time()
 
         if len(channels) >= 2 and w.hw_manager:
             s_min, s_max = w.hw_manager.actuators.steering_range
@@ -199,15 +215,6 @@ class CommandDispatcher:
                     ),
                 }
             }
-
-            t_pc = msg.get("t")
-            if t_pc is not None:
-                w.last_pc_timestamp = float(t_pc)
-            else:
-                # Jeśli nie ma 't', używamy czasu lokalnego RPi jako fallback,
-                # ale to spowoduje błąd pingu na PC (różnica zegarów).
-                # To zabezpieczenie na wypadek starych wersji GCS.
-                w.last_pc_timestamp = time.time()
 
             if w.current_mode == "FAILSAFE":
                 w.current_mode = "MANUAL"
@@ -319,7 +326,7 @@ class CommandDispatcher:
 
         elif cmd == "set_comm_mode":
             new_comm_mode = msg.get("mode")
-            if new_comm_mode in ["WEBRTC", "UDP"]:
+            if new_comm_mode in ["WEBRTC", "UDP", "HYBRID"]:
                 w._switch_comm_mode(new_comm_mode)
 
         elif cmd == "RESET_SAFETY":
@@ -327,6 +334,14 @@ class CommandDispatcher:
             w.safety_supervisor.reset_impact()
             if w.current_mode == "FAILSAFE":
                 w.current_mode = "MANUAL"
+
+        elif cmd == "VERSION_WARNING":
+            payload = msg.get("payload", {})
+            gcs_ver = payload.get("gcs_version", "unknown")
+            from core.version import APP_VERSION
+            self.logger.warning(
+                f"!!! Wykryto starszą wersję na pojeździe! GCS Wersja: {gcs_ver}, RPi Wersja: {APP_VERSION} !!!"
+            )
 
         elif cmd == "GO_TO":
             target = msg.get("target")

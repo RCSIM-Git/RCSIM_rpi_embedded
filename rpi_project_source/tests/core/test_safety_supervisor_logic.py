@@ -80,11 +80,11 @@ class TestSafetySupervisor(unittest.TestCase):
         self.assertEqual(state, SafetyState.STOP)
 
     def test_low_battery(self):
-        """Test low battery triggers RTH/Warning."""
+        """Test low battery triggers BATTERY_LIMIT."""
         # Critical is 10.0V
         sensor_data = {"battery": {"voltage": 9.5}}
         state = self.supervisor.update(sensor_data)
-        self.assertEqual(state, SafetyState.RTH)
+        self.assertEqual(state, SafetyState.BATTERY_LIMIT)
 
     def test_process_controls_normal(self):
         """Test control passthrough in NORMAL state."""

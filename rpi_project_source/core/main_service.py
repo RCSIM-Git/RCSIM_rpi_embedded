@@ -270,6 +270,7 @@ class TelemetryWorker(threading.Thread):
         current_speed = (
             math.hypot(dx, dy) / self.LOOP_TIME if self.LOOP_TIME > 0 else 0.0
         )
+        self.current_speed = current_speed
 
         # C. Mission Update
         if self.mission_manager and self.mission_manager.is_running:

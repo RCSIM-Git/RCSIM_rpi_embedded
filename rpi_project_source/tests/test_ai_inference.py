@@ -12,7 +12,7 @@ class TestAIInference(unittest.TestCase):
     def setUp(self):
         self.config = {
             "autonomous_navigation": {
-                "hef_path": "models/yolov11n.he",
+                "hef_path": "models/rcsimai.hef",
                 "debug_snapshots_enabled": False,
             },
             "yolo_params": {"conf_thres": 0.4, "iou_thres": 0.45},

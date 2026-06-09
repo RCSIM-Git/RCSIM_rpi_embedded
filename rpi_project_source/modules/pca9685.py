@@ -344,25 +344,38 @@ class PCA9685:
 
     def _measure_pulse_width(self, gpio_pin: int, timeout_s: float = 0.1) -> float:
         """
-        Mierzy czas trwania stanu wysokiego na pinie GPIO za pomocą przerwań.
-        Użycie wait_for_edge jest bardziej stabilne niż pętla while.
+        Mierzy czas trwania stanu wysokiego na pinie GPIO za pomocą precyzyjnego i odpornego na błędy odpytywania (polling).
+        Eliminuje problemy z zakleszczeniem i kolejkowaniem zdarzeń w bibliotece RPi.GPIO.
         """
-        try:
-            # 1. Czekaj na zbocze narastające (początek impulsu)
-            # Jeśli pin jest już HIGH, musimy poczekać aż spadnie i wzrośnie, 
-            # ale dla 50Hz (20ms) timeout 0.1s jest bezpieczny.
-            if GPIO.input(gpio_pin) == GPIO.HIGH:
-                GPIO.wait_for_edge(gpio_pin, GPIO.FALLING, timeout=int(timeout_s * 1000))
+        if not GPIO_AVAILABLE:
+            return 0.0
 
-            if GPIO.wait_for_edge(gpio_pin, GPIO.RISING, timeout=int(timeout_s * 1000)):
-                pulse_start = time.perf_counter()
-                # 2. Czekaj na zbocze opadające (koniec impulsu)
-                if GPIO.wait_for_edge(gpio_pin, GPIO.FALLING, timeout=int(timeout_s * 1000)):
-                    pulse_end = time.perf_counter()
-                    return (pulse_end - pulse_start) * 1_000_000
-        except Exception:
-            pass
+        try:
+            start_time = time.perf_counter()
+
+            # 1. Upewnij się, że zaczynamy od stanu NISKIEGO (czekaj aż ewentualny obecny impuls się skończy)
+            while GPIO.input(gpio_pin) == GPIO.HIGH:
+                if time.perf_counter() - start_time > timeout_s:
+                    return 0.0
+
+            # 2. Czekaj na zbocze narastające (początek impulsu)
+            while GPIO.input(gpio_pin) == GPIO.LOW:
+                if time.perf_counter() - start_time > timeout_s:
+                    return 0.0
+
+            pulse_start = time.perf_counter()
+
+            # 3. Czekaj na zbocze opadające (koniec impulsu)
+            while GPIO.input(gpio_pin) == GPIO.HIGH:
+                if time.perf_counter() - start_time > timeout_s:
+                    return 0.0
+
+            pulse_end = time.perf_counter()
+            return (pulse_end - pulse_start) * 1_000_000
+        except Exception as e:
+            self.logger.error(f"Error measuring pulse width on GPIO {gpio_pin}: {e}")
         return 0.0
+
 
     def check_failsafe(self) -> bool:
         """

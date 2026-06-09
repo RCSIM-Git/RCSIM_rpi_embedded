@@ -18,7 +18,7 @@ class TestAIManagerHailo(unittest.TestCase):
     def setUp(self):
         self.config = {
             "autonomous_navigation": {
-                "hef_path": "models/yolov11n.he",
+                "hef_path": "models/rcsimai.hef",
                 "classes": ["cone", "wall", "person"],
             }
         }

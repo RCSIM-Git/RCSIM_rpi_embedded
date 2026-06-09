@@ -36,6 +36,8 @@ services:
       - ./core:/app/core
       - ./logic:/app/logic
       - ./modules:/app/modules
+      - ./web_assets:/app/web_assets
+      - ./models:/app/models
       - /run/udev:/run/udev:ro
 
     healthcheck:

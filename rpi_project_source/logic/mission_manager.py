@@ -72,7 +72,7 @@ class MissionManager:
         if self.current_mission_item is None:
             if not self._next_item():
                 self.logger.info("Mission finished.")
-                self.stop()
+                self.stop_mission()
                 return
 
         # Check if current goal is reached
@@ -91,7 +91,7 @@ class MissionManager:
                         self._next_item()
                     else:
                         self.logger.info("Mission sequence complete.")
-                        self.stop()
+                        self.stop_mission()
             else:
                 # Ensure path is planned
                 if not self.nav_manager.current_path:

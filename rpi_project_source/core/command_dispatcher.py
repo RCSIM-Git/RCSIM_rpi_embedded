@@ -34,6 +34,7 @@ class CommandDispatcher:
         self.logger = logging.getLogger("CommandDispatcher")
         self.path_assembler = BinaryPathAssembler()
         self.last_processed_tx_time = 0.0
+        self.last_uploaded_waypoints = []
 
     def on_data_received(self, data: Any) -> None:
         """
@@ -167,6 +168,7 @@ class CommandDispatcher:
             if w.current_mode == "FAILSAFE":
                 w.current_mode = "MANUAL"
                 self.logger.info("Link recovered via Binary - Exiting FAILSAFE.")
+            w.link_established = True
             return
 
         except Exception as e:
@@ -219,6 +221,7 @@ class CommandDispatcher:
             if w.current_mode == "FAILSAFE":
                 w.current_mode = "MANUAL"
                 self.logger.info("Link recovered via JSON - Exiting FAILSAFE.")
+            w.link_established = True
 
     def handle_command(self, msg: dict[str, Any]) -> None:
         """
@@ -288,8 +291,12 @@ class CommandDispatcher:
                 w.hw_manager.calibrate_esc(channel=ch)
                 self.logger.info(f"CALIBRATE_ESC for Ch {ch} finished.")
 
-        elif cmd == "set_home":
-            w.home_position = msg.get("position")
+        elif cmd in ["set_home", "SET_HOME"]:
+            pos = msg.get("position")
+            if isinstance(pos, list) and len(pos) >= 2:
+                w.home_position = {"lat": pos[0], "lon": pos[1], "x": pos[0], "y": pos[1]}
+            else:
+                w.home_position = pos
             self.logger.info(f"Home position updated: {w.home_position}")
 
         elif cmd == "UPDATE_CONFIG":
@@ -368,16 +375,25 @@ class CommandDispatcher:
                 except Exception as e:
                     self.logger.error(f"Error handling GO_TO: {e}")
 
-        elif cmd == "START_PATROL":
-            waypoints = msg.get("waypoints")
-            loop = msg.get("loop", False)
+        elif cmd in ["START_MISSION", "START_PATROL"]:
+            payload = msg.get("payload", {}) if "payload" in msg else msg
+            loop = payload.get("loop", False) if isinstance(payload, dict) else False
+            waypoints = payload.get("waypoints") if isinstance(payload, dict) else None
+
+            if not waypoints and self.last_uploaded_waypoints:
+                waypoints = self.last_uploaded_waypoints
+
             if waypoints and w.mission_manager:
                 self.logger.info(
-                    f"COMMAND: START_PATROL received with {len(waypoints)} points."
+                    f"COMMAND: {cmd} received. Loop={loop}, Waypoints count={len(waypoints)}"
                 )
                 w.mission_manager.start_mission(waypoints, loop)
                 w.current_mode = "AUTONOMOUS"
+            else:
+                self.logger.warning(f"No waypoints available to start {cmd}.")
 
+        elif cmd == "STOP_MISSION":
+            if w.mission_manager:
                 w.mission_manager.stop_mission()
                 w.current_mode = "MANUAL"
                 self.logger.info("COMMAND: STOP_MISSION received.")
@@ -417,13 +433,9 @@ class CommandDispatcher:
 
         if waypoints:
             self.logger.info(
-                f"Binary path reassembled: {len(waypoints)} points. Starting mission."
+                f"Binary path reassembled: {len(waypoints)} points. Cached and ready to start."
             )
-            if w.mission_manager:
-                w.mission_manager.start_mission(
-                    waypoints, loop=False
-                )  # Domyślnie bez pętli
-                w.current_mode = "AUTONOMOUS"
+            self.last_uploaded_waypoints = waypoints
 
     def _handle_mavlink_packet(self, data: bytes) -> None:
         """

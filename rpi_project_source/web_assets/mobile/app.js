@@ -20,6 +20,10 @@ class CockpitApp {
         
         // Gamepad state
         this.gamepadIdx = null;
+        this.uiSteer = 0;
+        this.uiThrottle = 0;
+        this.joyLeft = null;
+        this.joyRight = null;
         
         // DOM Elements
         this.video = document.getElementById('camera-view');
@@ -39,16 +43,76 @@ class CockpitApp {
     async init() {
         this.setupEventListeners();
         this.setupGamepadDetection();
+        this.initJoysticks();
         await this.startWebRTC();
+        this.startVideo();
         this.startControlLoop();
         this.registerServiceWorker();
+    }
+
+    initJoysticks() {
+        const leftEl = document.getElementById('joy-left');
+        const rightEl = document.getElementById('joy-right');
+
+        // Throttle Joystick (Left - locked to Y-axis)
+        this.joyLeft = nipplejs.create({
+            zone: leftEl,
+            mode: 'static',
+            position: { left: '50%', top: '50%' },
+            color: 'rgba(255, 0, 85, 0.8)',
+            size: 100,
+            lockY: true
+        });
+
+        this.joyLeft.on('move', (evt, data) => {
+            if (data.direction) {
+                const maxDist = 50;
+                let val = Math.min(data.distance / maxDist, 1.0);
+                if (data.direction.y === 'down') {
+                    this.uiThrottle = -val;
+                } else if (data.direction.y === 'up') {
+                    this.uiThrottle = val;
+                }
+            }
+        });
+
+        this.joyLeft.on('end', () => {
+            this.uiThrottle = 0;
+        });
+
+        // Steering Joystick (Right - locked to X-axis)
+        this.joyRight = nipplejs.create({
+            zone: rightEl,
+            mode: 'static',
+            position: { left: '50%', top: '50%' },
+            color: 'rgba(0, 243, 255, 0.8)',
+            size: 100,
+            lockX: true
+        });
+
+        this.joyRight.on('move', (evt, data) => {
+            if (data.direction) {
+                const maxDist = 50;
+                let val = Math.min(data.distance / maxDist, 1.0);
+                if (data.direction.x === 'left') {
+                    this.uiSteer = -val;
+                } else if (data.direction.x === 'right') {
+                    this.uiSteer = val;
+                }
+            }
+        });
+
+        this.joyRight.on('end', () => {
+            this.uiSteer = 0;
+        });
     }
 
     setupEventListeners() {
         this.armBtn.addEventListener('click', () => this.toggleArm());
         
         document.getElementById('emergency-toggle').addEventListener('click', () => {
-            document.getElementById('joystick-zone').classList.toggle('hidden');
+            const joyZone = document.getElementById('joystick-zone');
+            joyZone.classList.toggle('hidden');
         });
 
         window.addEventListener('gamepadconnected', (e) => {
@@ -92,12 +156,6 @@ class CockpitApp {
             this.updateConnectionStatus(this.pc.connectionState === 'connected');
         };
 
-        this.pc.ontrack = (event) => {
-            if (event.track.kind === 'video') {
-                this.video.srcObject = event.streams[0];
-            }
-        };
-
         // Negotiation
         try {
             const offer = await this.pc.createOffer();
@@ -117,6 +175,47 @@ class CockpitApp {
         }
     }
 
+    async startVideo() {
+        try {
+            const videoPc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+            
+            videoPc.addTransceiver('video', { direction: 'recvonly' });
+            
+            videoPc.ontrack = (event) => {
+                if (event.track.kind === 'video') {
+                    this.video.srcObject = event.streams[0];
+                }
+            };
+            
+            const offer = await videoPc.createOffer();
+            await videoPc.setLocalDescription(offer);
+            
+            const signalingPort = 8889;
+            const whepUrl = `http://${window.location.hostname}:${signalingPort}/camera_ai/whep`;
+            
+            const response = await fetch(whepUrl, {
+                method: 'POST',
+                body: offer.sdp,
+                headers: { 'Content-Type': 'application/sdp' }
+            });
+            
+            if (response.ok) {
+                const answerSdp = await response.text();
+                await videoPc.setRemoteDescription(new RTCSessionDescription({
+                    type: 'answer',
+                    sdp: answerSdp
+                }));
+                console.log("WHEP Video Stream Connected successfully.");
+            } else {
+                console.warn("WHEP signaling response status not OK:", response.status);
+            }
+        } catch (e) {
+            console.error("WHEP Video Error:", e);
+        }
+    }
+
     updateConnectionStatus(connected) {
         this.isConnected = connected;
         if (connected) {
@@ -131,13 +230,19 @@ class CockpitApp {
     handleTelemetry(data) {
         try {
             const tele = JSON.parse(data);
-            if (tele.speed !== undefined) this.speedVal.innerText = tele.speed.toFixed(1);
-            if (tele.battery && tele.battery.voltage) this.battVal.innerText = tele.battery.voltage.toFixed(1);
-            if (tele.mode) this.modeText.innerText = tele.mode;
             
-            // Update PCA status
-            if (tele.pca_armed !== undefined) {
-                this.setArmedState(tele.pca_armed);
+            // Map short keys to long keys for compatibility
+            const speed = tele.sp !== undefined ? tele.sp : (tele.po ? Math.hypot(tele.po[0], tele.po[1]) : 0.0); 
+            const voltage = tele.bat ? tele.bat.voltage : (tele.battery ? tele.battery.voltage : 0.0);
+            const mode = tele.mo || tele.mode;
+            const armed = tele.arm !== undefined ? tele.arm : tele.pca_armed;
+
+            if (speed !== undefined) this.speedVal.innerText = speed.toFixed(1);
+            if (voltage !== undefined) this.battVal.innerText = voltage.toFixed(1);
+            if (mode) this.modeText.innerText = mode;
+            
+            if (armed !== undefined) {
+                this.setArmedState(armed);
             }
         } catch (e) {}
     }
@@ -196,6 +301,10 @@ class CockpitApp {
                     throttle = -pad.axes[1]; // Fallback to stick
                 }
             }
+        } else {
+            // Fallback to UI virtual joysticks
+            steer = this.uiSteer;
+            throttle = this.uiThrottle;
         }
 
         // Apply Deadzone

@@ -42,6 +42,7 @@ class TelemetryBuilder:
             "arm": w.pca_armed,
             "link": w.link_established,
             "sync": w.slam_frame_count,
+            "sp": getattr(w, "current_speed", 0.0),
         }
 
         # Navigation State

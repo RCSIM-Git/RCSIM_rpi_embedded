@@ -1,5 +1,5 @@
-# Base: Debian Bookworm Slim 
-FROM arm64v8/debian:bookworm-slim
+# Base: Debian Trixie Slim (Matches RPi 5 Debian 13 environment with Python 3.13)
+FROM arm64v8/debian:trixie-slim
 
 # Environment Variables
 ENV PIP_BREAK_SYSTEM_PACKAGES=1 \
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     wget \
     && wget -qO /etc/apt/trusted.gpg.d/raspi.asc http://archive.raspberrypi.com/debian/raspberrypi.gpg.key \
-    && echo "deb [trusted=yes] http://archive.raspberrypi.com/debian bookworm main" > /etc/apt/sources.list.d/raspi.list \
+    && echo "deb [trusted=yes] http://archive.raspberrypi.com/debian trixie main" > /etc/apt/sources.list.d/raspi.list \
     && apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     pkg-config \
@@ -32,6 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libvpx-dev \
     tar \
     git \
+    swig \
+    liblgpio-dev \
     python3 \
     python3-pip \
     python3-venv \
@@ -43,22 +45,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix PEP 668 to allow global pip installs in Docker
-RUN rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED || true
-
-# Inject manually downloaded HailoRT Python 3.11 Wheel for aarch64
-# (Since the public WordPress hailo.ai download links expire, the user must provide the wheel)
-COPY hailort*cp311*linux_aarch64.whl /tmp/
+RUN rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED || true
 
 # Force HailoRT 4.23.0 (matches newer RPi kernels)
-# First remove ghost 4.20.0 packages, install the 4.23 C++ library, then install the Python bindings
-RUN dpkg -r --force-depends python3-hailort hailort || true && \
-    wget -qO /tmp/hailort.deb http://archive.raspberrypi.com/debian/pool/main/h/hailort/hailort_4.23.0_arm64.deb && \
-    dpkg -i /tmp/hailort.deb && rm /tmp/hailort.deb && \
-    python3 -m pip install --break-system-packages /tmp/hailort*cp311*linux_aarch64.whl && \
-    rm /tmp/hailort*cp311*linux_aarch64.whl
+# Pyhailort Python bindings are installed natively from the Raspberry Pi APT repository
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    hailort \
+    python3-hailort \
+    && rm -rf /var/lib/apt/lists/*
 
 # Fix PEP 668 to allow global pip installs in Docker
-RUN rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED || true
+RUN rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED || true
 
 RUN git clone --depth 1 https://github.com/simondlevy/BreezySLAM.git /tmp/BreezySLAM && \
     cd /tmp/BreezySLAM/python && \

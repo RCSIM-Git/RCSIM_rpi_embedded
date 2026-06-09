@@ -59,7 +59,7 @@
         "fps": 30
     },
     "ai": {
-        "hef_path": "models/yolov11n.hef",
+        "hef_path": "models/rcsimai.hef",
         "input_size": [
             640,
             640

@@ -23,7 +23,7 @@ def run_logger(duration_s=60, output_dir="data/tubs"):
     config = {
         "camera": {"mode": "local", "resolution": [640, 480], "fps": 15},
         "ai": {
-            "hef_path": "models/yolov11n.he",
+            "hef_path": "models/rcsimai.hef",
             "classes": ["cone", "wall", "person", "car"],
         },
         "autonomous_navigation": {

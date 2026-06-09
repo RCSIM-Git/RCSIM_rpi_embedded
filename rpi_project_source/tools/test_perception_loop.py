@@ -49,7 +49,7 @@ def main():
         config = {
             "ai": {
                 "classes": ["cone", "wall"],
-                "hef_path": "models/yolov11n.he",
+                "hef_path": "models/rcsimai.hef",
                 "input_size": [640, 640],
             },
             "autonomous_navigation": {

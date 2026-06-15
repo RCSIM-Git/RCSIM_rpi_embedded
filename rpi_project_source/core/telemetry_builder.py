@@ -57,17 +57,20 @@ class TelemetryBuilder:
         if lidar_scan:
             distances_mm = [0] * 360
             for angle, dist in lidar_scan:
+                if dist is None:
+                    continue
                 try:
                     # [PLAN-007] Robust Casting & Clamping
-                    if dist is None:
-                        continue
-
-                    idx = int(angle % 360)
+                    idx = int(angle) % 360
                     dist_int = int(dist)
 
-                    if 0 <= idx < 360:
-                        # 65535 is max for 'H' (unsigned short)
-                        distances_mm[idx] = max(0, min(65535, dist_int))
+                    # Performance optimization: if/else is faster than max(0, min(65535, x))
+                    if dist_int < 0:
+                        distances_mm[idx] = 0
+                    elif dist_int > 65535:
+                        distances_mm[idx] = 65535
+                    else:
+                        distances_mm[idx] = dist_int
                 except (TypeError, ValueError):
                     # Skip invalid points (e.g. None or non-numeric)
                     continue

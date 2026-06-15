@@ -67,7 +67,11 @@ class TelemetryBuilder:
 
                     if 0 <= idx < 360:
                         # 65535 is max for 'H' (unsigned short)
-                        distances_mm[idx] = max(0, min(65535, dist_int))
+                        if dist_int < 0:
+                            dist_int = 0
+                        elif dist_int > 65535:
+                            dist_int = 65535
+                        distances_mm[idx] = dist_int
                 except (TypeError, ValueError):
                     # Skip invalid points (e.g. None or non-numeric)
                     continue

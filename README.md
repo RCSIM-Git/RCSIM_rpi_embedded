@@ -92,6 +92,38 @@ The onboard software is fully containerized, ensuring a reproducible environment
 
 ---
 
+## 🔌 Hardware Connections & Wiring Diagram
+
+To set up the physical RC car, connect your sensors, controllers, and peripherals to the Raspberry Pi 5 GPIO header according to the following diagram:
+
+### 1. I2C Bus Connections (PCA9685 & IMU GY-87/BMX160)
+The PWM controller and the IMU share the I2C bus (Pins 3 and 5).
+| Peripheral | Pin on Peripheral | Raspberry Pi 5 Pin / Name | Description |
+|---|---|---|---|
+| **PCA9685 (PWM)** | VCC | Pin 1 (3.3V) | Logic power supply |
+| **PCA9685 (PWM)** | GND | Pin 9 (GND) | Logic ground |
+| **PCA9685 (PWM)** | SDA | Pin 3 (GPIO 2 / SDA) | Data line |
+| **PCA9685 (PWM)** | SCL | Pin 5 (GPIO 3 / SCL) | Clock line |
+| **GY-87 IMU** | VCC | Pin 17 (3.3V) | Sensor power supply |
+| **GY-87 IMU** | GND | Pin 25 (GND) | Sensor ground |
+| **GY-87 IMU** | SDA | Pin 3 (GPIO 2 / SDA) | Shared Data line |
+| **GY-87 IMU** | SCL | Pin 5 (GPIO 3 / SCL) | Shared Clock line |
+
+*Note: Connect the Steering Servo to Channel 0 and the ESC (Electronic Speed Controller / Motor) to Channel 1 on the PCA9685.*
+
+### 2. Serial & USB Connections (GPS, LiDAR, RC/MAVLink Receiver)
+| Device | Pin / Port on Device | Raspberry Pi 5 Pin / Port | System Port | Description |
+|---|---|---|---|---|
+| **LC29H GPS** | TX | Pin 10 (GPIO 15 / RXD0) | `/dev/ttyAMA0` (UART0) | GPS telemetry RX |
+| **LC29H GPS** | RX | Pin 8 (GPIO 14 / TXD0) | `/dev/ttyAMA0` (UART0) | GPS configuration TX |
+| **CRSF / MAVLink** | TX | Pin 21 (GPIO 9 / RXD3) | `/dev/ttyAMA3` (UART3) | Telemetry / Control RX |
+| **CRSF / MAVLink** | RX | Pin 24 (GPIO 8 / TXD3) | `/dev/ttyAMA3` (UART3) | Telemetry / Control TX |
+| **LD08 LiDAR** | USB Connector | USB 2.0 / 3.0 Port | `/dev/rcsim/lidar` | Connected via USB-to-UART adapter |
+
+*Always verify your `config.json` serial port paths match the physical hardware configuration.*
+
+---
+
 ## 🔌 Connecting & Verifying Runtime Status
 
 ### 1. Connecting to the Raspberry Pi (via Terminal/CMD)

@@ -91,6 +91,38 @@ Oprogramowanie jest w pełni skonteneryzowane, co zapewnia powtarzalność środ
 
 ---
 
+## 🔌 Połączenia Sprzętowe i Schemat Kabli
+
+Aby poprawnie skonfigurować fizyczny pojazd, podłącz czujniki, kontrolery i urządzenia peryferyjne do złącza GPIO Raspberry Pi 5 zgodnie z poniższym schematem:
+
+### 1. Połączenia magistrali I2C (PCA9685 & IMU GY-87/BMX160)
+Sterownik PWM oraz IMU dzielą wspólnie magistralę I2C (Piny 3 i 5).
+| Urządzenie | Pin urządzenia | Pin Raspberry Pi 5 / Nazwa | Opis |
+|---|---|---|---|
+| **PCA9685 (PWM)** | VCC | Pin 1 (3.3V) | Zasilanie układu logicznego |
+| **PCA9685 (PWM)** | GND | Pin 9 (GND) | Masa układu logicznego |
+| **PCA9685 (PWM)** | SDA | Pin 3 (GPIO 2 / SDA) | Linia danych |
+| **PCA9685 (PWM)** | SCL | Pin 5 (GPIO 3 / SCL) | Linia zegarowa |
+| **GY-87 IMU** | VCC | Pin 17 (3.3V) | Zasilanie czujnika |
+| **GY-87 IMU** | GND | Pin 25 (GND) | Masa czujnika |
+| **GY-87 IMU** | SDA | Pin 3 (GPIO 2 / SDA) | Współdzielona linia danych |
+| **GY-87 IMU** | SCL | Pin 5 (GPIO 3 / SCL) | Współdzielona linia zegarowa |
+
+*Uwaga: Podłącz serwo skrętu do kanału 0, a regulator ESC (silnik napędowy) do kanału 1 sterownika PCA9685.*
+
+### 2. Połączenia szeregowe i USB (GPS, LiDAR, Odbiornik RC/MAVLink)
+| Urządzenie | Pin / Port urządzenia | Pin / Port Raspberry Pi 5 | Port systemowy | Opis |
+|---|---|---|---|---|
+| **GPS LC29H** | TX | Pin 10 (GPIO 15 / RXD0) | `/dev/ttyAMA0` (UART0) | Odbiór telemetrii GPS (RX) |
+| **GPS LC29H** | RX | Pin 8 (GPIO 14 / TXD0) | `/dev/ttyAMA0` (UART0) | Wysyłanie konfiguracji GPS (TX) |
+| **CRSF / MAVLink** | TX | Pin 21 (GPIO 9 / RXD3) | `/dev/ttyAMA3` (UART3) | Odbiór sterowania i telemetrii (RX) |
+| **CRSF / MAVLink** | RX | Pin 24 (GPIO 8 / TXD3) | `/dev/ttyAMA3` (UART3) | Wysyłanie telemetrii (TX) |
+| **LiDAR LD08** | Złącze USB | Port USB 2.0 / 3.0 | `/dev/rcsim/lidar` | Podpięty przez przejściówkę USB-to-UART |
+
+*Zawsze upewnij się, że ścieżki portów szeregowych w pliku `config.json` odpowiadają fizycznej konfiguracji sprzętowej.*
+
+---
+
 ## 🔌 Połączenie i Weryfikacja Statusu Działania
 
 ### 1. Połączenie z Raspberry Pi (przez Terminal/CMD)

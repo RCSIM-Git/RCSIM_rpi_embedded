@@ -1,5 +1,5 @@
-# MediaMTX Configuration for RCSIM - Native RPi Camera Mode
-# Using built-in rpiCamera source (stable approach from working version)
+# MediaMTX Configuration for RCSIM - WebRTC-focused Setup
+# Lower latency and minimal processing for best PC VR performance
 
 logLevel: info
 logDestinations: [stdout]

@@ -1,5 +1,5 @@
 {
-    "pc_ip": "100.91.21.9",
+    "pc_ip": "",
     "main_loop_freq_hz": 20,
     "comm_mode": "AUTO",
     "comm_protocol": "MAVLINK",
@@ -7,11 +7,11 @@
     "system_id": 10,
     "ntrip": {
         "enabled": true,
-        "user": "gonzo94pl",
-        "password": "50415041",
-        "host": "system.asgeupos.pl",
-        "port": 2101,
-        "mountpoint": "RTN4G_VRS_RTCM32"
+        "user": "[EMAIL_ADDRESS]",
+        "password": "[PASSWORD]",
+        "host": "[IP_ADDRESS]",
+        "port": ,
+        "mountpoint": ""
     },
     "hardware": {
         "imu": {

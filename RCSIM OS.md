@@ -1,4 +1,4 @@
-Aby stworzyć własny, spersonalizowany obraz systemu operacyjnego (**Custom OS Image / RCSIM OS**) na bazie kodu i konfiguracji znajdujących się w katalogu `C:\Users\Mateusz\Desktop\RCSIM27.04monacoSLAM\RCSIM_RPI`, musisz przejść przez proces przygotowania systemu na karcie SD, wdrożenia aplikacji kontenerowej RCSIM, a następnie zrzucenia i skompresowania tego systemu do pliku `.img`. 
+Aby stworzyć własny, spersonalizowany obraz systemu operacyjnego (**Custom OS Image / RCSIM OS**) na bazie kodu i konfiguracji znajdujących się w katalogu `/RCSIM_RPI`, musisz przejść przez proces przygotowania systemu na karcie SD, wdrożenia aplikacji kontenerowej RCSIM, a następnie zrzucenia i skompresowania tego systemu do pliku `.img`. 
 
 Poniżej znajduje się kompletna instrukcja krok po kroku, jak to zrobić.
 
@@ -13,7 +13,7 @@ Aplikacja wdrożeniowa RCSIM dla Raspberry Pi 5 działa w oparciu o konteneryzac
    * **Urządzenie:** Raspberry Pi 5
    * **System operacyjny:** Raspberry Pi OS (64-bit) (wersja Bookworm lub najnowsza kompatybilna z Pythonem 3.13)
 4. Kliknij ikonę zębatki (Ustawienia zaawansowane) i skonfiguruj:
-   * **Nazwę hosta** (np. `rcsim-node`)
+   * **Nazwę hosta** (np. `rcsim`)
    * **Włącz SSH** (wybierz uwierzytelnianie hasłem lub kluczem publicznym)
    * **Użytkownika i hasło** (np. użytkownik: `pi`)
    * **Konfigurację sieci bezprzewodowej WiFi** (SSID i hasło, aby urządzenie połączyło się z siecią po starcie)
@@ -27,7 +27,7 @@ Teraz musisz wgrać i uruchomić kod ze swojego folderu deweloperskiego `RCSIM_R
 #### Opcja A: Automatycznie przez RCSIM Deployment Tool (Zalecana)
 1. Uruchom narzędzie **RCSIM RPi5 Deployment Tool** na komputerze PC (skrypt `RCsimRPi5deploymentapp.py` lub skompilowany plik `.exe` z folderu `RCSIM_deployment_tool`).
 2. W sekcji **Source Directory** wskaż ścieżkę do plików źródłowych RPi:
-   `C:\Users\Mateusz\Desktop\RCSIM27.04monacoSLAM\RCSIM_RPI\RCSIM_rpi_embedded\rpi_project_source`
+   `RCSIM_RPI\RCSIM_rpi_embedded\rpi_project_source`
 3. Podaj adres IP przydzielony Twojemu Raspberry Pi przez router oraz dane logowania SSH.
 4. Kliknij **START DEPLOYMENT**. Narzędzie automatycznie:
    * Zainstaluje Dockera i Docker Compose na Raspberry Pi.
@@ -97,31 +97,9 @@ Narzędzie usunie niewykorzystane sektory i ustawi flagę automatycznego rozszer
 ---
 
 ### KROK 6: Dystrybucja i Flashowanie
-Twój własny, dedykowany system operacyjny jest gotowy. Teraz możesz wgrać go na dowolną kartę SD dokładnie według kroków, które opisałeś:
+Twój własny, dedykowany system operacyjny jest gotowy. Teraz możesz wgrać go na dowolną kartę SD dokładnie według kroków:
+
 1. Otwórz **Raspberry Pi Imager**.
 2. Jako system operacyjny wybierz **Custom Image** (Własny obraz) i wskaż stworzony plik `RCSIM_OS.img`.
 3. Wybierz kartę SD i kliknij **WRITE**.
 4. Po wgraniu dodaj swoje pliki konfiguracyjne do partycji rozruchowej w folderze `config`.
-
-
-
-
-Open Raspberry Pi Imager
-
-Regarding RPI model - just leave it
-
-Choose Operating system - select last options - custom image
-
-Select image of RCSIM OS (file ending .img you downloaded in step 2)
-
-Select a disk to flush - your SD Card
-
-Follow on screen instructions and flush SD card
-
-Add your configuration files to the RCSIM_OS partition on SD card (config directory)
-
-Turn on the device and wait 60sec - if you personalized OS image (Wifi, hostname, etc) you will need to power cycle the device to apply OS changes.
-
-Turn on the device again and check what version you have via the menu Diagnostics → System info
-
-Go RUN !!

@@ -1,69 +1,60 @@
-# Instrukcja Wdrożenia Docker na Raspberry Pi (RCSIM)
+# Docker Deployment Guide on Raspberry Pi (RCSIM)
 
-Ten dokument opisuje, jak zbudować i uruchomić aplikację RCSIM na Raspberry Pi przy użyciu Dockera.
+This document describes how to build and run the RCSIM application on a Raspberry Pi using Docker.
 
-## Wymagania
+## Prerequisites
 
-Na Raspberry Pi muszą być zainstalowane:
-- **Docker**: `curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh`
-- **Docker Compose**: Zazwyczaj jest wtyczką do Dockera (`docker compose`).
+The following software must be installed on your Raspberry Pi:
+- **Docker**: Install using: `curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh`
+- **Docker Compose**: Usually comes pre-installed as a Docker plugin (`docker compose`).
 
-## Struktura Katalogów
+## Directory Structure
 
-Upewnij się, że masz następującą strukturę na RPi (katalog `RCSIMDEPLOY`):
+Ensure the following directory structure is set up on the Raspberry Pi:
 
 ```text
-RCSIMDEPLOY/
+rpi_project_source/
 ├── docker-compose.yml
-└── RPI_RCSIM_MobileStation/
-    ├── Dockerfile
-    ├── requirements.txt
-    ├── core/
-    │   ├── supervisor.py
-    │   └── ...
+├── Dockerfile
+├── requirements.txt
+├── core/
+│   ├── supervisor.py
+│   └── ...
+└── modules/
     └── ...
 ```
 
-## Uruchomienie
+## Running the Application
 
-1. **Przejdź do katalogu**:
+1. **Navigate to the deployment directory**:
    ```bash
-   cd RCSIMDEPLOY
+   cd rpi_project_source
    ```
 
-2. **Zbuduj i uruchom kontenery**:
-   Użyj polecenia `docker compose up` z flagą `--build`, aby wymusić przebudowanie obrazu po zmianach w kodzie.
+2. **Build and start the containers**:
+   Use the `docker compose up` command with the `--build` flag to force a rebuild of the image after code modifications.
    ```bash
    docker compose up --build -d
    ```
-   - `-d`: Uruchamia w tle (detached setup).
+   - `-d`: Runs the containers in the background (detached mode).
 
-3. **Podgląd logów**:
+3. **View application logs**:
    ```bash
    docker compose logs -f
    ```
 
-4. **Zatrzymanie**:
+4. **Stop the containers**:
    ```bash
    docker compose down
    ```
 
-## Notatki Techniczne
+## Technical Notes
 
-- **Uprawnienia Sprzętowe**: Kontener działa w trybie `privileged: true` i `network_mode: "host"`, co jest wymagane do dostępu do GPIO, I2C, kamery i portów szeregowych.
-- **Audio**: Zainstalowano `portaudio19-dev` oraz `pulse/alsa` libs w obrazie, aby obsłużyć mikrofon/głośnik. Upewnij się, że na hoście (RPi) audio nie jest zablokowane przez inny proces.
-- **WebRTC**: Porty UDP są dynamiczne, ale dzięki `network_mode: "host"` nie trzeba ich ręcznie mapować.
+- **Hardware Permissions**: The container runs in `privileged: true` and `network_mode: "host"` modes, which are required for direct access to the GPIO pins, I2C bus, camera interface, and serial ports.
+- **Audio Support**: The container image has `portaudio19-dev` and `pulse/alsa` libraries installed to support microphone and speaker feedback. Ensure that audio on the host OS is not blocked by another process.
+- **WebRTC**: UDP ports are dynamic, but thanks to `network_mode: "host"`, manual port forwarding is not necessary.
 
-## Rozwiązywanie Problemów
+## Troubleshooting
 
-- **Błąd "ModuleNotFoundError"**: Upewnij się, że skopiowałeś wszystkie pliki `core` z PC do `rpi_project_source/core`.
-- **Błąd Audio**: Sprawdź, czy użytkownik na RPi należy do grupy `audio`.
-
-
-
-
-cd ~/rpi_project_source
-chmod +x install-rtsp-service.sh
-sudo ./install-rtsp-service.sh
-sudo docker compose build
-sudo docker compose up -d
+- **"ModuleNotFoundError"**: Ensure you have copied all files from the `core` folder into `rpi_project_source/core`.
+- **Audio Interface Issues**: Verify that the SSH user on the Raspberry Pi belongs to the `audio` group.

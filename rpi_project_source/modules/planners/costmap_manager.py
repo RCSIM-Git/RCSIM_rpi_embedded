@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Menadżer Mapy Kosztów (CostmapManager)
-Zarządza globalną siatką occupancy grid, aktualizuje ją danymi LiDAR oraz YOLO
-oraz oblicza transformatę dystansu (Distance Transform).
+Zarządza globalną siatką occupancy grid, aktualizuje ją danymi LiDAR i oblicza transformatę dystansu (Distance Transform).
 
 Separated from local_planner.py.
 """

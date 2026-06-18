@@ -10,7 +10,7 @@
         "user": "[EMAIL_ADDRESS]",
         "password": "[PASSWORD]",
         "host": "[IP_ADDRESS]",
-        "port": ,
+        "port": null,
         "mountpoint": ""
     },
     "hardware": {

@@ -2,7 +2,7 @@
 """
 Local Planner - Fasada Planowania Lokalnego (RPi).
 
-Ten moduł zarządza fuzją danych z sensorów (LiDAR, YOLO) oraz udostępnia
+Ten moduł zarządza fuzją danych z sensorów (LiDAR) oraz udostępnia
 interfejsy dla różnych algorytmów sterowania i omijania przeszkód.
 Użytkuje CostmapManager do zarządzania mapą zajętości.
 """
@@ -83,7 +83,7 @@ class LocalPlanner:
     ) -> None:
         """
         Zaktualizowanie mapy zajętości z fuzją wielu źródeł.
-        Dla modeli E2E (bez YOLO), detekcje są ignorowane.
+        Dla modeli E2E, detekcje są ignorowane.
         """
         self.update_occupancy(pose, lidar_points, imu_orientation)
 

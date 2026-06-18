@@ -1,42 +1,42 @@
-# Instrukcja Testowania - Naprawiony Deployment
+# Testing Guide - Fixed Deployment
 
-## Co zostało naprawione?
+## What was fixed?
 
-Wprowadzono **3 kluczowe poprawki** diagnostyczne, które pomogą zidentyfikować przyczynę błędu "DEPLOYMENT FAILED (Code: 1)":
+We have introduced **3 key diagnostic improvements** to help identify the root cause of the "DEPLOYMENT FAILED (Code: 1)" error:
 
-### 1️⃣ Ulepszony entrypoint.sh
-- Dodano testy weryfikacyjne przed startem aplikacji
-- Sprawdzanie czy PySide6 importuje się poprawnie
-- Czytelne komunikaty błędów
+### 1️⃣ Improved entrypoint.sh
+- Added verification tests before the application starts.
+- Checks if PySide6 imports correctly.
+- Provides human-readable error messages.
 
-### 2️⃣ Weryfikacja w Dockerfile
-- Build zatrzyma się jeśli PySide6 nie zainstaluje się poprawnie
-- Fail-fast approach - wcześniejsze wykrycie problemów
+### 2️⃣ Dockerfile Verification
+- The build process will abort immediately if PySide6 fails to install.
+- Fail-fast approach to catch issues early.
 
-### 3️⃣ Lepsza diagnostyka w deployment_logic.py
-- Automatyczne pobieranie logów kontenera przy błędzie
-- Sprawdzanie czy kontener rzeczywiście działa
+### 3️⃣ Better Diagnostics in deployment_logic.py
+- Automatically retrieves container logs on failure.
+- Verifies if the container is actively running.
 
 ---
 
-## Jak Przetestować?
+## How to Test?
 
-### Krok 1: Uruchom RCSIM Deployment Tool
+### Step 1: Run the RCSIM Deployment Tool
 ```bash
-cd "Aplikacja DEPLOYMENT"
+cd RCSIM_deployment_tool/RCSIM_deployment_tool
 python RCsimRPi5deploymentapp.py
 ```
 
-### Krok 2: Wprowadź Dane i Deploy
-1. **Tailscale IP RPi:** (np. 100.x.x.x)
-2. **SSH User:** (np. pi)
-3. **SSH Password:** (hasło do RPi)
-4. **Kliknij:** "Deploy to Raspberry Pi"
+### Step 2: Enter Details and Deploy
+1. **RPi Tailscale IP:** (e.g., 100.x.x.x)
+2. **SSH User:** (e.g., pi)
+3. **SSH Password:** (the password for your RPi)
+4. **Click:** "Deploy to Raspberry Pi"
 
-### Krok 3: Obserwuj Logi
-Teraz zobaczysz **dużo więcej informacji**:
+### Step 3: Observe the Logs
+You will now see **much more detail**:
 
-#### ✅ Scenariusz Sukcesu:
+#### ✅ Success Scenario:
 ```
 [ENTRYPOINT] Starting RCSIM Container...
 [ENTRYPOINT] Python version: Python 3.11.x
@@ -47,87 +47,84 @@ Teraz zobaczysz **dużo więcej informacji**:
 --- DEPLOYMENT COMPLETED SUCCESSFULLY! ---
 ```
 
-#### ❌ Scenariusz Błędu - Otrzymasz Szczegóły:
+#### ❌ Error Scenario - Detailed output:
 ```
 [ENTRYPOINT] ERROR: PySide6 import failed!
 ModuleNotFoundError: No module named 'PySide6.QtCore'
 ```
-lub
+or
 ```
 ✗ Container NOT running. Fetching error logs...
-[szczegółowe logi z kontenera - ostatnie 50 linii]
+[detailed container logs - last 50 lines]
 ERROR: Container failed to start!
 ```
 
 ---
 
-## Co Zrobić Dalej?
+## What to Do Next?
 
-### A) Jeśli Deployment Zakończy Się Sukcesem ✅
-Świetnie! System działa. Możesz:
-- Uruchomić RCSIM PC App i połączyć się z robotem
-- Sprawdzić telemetrię i video stream
+### A) If Deployment Completes Successfully ✅
+Excellent! The system is operational. You can now:
+- Launch the RCSIM PC App and connect to the robot.
+- Verify the telemetry and video stream.
 
-### B) Jeśli Dostaniesz Błąd ❌
-**Skopiuj CAŁY output z okna deployment (logi)** i:
-1. Otwórz plik `RCSIMDEPLOY/DEBUG_DEPLOYMENT.md` 
-2. Przeczytaj sekcję "Możliwe Przyczyny Błędu"
-3. Znajdź sekcję pasującą do Twojego błędu
-
-**LUB** prześlij mi logi - będę mógł dalej diagnozować.
+### B) If You Encounter an Error ❌
+**Copy the ENTIRE output from the deployment logs window** and:
+1. Review the troubleshooting section in `docs/README_DOCKER.md`.
+2. Or send the logs to the lead developer for further debugging.
 
 ---
 
-## Szybka Diagnostyka Manualna (SSH)
+## Quick Manual Diagnostics (SSH)
 
-Jeśli chcesz zobaczyć co się dzieje na RPi:
+If you need to check the status directly on the Raspberry Pi:
 
 ```bash
-# Połącz się z RPi
-ssh twoj_user@rpi_tailscale_ip
+# Connect to the RPi
+ssh username@rpi_tailscale_ip
 
-# Sprawdź status kontenera
+# Check container status
 docker ps -a
 
-# Zobacz logi kontenera
+# View container logs
 docker logs rcsim_industrial
 
-# Jeśli kontener nie działa - zobacz ostatnie 100 linii
+# If the container crashed, view the last 100 lines
 docker logs --tail 100 rcsim_industrial
 ```
 
 ---
 
-## FAQ - Najczęstsze Problemy
+## FAQ - Common Issues
 
-### Q: Build przeszedł, ale kontener nie startuje
-**A:** To najprawdopodobniej problem z PySide6 lub brakiem bibliotek systemowych Qt.  
-Zobacz sekcję "Problem z PySide6 na ARM64" w `DEBUG_DEPLOYMENT.md`
+### Q: The build succeeded, but the container doesn't start.
+**A:** This is likely an issue with PySide6 or missing system Qt libraries on the host OS.  
+Refer to the troubleshooting notes in `docs/README_DOCKER.md`.
 
 ### Q: "ERROR: PySide6 import failed during build!"
-**A:** PySide6 nie zainstalowało się z pip. Możliwe rozwiązania:
-1. Sprawdź połączenie z `piwheels.org`
-2. Rozważ instalację systemową: `python3-pyside6.qtcore`
+**A:** PySide6 was not installed correctly from pip. Possible workarounds:
+1. Check your connection to `piwheels.org`.
+2. Install the package system-wide: `python3-pyside6.qtcore`.
 
 ### Q: "Container rcsim_industrial not running"
-**A:** Kontener wystartował, ale od razu się wyłączył. Logi pokażą przyczynę (dostępne teraz automatycznie).
+**A:** The container started but exited immediately. The logs will display the reason (now fetched automatically).
 
 ---
 
-## Pliki Zmodyfikowane
+## Modified Files
 
-✅ `RCSIMDEPLOY/rpi_project_source/entrypoint.sh` - diagnostyka startu  
-✅ `RCSIMDEPLOY/rpi_project_source/Dockerfile` - weryfikacja PySide6  
-✅ `Aplikacja DEPLOYMENT/deployment_logic.py` - pobieranie logów  
-📄 `RCSIMDEPLOY/DEBUG_DEPLOYMENT.md` - szczegółowa dokumentacja  
+    `RCSIM_RPI/RCSIM_rpi_embedded/rpi_project_source/entrypoint.sh` - startup diagnostics  
+    `RCSIM_RPI/RCSIM_rpi_embedded/rpi_project_source/Dockerfile` - PySide6 verification  
+    `RCSIM_deployment_tool/RCSIM_deployment_tool/core/deployment_logic.py` - log extraction  
+    `RCSIM_RPI/RCSIM_rpi_embedded/docs/README_DOCKER.md` - detailed docker deployment notes  
 
 ---
 
-## Kontakt / Dalsze Kroki
+## Support / Next Steps
 
-Po uruchomieniu deployment:
-1. **Sukces?** → Świetnie! System gotowy do pracy
-2. **Błąd?** → Skopiuj logi i sprawdź `DEBUG_DEPLOYMENT.md`
-3. **Dalej nie działa?** → Prześlij mi logi - zdiagnozuję problem
+After running deployment:
+1. **Success?** → Great! The system is ready to use.
+2. **Error?** → Copy the logs and review `docs/README_DOCKER.md`.
+3. **Still not working?** → Send the logs for diagnosis.
 
-**Powodzenia!** 🚀
+**Good luck!** 🚀

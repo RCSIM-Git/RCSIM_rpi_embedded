@@ -242,7 +242,7 @@ class SafetySupervisor:
     def _get_min_forward_dist(self, lidar_points: list) -> float:
         """
         Checks forward sector for closest obstacle.
-        Uses binary search for sector boundaries (assuming points are angle-sorted).
+        Uses a robust linear scan to handle unsorted or rotation-shifted LiDAR data.
         """
         if not lidar_points:
             return 8.0
@@ -251,31 +251,12 @@ class SafetySupervisor:
         min_dist_mm = 8000.0
         found = False
 
-        def find_idx(target: float, is_left: bool) -> int:
-            low, high = 0, len(lidar_points)
-            while low < high:
-                mid = (low + high) // 2
-                if (
-                    lidar_points[mid][0] < target
-                    if is_left
-                    else lidar_points[mid][0] <= target
-                ):
-                    low = mid + 1
-                else:
-                    high = mid
-            return low
-
-        idx_right_first = find_idx(half_sector, False)
-        idx_left_second = find_idx(360.0 - half_sector, True)
-
-        relevant_points = (
-            lidar_points[:idx_right_first] + lidar_points[idx_left_second:]
-        )
-
-        for _, dist in relevant_points:
-            if 50 < dist < min_dist_mm:  # Ignore very close noise < 5cm
-                min_dist_mm = dist
-                found = True
+        for angle, dist in lidar_points:
+            # Check if angle is in forward sector (handling wrapping around 360)
+            if angle <= half_sector or angle >= (360.0 - half_sector):
+                if 50 < dist < min_dist_mm:  # Ignore very close noise < 5cm
+                    min_dist_mm = dist
+                    found = True
 
         return min_dist_mm / 1000.0 if found else 8.0
 

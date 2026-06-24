@@ -189,7 +189,7 @@ class TelemetryWorker(threading.Thread):
                 self.config
             )  # [PLAN-009] Sync adaptive params
             self.mission_manager = MissionManager(self.nav_manager)
-            self.control_selector = ControlSelector(self.nav_manager, self.ai_manager)
+            self.control_selector = ControlSelector(self.nav_manager, self.ai_manager, self.config)
 
             # SLAM i Planowanie - Inicjalizacja instancji
             self.slam_manager = SlamManager(self.config.get("slam", {}))

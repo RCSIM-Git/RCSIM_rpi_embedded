@@ -42,6 +42,7 @@ class ControlSelector:
         self,
         nav_manager: "NavigationManager",
         ai_manager: "AIManager" | None = None,
+        config: dict[str, Any] | None = None,
     ) -> None:
         """
         Inicjalizuje selektor sterowania.
@@ -49,6 +50,7 @@ class ControlSelector:
         """
         self.nav_manager = nav_manager
         self.ai_manager = ai_manager
+        self.config = config
         self.last_manual_steering: float = 0.0
         self.last_manual_throttle: float = 0.0
 
@@ -107,12 +109,33 @@ class ControlSelector:
         Implementuje logikę Adaptacyjnego Tempomatu (ACC).
         Implements Adaptive Cruise Control (ACC) logic.
         """
+        acc_enabled = True
+        acc_min_dist = 0.5
+        acc_max_dist = 2.0
+
+        if self.config is not None:
+            safety_cfg = self.config.get("safety", {})
+            acc_enabled = safety_cfg.get("acc_enabled", True)
+            acc_min_dist = safety_cfg.get("acc_min_dist_m", 0.5)
+            acc_max_dist = safety_cfg.get("acc_max_dist_m", 2.0)
+
+        if not acc_enabled:
+            return 1.0
+
+        if acc_max_dist <= acc_min_dist:
+            logging.error(
+                f"ACC: Niepoprawna konfiguracja zakresów! max ({acc_max_dist}m) <= min ({acc_min_dist}m). Awaryjne zatrzymanie."
+            )
+            return 0.0
+
         if lidar_scan is None or throttle_input <= 0:
             return 1.0
 
-        relevant_points = [
-            distance for angle, distance in lidar_scan if -10 <= angle <= 10
-        ]
+        relevant_points = []
+        for angle, distance in lidar_scan:
+            angle_norm = angle % 360.0
+            if angle_norm <= 10 or angle_norm >= 350:
+                relevant_points.append(distance)
 
         if not relevant_points:
             return 1.0
@@ -120,10 +143,13 @@ class ControlSelector:
         min_distance_cm = min(relevant_points)
         min_distance_m = min_distance_cm / 100.0
 
-        if min_distance_m > 2.0:
+        if min_distance_m > acc_max_dist:
             return 1.0
-        elif 0.5 <= min_distance_m <= 2.0:
-            multiplier = (min_distance_m - 0.5) / 1.5
+        elif acc_min_dist <= min_distance_m <= acc_max_dist:
+            denom = acc_max_dist - acc_min_dist
+            if denom <= 0.001:
+                return 0.0
+            multiplier = (min_distance_m - acc_min_dist) / denom
             return multiplier
         else:
             logging.warning(
@@ -168,9 +194,21 @@ class ControlSelector:
         Główna metoda decyzyjna wybierająca sterowanie na podstawie trybu i danych.
         The main decision-making method selecting control based on mode and data.
         """
-        lidar_scan = frame_data.get("lidar_scan")
+        lidar_scan_raw = frame_data.get("lidar")
+        is_mm = True
+        if lidar_scan_raw is None:
+            lidar_scan_raw = frame_data.get("lidar_scan")
+            is_mm = False
+
+        if lidar_scan_raw:
+            if is_mm:
+                lidar_scan = [(angle, dist / 10.0) for angle, dist in lidar_scan_raw]
+            else:
+                lidar_scan = lidar_scan_raw
+        else:
+            lidar_scan = None
         frame_data.get("gps_data")
-        imu_data = frame_data.get("imu_data")
+        imu_data = frame_data.get("imu") or frame_data.get("imu_data") or {}
         manual_controls = frame_data.get(
             "manual_controls", {"steering": 0.0, "throttle": 0.0}
         )
@@ -241,7 +279,7 @@ class ControlSelector:
                     home_position,
                     gps["lat"],
                     gps["lon"],
-                    imu_data["heading"],
+                    imu_data.get("heading", 0.0) if isinstance(imu_data, dict) else 0.0,
                     dt,
                 )
                 throttle = 0.2
@@ -258,13 +296,11 @@ class ControlSelector:
             else:
                 steering, throttle = 0.0, 0.0
 
-        # Apply ACC (Adaptive Cruise Control) only in autonomous modes
-        # In MANUAL mode, we allow the driver to override everything for safety/testing
-        if mode != CONTROL_MODE_MANUAL:
-            acc_multiplier = self._apply_acc(lidar_scan, throttle)
-            if acc_multiplier < 1.0 and throttle > 0.1:
-                logging.info(f"ACC: Limiting throttle ({throttle:.2f} -> {throttle*acc_multiplier:.2f}) due to obstacle.")
-            throttle *= acc_multiplier
+        # Apply ACC (Adaptive Cruise Control) across modes for safety/testing
+        acc_multiplier = self._apply_acc(lidar_scan, throttle)
+        if acc_multiplier < 1.0 and throttle > 0.1:
+            logging.info(f"ACC: Limiting throttle ({throttle:.2f} -> {throttle*acc_multiplier:.2f}) due to obstacle.")
+        throttle *= acc_multiplier
 
         return steering, throttle
 

@@ -72,3 +72,43 @@ def test_acc_filters_angles(control_selector: ControlSelector):
     lidar_scan = [(-15, 100), (10, 30)]
     multiplier = control_selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
     assert multiplier == 0.0
+
+
+def test_acc_disabled():
+    """Tests that ACC is completely bypassed and returns 1.0 when disabled in config."""
+    config = {"safety": {"acc_enabled": False, "acc_min_dist_m": 0.5, "acc_max_dist_m": 2.0}}
+    selector = ControlSelector(nav_manager=None, ai_manager=None, config=config)
+    lidar_scan = [(0, 30)]  # 30cm obstacle directly in front
+    multiplier = selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
+    assert multiplier == 1.0
+
+
+def test_acc_custom_ranges():
+    """Tests that ACC uses custom min and max distance ranges from config."""
+    # Custom config: min_dist = 1.0m, max_dist = 3.0m
+    config = {"safety": {"acc_enabled": True, "acc_min_dist_m": 1.0, "acc_max_dist_m": 3.0}}
+    selector = ControlSelector(nav_manager=None, ai_manager=None, config=config)
+
+    # Obstacle at 3.0m -> multiplier should be 1.0
+    lidar_scan = [(0, 300)]
+    multiplier = selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
+    assert multiplier == pytest.approx(1.0)
+
+    # Obstacle at 1.0m -> multiplier should be 0.0
+    lidar_scan = [(0, 100)]
+    multiplier = selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
+    assert multiplier == pytest.approx(0.0)
+
+    # Obstacle at 2.0m -> multiplier should be 0.5 (exactly in middle of [1.0, 3.0])
+    lidar_scan = [(0, 200)]
+    multiplier = selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
+    assert multiplier == pytest.approx(0.5)
+
+
+def test_acc_custom_ranges_edge_case():
+    """Tests edge case where max_dist <= min_dist."""
+    config = {"safety": {"acc_enabled": True, "acc_min_dist_m": 2.0, "acc_max_dist_m": 1.0}}
+    selector = ControlSelector(nav_manager=None, ai_manager=None, config=config)
+    lidar_scan = [(0, 150)]  # 1.5m obstacle
+    multiplier = selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
+    assert multiplier == 0.0

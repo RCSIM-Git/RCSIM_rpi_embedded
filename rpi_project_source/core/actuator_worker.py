@@ -47,6 +47,7 @@ class ActuatorWorker(threading.Thread):
         self.throttle = 0.0
         self.extra_channels: Dict[int, int] = {}
         self.armed = False
+        self.last_update_time = time.time()
 
     def set_commands(
         self, steering: float, throttle: float, extra: Dict[int, int], armed: bool
@@ -66,6 +67,7 @@ class ActuatorWorker(threading.Thread):
             self.throttle = throttle
             self.extra_channels = extra.copy()
             self.armed = armed
+            self.last_update_time = time.time()
 
     def run(self) -> None:
         """
@@ -81,15 +83,21 @@ class ActuatorWorker(threading.Thread):
         while self.running:
             try:
                 with self.lock:
-                    s, t, extra, armed = (
+                    s, t, extra, armed, last_update = (
                         self.steering,
                         self.throttle,
                         self.extra_channels,
                         self.armed,
+                        self.last_update_time,
                     )
 
                 if armed:
-                    self.hw.write_controls(s, t, extra)
+                    if time.time() - last_update > 0.2:
+                        # Starvation check (Main thread hung)
+                        logging.warning("ActuatorWorker: Main thread update timeout! Emergency neutralization.")
+                        self.hw.write_controls(0.0, 0.0, {})
+                    else:
+                        self.hw.write_controls(s, t, extra)
 
                 next_tick += interval_ns
                 now = time.perf_counter_ns()

@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from logic.navigation_manager import NavigationManager
+from logic.navigation_manager import NavigationManager, GPSPoint
 from modules.map_utils import calculate_bearing, haversine_distance
 
 # --- Testy dla funkcji pomocniczych (teraz z map_utils) ---
@@ -46,12 +46,12 @@ def test_pid_proportional_term(monkeypatch):
     )
     nav_manager = NavigationManager(kp=0.1, ki=0.0, kd=0.0)  # Kp = 0.1
     # Target 90 stopni, aktualny kurs 70 stopni -> błąd = 20 -> sterowanie = 0.1 * 20 = 2.0 -> obcięte do 1.0
-    steering = nav_manager.calculate_steering(0, 0, 70, 0, 0, 1.0)
+    steering = nav_manager.calculate_steering(GPSPoint(0, 0), 70, GPSPoint(0, 0), 1.0)
     assert steering == pytest.approx(1.0)
 
     # Test z ujemnym błędem i obcięciem
     nav_manager.kp = -0.1
-    steering = nav_manager.calculate_steering(0, 0, 70, 0, 0, 1.0)
+    steering = nav_manager.calculate_steering(GPSPoint(0, 0), 70, GPSPoint(0, 0), 1.0)
     assert steering == pytest.approx(-1.0)
 
 
@@ -65,7 +65,7 @@ def test_pid_error_wrapping(monkeypatch):
     )
     nav_manager = NavigationManager(kp=0.05, ki=0.0, kd=0.0)  # Kp = 0.05
     # Target 10 stopni, aktualny kurs 350 stopni -> błąd = 10 - 350 = -340 -> zawinięty do 20
-    steering = nav_manager.calculate_steering(0, 0, 350, 0, 0, 1.0)
+    steering = nav_manager.calculate_steering(GPSPoint(0, 0), 350, GPSPoint(0, 0), 1.0)
     assert steering == pytest.approx(1.0)
 
 
@@ -77,8 +77,8 @@ def test_pid_derivative_term_with_dt_zero(monkeypatch):
         "logic.navigation_manager.calculate_bearing", lambda *args: 90.0
     )
     nav_manager = NavigationManager(kp=0.0, ki=0.0, kd=0.1)
-    nav_manager.calculate_steering(0, 0, 70, 0, 0, 1.0)
-    steering = nav_manager.calculate_steering(0, 0, 70, 0, 0, 0.0)
+    nav_manager.calculate_steering(GPSPoint(0, 0), 70, GPSPoint(0, 0), 1.0)
+    steering = nav_manager.calculate_steering(GPSPoint(0, 0), 70, GPSPoint(0, 0), 0.0)
     assert steering == 0.0
 
 
@@ -93,10 +93,10 @@ def test_pid_integral_anti_windup(monkeypatch):
     nav_manager.integral_max = 0.5
 
     for _ in range(100):
-        nav_manager.calculate_steering(0, 0, 70, 0, 0, 0.1)  # Błąd = 20, dt=0.1
+        nav_manager.calculate_steering(GPSPoint(0, 0), 70, GPSPoint(0, 0), 0.1)  # Błąd = 20, dt=0.1
 
     assert nav_manager.integral == pytest.approx(0.5)
-    steering = nav_manager.calculate_steering(0, 0, 70, 0, 0, 0.1)
+    steering = nav_manager.calculate_steering(GPSPoint(0, 0), 70, GPSPoint(0, 0), 0.1)
     assert steering == pytest.approx(0.1 * 0.5)
 
 
@@ -150,7 +150,7 @@ def test_update_rth_calculates_steering_when_active(monkeypatch):
     steering, throttle, arrived = nav_manager.update_rth(True, home_pos, 1, 1, 90, 0.1)
 
     mock_steering.assert_called_once_with(
-        1, 1, 90, home_pos["lat"], home_pos["lon"], 0.1
+        GPSPoint(1, 1), 90, GPSPoint(home_pos["lat"], home_pos["lon"]), 0.1
     )
     assert steering == 0.5
     assert throttle == 0.2

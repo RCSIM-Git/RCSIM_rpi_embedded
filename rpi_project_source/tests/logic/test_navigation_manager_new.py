@@ -8,17 +8,17 @@ def test_navigation_manager_calculate_steering_pid(monkeypatch):
     Tests the PID controller in NavigationManager with a given heading error.
     """
     # Arrange
-    from logic.navigation_manager import NavigationManager
+    from logic.navigation_manager import NavigationManager, GPSPoint
 
     # Mock the bearing calculation to produce a constant target of 90 degrees
-    monkeypatch.setattr(NavigationManager, "_calculate_bearing", lambda *args: 90.0)
+    monkeypatch.setattr("logic.navigation_manager.calculate_bearing", lambda *args: 90.0)
     nav_manager = NavigationManager(kp=0.1, ki=0.01, kd=0.05)
     nav_manager.previous_error = 0
     nav_manager.integral = 0
 
     # Act
     # Current heading is 80, target is 90 -> error = 10
-    steering = nav_manager.calculate_steering(0, 0, 80, 0, 0, dt=0.1)
+    steering = nav_manager.calculate_steering(GPSPoint(0, 0), 80, GPSPoint(0, 0), dt=0.1)
 
     # Assert
     # P-term = 0.1 * 10 = 1.0
@@ -38,7 +38,7 @@ def test_navigation_manager_rth_arrived(monkeypatch):
     from logic.navigation_manager import NavigationManager
 
     # Mock the distance calculation to return a value less than the threshold (2.0m)
-    monkeypatch.setattr(NavigationManager, "_haversine_distance", lambda *args: 1.5)
+    monkeypatch.setattr("logic.navigation_manager.haversine_distance", lambda *args: 1.5)
     nav_manager = NavigationManager()
 
     # Act
@@ -64,7 +64,7 @@ def test_navigation_manager_rth_not_arrived(monkeypatch):
     # Arrange
     from logic.navigation_manager import NavigationManager
 
-    monkeypatch.setattr(NavigationManager, "_haversine_distance", lambda *args: 10.0)
+    monkeypatch.setattr("logic.navigation_manager.haversine_distance", lambda *args: 10.0)
     # Mock calculate_steering to isolate the logic of this method
     monkeypatch.setattr(NavigationManager, "calculate_steering", lambda *args: -0.8)
     nav_manager = NavigationManager()

@@ -182,6 +182,12 @@ class CostmapManager:
         img_w = cam_config.get("width", 640)
         img_h = cam_config.get("height", 480)
 
+        # Precalculate ray factors and offsets to optimize the loop math
+        ray_x_factor = (img_w / 2.0) / fx
+        ray_x_offset = cx / fx
+        ray_y_factor = img_h / fy
+        ray_y_offset = cy / fy
+
         cam_x = camera_extrinsics.get("x", 0.1)
         cam_y = camera_extrinsics.get("y", 0.0)
         cam_z = camera_extrinsics.get("z", 0.15)
@@ -192,11 +198,8 @@ class CostmapManager:
             if not bbox:
                 continue
 
-            u = (bbox[0] + bbox[2]) / 2.0 * img_w
-            v = bbox[3] * img_h
-
-            ray_x = (u - cx) / fx
-            ray_y = (v - cy) / fy
+            ray_x = (bbox[0] + bbox[2]) * ray_x_factor - ray_x_offset
+            ray_y = bbox[3] * ray_y_factor - ray_y_offset
             ray_z = 1.0
 
             angle_v = math.atan2(ray_y, ray_z)

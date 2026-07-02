@@ -18,7 +18,7 @@ except (ImportError, NotImplementedError):
 from modules.hardware.actuator_controller import ActuatorController
 # Delegacja do zrefaktoryzowanych jednostek wykonawczych (SRP)
 from modules.hardware.sensor_aggregator import SensorAggregator
-from modules.utils.kinematics import estimate_motion
+from modules.utils.kinematics import estimate_motion, ControlInput, KinematicConfig
 
 logger = logging.getLogger(__name__)
 
@@ -140,13 +140,13 @@ class HardwareManager:
         max_str = self.config.get("max_steer_rad", 0.52)
         wb = self.config.get("wheelbase_m", 0.25)
 
+        control = ControlInput(throttle=throttle, steering=steering)
+        config = KinematicConfig(max_speed_mps=max_s, max_steer_rad=max_str, wheelbase_m=wb)
+
         return estimate_motion(
-            throttle=throttle,
-            steering=steering,
+            control=control,
             dt=dt,
-            max_speed_mps=max_s,
-            max_steer_rad=max_str,
-            wheelbase_m=wb,
+            config=config,
             imu_data=imu_data,
         )
 

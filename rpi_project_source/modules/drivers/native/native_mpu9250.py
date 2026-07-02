@@ -155,6 +155,7 @@ class NativeMPU9250(IMUBase):
         # I2C bus (MPU-9250/9255 and rebranded MPU-6500)
         # Po włączeniu trybu bypass, AK8963 jest dostępny na głównej
         # magistrali I2C (MPU-9250/9255 i rebrandowane MPU-6500)
+        self.enable_bypass_mode()
 
         # 🔧 FIX: Próbuj zainicjalizować magnetometr dla wariantów 9-DoF
         # (W MPU-6500 często występuje magnetometer jeśli jest to moduł GY-91)

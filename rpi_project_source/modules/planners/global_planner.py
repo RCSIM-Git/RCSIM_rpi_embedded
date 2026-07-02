@@ -145,11 +145,11 @@ class GlobalPlanner:
             if (current_r, current_c) == (goal_r, goal_c):
                 path = []
                 curr = (goal_r, goal_c)
+                res = self.resolution
+                path_append = path.append
                 while curr in came_from:
                     r, c = curr
-                    x_m = (c - center_c) * self.resolution
-                    y_m = (r - center_r) * self.resolution
-                    path.append((x_m, y_m))
+                    path_append(((c - center_c) * res, (r - center_r) * res))
                     curr = came_from[curr]
                 path.reverse()
                 return path

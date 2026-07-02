@@ -253,9 +253,24 @@ class ControlSelector:
                 steering, throttle = 0.0, 0.0
 
         # AI MODES (Legacy or specific)
-        elif mode in (CONTROL_MODE_AI_STEER_ONLY, CONTROL_MODE_FULL_AUTOPILOT):
-            # If we have a planner command, use it (it effectively supersedes legacy AI modes in this architecture)
-            if planner_cmd:
+        elif mode in (CONTROL_MODE_AI_STEER_ONLY, CONTROL_MODE_FULL_AUTOPILOT, "AI_AUTOPILOT"):
+            if self.ai_manager and not self._ai_disabled:
+                image = frame_data.get("image")
+                if image is not None:
+                    try:
+                        steering, throttle = self.ai_manager.predict(image)
+                        self._consecutive_ai_failures = 0
+                    except Exception as e:
+                        logging.error(f"AI prediction error: {e}")
+                        self._consecutive_ai_failures += 1
+                        if self._consecutive_ai_failures >= self._max_ai_failures:
+                            self._ai_disabled = True
+                            logging.critical("AI disabled due to too many consecutive failures.")
+                        steering, throttle = 0.0, 0.0
+                else:
+                    logging.warning("AI mode but no image. Stop.")
+                    steering, throttle = 0.0, 0.0
+            elif planner_cmd:
                 p_steer, p_thrott, p_safety = planner_cmd
                 steering, throttle = self.reactive_override(
                     (p_steer, p_thrott), p_safety

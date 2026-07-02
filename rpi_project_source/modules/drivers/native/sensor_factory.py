@@ -200,12 +200,11 @@ class SensorManager:
         if 0x68 in devices:
             try:
                 # Differentiate by reading the WHO_AM_I register
-                # Rozróżnienie przez odczytanie rejestru WHO_AM_I
                 who_am_i = self.i2c.read_byte_data(0x68, 0x75)
-                if who_am_i == 0x71:  # MPU-9250 Chip ID
+                if who_am_i in [0x71, 0x73, 0x70]:  # MPU-9250, MPU-9255, MPU-6500 (GY-91 compatible)
                     self.imu_group.imu = NativeMPU9250(self.i2c)
-                    self.logger.info("Detected and initialized MPU-9250.")
-                elif who_am_i in [0x68, 0x70]:  # MPU-6050 reports 0x68 or 0x70
+                    self.logger.info(f"Detected and initialized MPU-9250/9255/6500 (ID: {hex(who_am_i)}).")
+                elif who_am_i == 0x68:  # MPU-6050 reports 0x68
                     self.imu_group.imu = NativeMPU6050(self.i2c)
                     self.logger.info("Detected and initialized MPU-6050.")
             except (IOError, RuntimeError) as e:

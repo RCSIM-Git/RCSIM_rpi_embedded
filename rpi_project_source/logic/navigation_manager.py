@@ -13,12 +13,21 @@ based on GPS and IMU data.
 
 import logging
 import time
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 from modules.map_utils import calculate_bearing, haversine_distance
 from modules.planners.frontier_explorer import FrontierExplorer
 from modules.planners.global_planner import GlobalPlanner
+
+
+class GPSPoint(NamedTuple):
+    """
+    Geographical point representing latitude and longitude.
+    Reprezentacja punktu geograficznego (szerokość i długość geograficzna).
+    """
+    lat: float
+    lon: float
 
 
 class NavigationManager:
@@ -37,6 +46,8 @@ class NavigationManager:
             ki (float): Współczynnik całkujący regulatora PID. / Integral gain for PID.
             kd (float): Współczynnik różniczkujący regulatora PID. / Derivative gain for PID.
         """
+        self.kp: float = kp
+        self.ki: float = ki
         self.kd: float = kd
         self.integral: float = 0.0
         self.previous_error: float = 0.0
@@ -64,11 +75,9 @@ class NavigationManager:
 
     def calculate_steering(
         self,
-        current_lat: float,
-        current_lon: float,
+        current_pos: GPSPoint,
         current_heading: float,
-        target_lat: float,
-        target_lon: float,
+        target_pos: GPSPoint,
         dt: float,
     ) -> float:
         """
@@ -76,18 +85,16 @@ class NavigationManager:
         Calculates the steering value using a PID controller to reach a target.
 
         Args:
-            current_lat (float): Aktualna szerokość geograficzna. / Current latitude.
-            current_lon (float): Aktualna długość geograficzna. / Current longitude.
+            current_pos (GPSPoint): Aktualna pozycja geograficzna. / Current geographical position.
             current_heading (float): Aktualny kurs w stopniach. / Current heading in degrees.
-            target_lat (float): Docelowa szerokość geograficzna. / Target latitude.
-            target_lon (float): Docelowa długość geograficzna. / Target longitude.
+            target_pos (GPSPoint): Docelowa pozycja geograficzna. / Target geographical position.
             dt (float): Czas od ostatniej aktualizacji w sekundach. / Time since last update in seconds.
 
         Returns:
             float: Wartość sterowania w zakresie [-1.0, 1.0]. / Steering value in the range [-1.0, 1.0].
         """
         target_bearing = calculate_bearing(
-            current_lat, current_lon, target_lat, target_lon
+            current_pos.lat, current_pos.lon, target_pos.lat, target_pos.lon
         )
         error = target_bearing - current_heading
 
@@ -153,11 +160,9 @@ class NavigationManager:
             return 0.0, 0.0, True  # Dotarł do domu / Reached home
 
         steering = self.calculate_steering(
-            current_lat,
-            current_lon,
+            GPSPoint(current_lat, current_lon),
             current_heading,
-            home_position["lat"],
-            home_position["lon"],
+            GPSPoint(home_position["lat"], home_position["lon"]),
             dt,
         )
         throttle = 0.2  # Stały niski gaz dla RTH / Constant low throttle for RTH
@@ -288,3 +293,11 @@ class NavigationManager:
                 self.current_waypoint_idx = i
 
         return (best_point[0], best_point[1], L)
+
+    def _calculate_bearing(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Helper for backwards compatibility in tests."""
+        return calculate_bearing(lat1, lon1, lat2, lon2)
+
+    def _haversine_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Helper for backwards compatibility in tests."""
+        return haversine_distance(lat1, lon1, lat2, lon2)

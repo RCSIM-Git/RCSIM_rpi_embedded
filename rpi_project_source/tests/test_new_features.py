@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from logic.control_selector import ControlSelector
 # We need to import the modules under test AFTER mocking is set up
-from logic.navigation_manager import NavigationManager
+from logic.navigation_manager import NavigationManager, GPSPoint
 from modules.ai_manager import AIManager
 
 # -- Tests for NavigationManager --
@@ -72,11 +72,11 @@ def test_calculate_steering_clipping(nav_manager):
     # Force a large error that would result in steering > 1.0
     nav_manager.kp = 100.0  # Exaggerate Kp
     # Target is East (90), current is North (0) -> error is 90
-    steering = nav_manager.calculate_steering(0, 0, 0, 0, 1, 0.1)
+    steering = nav_manager.calculate_steering(GPSPoint(0, 0), 0, GPSPoint(0, 1), 0.1)
     assert steering == 1.0
 
     # Target is West (270), current is North (0) -> error is -90
-    steering_neg = nav_manager.calculate_steering(0, 0, 0, 0, -1, 0.1)
+    steering_neg = nav_manager.calculate_steering(GPSPoint(0, 0), 0, GPSPoint(0, -1), 0.1)
     assert steering_neg == -1.0
 
 
@@ -96,11 +96,11 @@ def test_update_rth_arrived_home(nav_manager):
 def test_pid_error_wrapping(nav_manager):
     """Test that the PID error correctly wraps around the -180/180 degree boundary."""
     # Target is ~354 deg, current is 10 deg. Error should be -15.7, not 344.
-    nav_manager.calculate_steering(0, 0, 10, 0.1, -0.01, 0.1)  # Bearing is ~354.3 deg
+    nav_manager.calculate_steering(GPSPoint(0, 0), 10, GPSPoint(0.1, -0.01), 0.1)  # Bearing is ~354.3 deg
     assert nav_manager.previous_error == pytest.approx(-15.7, abs=1.0)
 
     # Target is ~5.7 deg, current is 350. Error should be 15.7, not -344.3.
-    nav_manager.calculate_steering(0, 0, 350, 0.1, 0.01, 0.1)  # Bearing is ~5.7 deg
+    nav_manager.calculate_steering(GPSPoint(0, 0), 350, GPSPoint(0.1, 0.01), 0.1)  # Bearing is ~5.7 deg
     assert nav_manager.previous_error == pytest.approx(15.7, abs=1.0)
 
 
@@ -112,21 +112,21 @@ def test_pid_integral_clamping(nav_manager):
     # Force a large error over a long time to build up the integral term
     # Target is East (90), current is North (0) -> error = 90
     for _ in range(100):
-        nav_manager.calculate_steering(0, 0, 0, 0, 1, 0.1)
+        nav_manager.calculate_steering(GPSPoint(0, 0), 0, GPSPoint(0, 1), 0.1)
     assert nav_manager.integral == 0.5  # Should be clamped to max
 
     nav_manager.integral = 0  # Reset
     # Target is West (270), current is North (0) -> error = -90
     for _ in range(100):
-        nav_manager.calculate_steering(0, 0, 0, 0, -1, 0.1)
+        nav_manager.calculate_steering(GPSPoint(0, 0), 0, GPSPoint(0, -1), 0.1)
     assert nav_manager.integral == -0.5  # Should be clamped to min
 
 
 def test_pid_dt_zero(nav_manager):
     """Test that the derivative term is zero when dt is zero to prevent division by zero."""
-    nav_manager.calculate_steering(0, 0, 0, 1, 0, 0.1)  # Initial step
+    nav_manager.calculate_steering(GPSPoint(0, 0), 0, GPSPoint(1, 0), 0.1)  # Initial step
     # Second step with dt=0
-    steering = nav_manager.calculate_steering(0, 0, 0, 1, 0, 0)
+    steering = nav_manager.calculate_steering(GPSPoint(0, 0), 0, GPSPoint(1, 0), 0)
     # P-term should be there, I-term might be, but D-term must be 0
     # We can't directly check d_term, but we can ensure it doesn't crash.
     assert isinstance(steering, float)
@@ -211,7 +211,7 @@ def test_process_frame_rth_mode(control_selector, mock_nav_manager):
         False,
     )  # Steering, throttle, not arrived
     frame_data = {
-        "gps_data": {"lat": 1, "lon": 1},
+        "gps": {"lat": 1, "lon": 1, "fix_quality": 4},
         "imu_data": {"heading": 90},
         "home_position": {"lat": 2, "lon": 2},
         "dt": 0.1,

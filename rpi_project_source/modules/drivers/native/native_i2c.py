@@ -81,6 +81,7 @@ class I2CWrapper:
             self.emulation_mode = True
 
         self._lock = threading.Lock()
+        self._last_reconnect_time = 0.0
         if self.emulation_mode:
             self.logger.info(
                 f"I2CWrapper initialized in EMULATION MODE (Bus {bus_num})"
@@ -97,6 +98,10 @@ class I2CWrapper:
             return True
 
         with self._lock:
+            now = time.time()
+            if now - self._last_reconnect_time < 2.0:
+                return False
+            self._last_reconnect_time = now
             try:
                 self.logger.warning(
                     f"I2C: HARD RECONNECT triggered on Bus {self.bus_num}..."

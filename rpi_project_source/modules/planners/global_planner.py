@@ -127,20 +127,29 @@ class GlobalPlanner:
 
         # A* Algorithm
         open_set = []
-        heapq.heappush(open_set, (0, start_r, start_c))
+        heapq.heappush(open_set, (0.0, start_r, start_c))
 
         came_from = {}
         g_score = np.full((rows, cols), np.inf, dtype=np.float32)
         g_score[start_r, start_c] = 0.0
 
-        def heuristic(r, c):
-            return math.hypot(goal_r - r, goal_c - c)
+        # Optimization: Use a fast 2D boolean numpy array to track closed nodes and prevent duplicate expansions.
+        closed_set = np.zeros((rows, cols), dtype=bool)
 
-        max_iters = rows * cols // 4
+        # Optimization: Increase iteration limit to rows * cols since closed_set guarantees we process at most rows*cols nodes.
+        max_iters = rows * cols
         iters = 0
+
+        # Performance tip: Cache external module attributes to local variables for faster inner loop lookups.
+        hypot = math.hypot
 
         while open_set:
             _, current_r, current_c = heapq.heappop(open_set)
+
+            # Skip duplicate pops from the heap (since heapq doesn't support decrease-key)
+            if closed_set[current_r, current_c]:
+                continue
+            closed_set[current_r, current_c] = True
 
             if (current_r, current_c) == (goal_r, goal_c):
                 path = []
@@ -185,7 +194,8 @@ class GlobalPlanner:
                     if tentative_g_score < g_score[neighbor_r, neighbor_c]:
                         came_from[(neighbor_r, neighbor_c)] = (current_r, current_c)
                         g_score[neighbor_r, neighbor_c] = tentative_g_score
-                        f_score = tentative_g_score + heuristic(neighbor_r, neighbor_c)
+                        # Optimization: Inline the Euclidean heuristic calculation to avoid function call overhead.
+                        f_score = tentative_g_score + hypot(goal_r - neighbor_r, goal_c - neighbor_c)
                         heapq.heappush(open_set, (f_score, neighbor_r, neighbor_c))
 
             iters += 1

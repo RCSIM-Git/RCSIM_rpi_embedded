@@ -60,3 +60,28 @@ class TestGPSUART:
         data = gps_uart.get_latest_data()
         assert data["fix"] == 1
         assert data["rtk_status"] == "SPS"
+
+    def test_zero_coordinates_discard_fix(self, gps_uart):
+        """Verify that a fix is discarded if coordinates are 0.0, 0.0."""
+        # Initialize with non-zero coordinates
+        gps_uart.last_data["lat"] = 52.2297
+        gps_uart.last_data["lon"] = 21.0122
+
+        mock_msg = MagicMock()
+        mock_msg.msgID = "GGA"
+        mock_msg.lat = 0.0
+        mock_msg.lon = 0.0
+        mock_msg.alt = 100.0
+        mock_msg.numSV = 8
+        mock_msg.HDOP = 1.0
+        mock_msg.quality = 4  # RTK Fixed
+
+        gps_uart.parsed_queue.put(mock_msg)
+        data = gps_uart.get_latest_data()
+        
+        # Coordinates should NOT be updated to 0,0
+        assert data["lat"] == 52.2297
+        assert data["lon"] == 21.0122
+        # Fix must be set to 0 (Brak)
+        assert data["fix"] == 0
+        assert data["rtk_status"] == "Brak"

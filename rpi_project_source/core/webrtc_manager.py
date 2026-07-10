@@ -140,23 +140,12 @@ class WebRTCManager:
         )
 
         if os.path.exists(web_assets_path):
-
             async def handle_index(request):
                 return web.FileResponse(os.path.join(web_assets_path, "index.html"))
 
-            async def handle_static(request):
-                filename = request.match_info.get("filename", "")
-                filepath = os.path.join(web_assets_path, filename)
-                # Security check to prevent directory traversal
-                abs_filepath = os.path.abspath(filepath)
-                if abs_filepath.startswith(web_assets_path) and os.path.isfile(
-                    filepath
-                ):
-                    return web.FileResponse(filepath)
-                return web.Response(status=404)
-
             app.router.add_get("/", handle_index)
-            app.router.add_get("/{filename}", handle_static)
+            # Safe and built-in traversal mitigation using aiohttp's add_static
+            app.router.add_static("/", path=web_assets_path, name="static")
 
         runner = web.AppRunner(app)
         self._loop.run_until_complete(runner.setup())
@@ -185,9 +174,10 @@ class WebRTCManager:
         Returns:
             web.Response: Odpowiedź HTTP. / HTTP response.
         """
+        origin = request.headers.get("Origin", "*")
         return web.Response(
             headers={
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": origin,
                 "Access-Control-Allow-Methods": "POST, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type",
             }
@@ -277,9 +267,10 @@ class WebRTCManager:
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 
+        origin = request.headers.get("Origin", "*")
         return web.json_response(
             {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type},
-            headers={"Access-Control-Allow-Origin": "*"},
+            headers={"Access-Control-Allow-Origin": origin},
         )
 
     async def _cleanup(self) -> None:

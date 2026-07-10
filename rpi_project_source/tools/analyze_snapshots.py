@@ -88,15 +88,15 @@ def analyze_log(log_path):
 
     chars = " .:-=+*#%@"
     for y in range(down_size):
-        line = ""
+        line_chars = []
         for x in range(down_size):
             val = mini_map[y][x]
             if max_val > 0:
                 idx = int((val / max_val) * (len(chars) - 1))
-                line += chars[idx]
+                line_chars.append(chars[idx])
             else:
-                line += chars[0]
-        print(line)
+                line_chars.append(chars[0])
+        print("".join(line_chars))
 
     # Optional Matplotlib
     try:

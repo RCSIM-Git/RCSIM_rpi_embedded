@@ -12,12 +12,7 @@ Ensures stable output timing regardless of SLAM/AI load.
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING, Dict
-
-if TYPE_CHECKING:
-    from modules.managers.hardware_manager import HardwareManager
-
-
+from typing import Dict
 class ActuatorWorker(threading.Thread):
     """
     Wątek dedykowany do obsługi wyjść PWM (PCA9685).

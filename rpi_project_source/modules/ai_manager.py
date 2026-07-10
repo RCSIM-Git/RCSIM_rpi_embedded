@@ -2,8 +2,8 @@
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Menedżer AI do detekcji obiektów (YOLO) w czasie rzeczywistym.
-AI Manager for real-time object detection (YOLO).
+Menedżer AI do detekcji obiektów w czasie rzeczywistym.
+AI Manager for real-time object detection.
 
 Obsługuje Hailo-8L (NPU) oraz tryb Mock (dla testów).
 Supports Hailo-8L (NPU) and Mock mode (for testing).
@@ -44,9 +44,7 @@ try:
 except ImportError:
     OPENCV_AVAILABLE = False
 
-# from .postprocess_yolo import draw_detections, postprocess_yolo
-def postprocess_yolo(*args, **kwargs): return []
-def draw_detections(img, *args, **kwargs): return img
+from .postprocess_yolo import draw_detections, postprocess_yolo
 
 
 class AIManager:
@@ -135,6 +133,8 @@ class AIManager:
 
         self.hailo_device = None
         self.hailo_vstreams = None
+        self.input_infos_cache = []
+        self.output_infos_cache = []
         self.is_initialized = False
 
         # Mock data for sandbox/testing
@@ -184,6 +184,7 @@ class AIManager:
             self.logger.info(f"Loading Hailo HEF model: {self.hef_path}")
 
             self.vdevice = VDevice()
+            self.hailo_device = self.vdevice
 
             hef_obj = HEF(self.hef_path)
 
@@ -213,12 +214,22 @@ class AIManager:
             # [FIX] Initialize stream info caches
             self.input_infos_cache = hef_obj.get_input_vstream_infos()
             self.output_infos_cache = hef_obj.get_output_vstream_infos()
+
+            # Initialize inference pipeline
+            self.infer_pipeline = InferVStreams(
+                self.network_group, self.input_vstreams_params, self.output_vstreams_params
+            )
+            self.activated_network_group = self.network_group.activate()
+            self.infer_pipeline.__enter__()
             
             # Detect input size from the first input stream (usually the image)
             if self.input_infos_cache:
                 shape = self.input_infos_cache[0].shape
-                # Hailo shapes are often (H, W, C)
-                self.input_size = (shape[1], shape[0]) # (W, H)
+                # Hailo shapes are often (H, W, C) or NCHW. Handle safely.
+                if len(shape) >= 2:
+                    self.input_size = (shape[1], shape[0]) # (W, H)
+                else:
+                    self.input_size = (640, 640)
 
             # Detect multimodal inputs
             self.image_input_name = None
@@ -252,17 +263,21 @@ class AIManager:
 
         try:
             input_data = {}
-            for info in getattr(self, "input_infos_cache", []):
+            for info in self.input_infos_cache:
                 shape = info.shape
                 
                 if info.name == self.image_input_name:
                     # Resize i transformacja obrazu
-                    if shape[-1] in (1, 3):  # NHWC
+                    if len(shape) >= 3 and shape[-1] in (1, 3):  # NHWC
                         img = cv2.resize(image, (shape[1], shape[0]))
                         img = np.expand_dims(img, axis=0)
-                    else:  # NCHW
+                    elif len(shape) >= 3:  # NCHW
                         img = cv2.resize(image, (shape[2], shape[1]))
                         img = img.transpose((2, 0, 1))
+                        img = np.expand_dims(img, axis=0)
+                    else:
+                        # Fallback for weird shape (e.g. 2D or mock without dimensions)
+                        img = cv2.resize(image, (640, 640))
                         img = np.expand_dims(img, axis=0)
                     input_data[info.name] = np.ascontiguousarray(img.astype(np.uint8))
                 
@@ -291,10 +306,12 @@ class AIManager:
                 all_outputs[name] = tensor
 
             # Primary output (for compatibility)
-            if hasattr(self, "output_names") and self.output_names:
+            if hasattr(self, "output_names") and self.output_names and self.output_names[0] in raw_output:
                 output_tensor = raw_output[self.output_names[0]]
-            else:
+            elif raw_output:
                 output_tensor = list(raw_output.values())[0]
+            else:
+                raise ValueError("raw_output is empty or not a dictionary")
 
             return {
                 "raw_output": output_tensor,
@@ -303,7 +320,8 @@ class AIManager:
                 "mock": False,
             }
         except Exception as e:
-            self.logger.error(f"Hailo Raw Inference Error: {e}")
+            import traceback
+            self.logger.error(f"Hailo Raw Inference Error: {e}\n{traceback.format_exc()}")
             # Fallback to mock format if real inference fails
             num_dets = 8400
             num_classes = len(self.config.get("ai", {}).get("classes", [])) or 80
@@ -347,12 +365,24 @@ class AIManager:
                 ai_controls["throttle"] = float(raw[0, 1])
             elif raw.shape[-1] == 1: # Just steering
                 ai_controls["steering"] = float(raw[0, 0])
+            else:
+                # YOLO style output
+                detections = postprocess_yolo(
+                    raw,
+                    conf_thres=self.config.get("ai", {}).get("confidence_threshold", 0.45),
+                    iou_thres=self.config.get("ai", {}).get("iou_threshold", 0.45),
+                    class_names=self.config.get("ai", {}).get("classes", [])
+                )
+        # Generowanie nakładki (overlay) dla testów / kompatybilności wstecznej
+        frame_with_overlay = None
+        if self.config.get("autonomous_navigation", {}).get("yolo", {}).get("debug_overlay", False):
+            frame_with_overlay = draw_detections(frame.copy(), detections)
 
-        # Optimization: Don't draw overlay here every frame.
         return {
             "detections": detections,
             "ai_controls": ai_controls,
             "raw": result,
+            "frame_with_overlay": frame_with_overlay,
             "inference_time_ms": self.last_debug_info.get("inference_time_ms", 0),
         }
 

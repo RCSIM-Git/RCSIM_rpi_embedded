@@ -68,11 +68,17 @@ class WebService:
             return web.Response(text=f"Error loading map.html: {e}", status=500)
 
     async def handle_get_config(self, request):
-        """Returns current configuration."""
+        """Returns current configuration (Restricted to localhost)."""
+        if request.remote not in ("127.0.0.1", "::1"):
+            self.logger.warning(f"Blocked unauthorized GET config request from remote IP: {request.remote}")
+            return web.json_response({"status": "ERROR", "message": "Access Denied. Localhost only."}, status=403)
         return web.json_response(self.config_manager.config)
 
     async def handle_post_config(self, request):
-        """Updates configuration."""
+        """Updates configuration (Restricted to localhost)."""
+        if request.remote not in ("127.0.0.1", "::1"):
+            self.logger.warning(f"Blocked unauthorized POST config request from remote IP: {request.remote}")
+            return web.json_response({"status": "ERROR", "message": "Access Denied. Localhost only."}, status=403)
         try:
             new_config = await request.json()
             if self.config_manager.save_config(new_config):

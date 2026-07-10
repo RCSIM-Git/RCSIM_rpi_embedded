@@ -167,12 +167,14 @@ class GPS_UART:
                             }
                         )
                     else:
-                        # Może mamy fix ale 0,0? Mało prawdopodobne w terenie.
-                        # We just update sats and quality
+                        # Może mamy fix ale 0,0? Odrzucamy fix i ustawiamy status na 0 (brak)
+                        self.logger.warning(
+                            "GPS reported fix but coordinates are 0.0, 0.0. Discarding fix."
+                        )
                         self.last_data.update(
                             {
                                 "sats": msg.numSV or 0,
-                                "fix": msg.quality or 0,
+                                "fix": 0,  # 0 = Brak
                             }
                         )
 

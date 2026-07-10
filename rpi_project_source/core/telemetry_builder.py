@@ -11,11 +11,8 @@ import base64
 import struct
 import time
 import zlib
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from core.version import APP_VERSION
-
-if TYPE_CHECKING:
-    from core.main_service import TelemetryWorker
 
 
 class TelemetryBuilder:

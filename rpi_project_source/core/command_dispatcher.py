@@ -12,11 +12,7 @@ import logging
 import os
 import struct
 import time
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from core.main_service import TelemetryWorker
-
+from typing import Any
 from core.binary_path_assembler import BinaryPathAssembler
 from pymavlink import mavutil
 

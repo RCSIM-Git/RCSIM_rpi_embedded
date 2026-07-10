@@ -118,6 +118,7 @@ class TestAIManagerInference(unittest.TestCase):
 
         mock_vstreams_instance = MagicMock()
         mock_infer_vstreams.return_value = mock_vstreams_instance
+        mock_infer_vstreams.return_value.__enter__.return_value = mock_vstreams_instance
 
         mock_vdevice_instance.configure.return_value = [mock_vstreams_instance]
 
@@ -128,15 +129,28 @@ class TestAIManagerInference(unittest.TestCase):
         input_stream.format.type = "UINT8"
 
         output_stream = MagicMock()
+        output_stream.shape = (1, 8400, 84)
         output_stream.name = "output_layer"
 
         mock_vstreams_instance.get_input_vstreams.return_value = [input_stream]
         mock_vstreams_instance.get_output_vstreams.return_value = [output_stream]
 
+        # Patch HEF class get_input_vstream_infos and get_output_vstream_infos
+        # directly in the mock sys.modules['hailort'].HEF
+        import sys
+        hailort_mock = sys.modules["hailort"]
+        hailort_mock.HEF = MagicMock()
+        hailort_mock.HEF.return_value.get_input_vstream_infos.return_value = [input_stream]
+        hailort_mock.HEF.return_value.get_output_vstream_infos.return_value = [output_stream]
+        
+        # Configure InferVStreams mock on the module level as it is imported locally inside init_model
+        hailort_mock.InferVStreams = mock_infer_vstreams
+
         # Mock infer return
         mock_vstreams_instance.infer.return_value = {
             "output_layer": np.zeros((1, 8400, 84))
         }
+        mock_infer_vstreams.return_value.__enter__.return_value = mock_vstreams_instance
 
         # Create fake HEF file to pass existence check
         with open("dummy.he", "w") as f:

@@ -279,9 +279,15 @@ class CRSFParser:
                     cap = int(data.get("capacity_drawn", 0))
                     pct = int(data.get("percent", 0))
 
-                    payload = struct.pack(">HH", v, c)
-                    payload += bytes(
-                        [(cap >> 16) & 0xFF, (cap >> 8) & 0xFF, cap & 0xFF]
+                    # 10 bytes: voltage (2B), current (2B), capacity (3B), percent (1B), 2B unused/padding
+                    # Struct formatting: >HH (4 bytes) + capacity (3 bytes) + percent (1 byte)
+                    payload = struct.pack(
+                        ">HHBBB",
+                        v,
+                        c,
+                        (cap >> 16) & 0xFF,
+                        (cap >> 8) & 0xFF,
+                        cap & 0xFF
                     )
                     payload += bytes([pct & 0xFF])
 
@@ -295,8 +301,7 @@ class CRSFParser:
                     alt = int(data.get("altitude", 0) + 1000)
                     sats = int(data.get("satellites", 0))
 
-                    payload = struct.pack(">iiHHH", lat, lon, spd, hdg, alt)
-                    payload += bytes([sats & 0xFF])
+                    payload = struct.pack(">iiHHHB", lat, lon, spd, hdg, alt, sats & 0xFF)
 
                 elif t_type == "attitude":
                     frame_id = 0x1E

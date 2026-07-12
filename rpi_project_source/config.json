@@ -6,7 +6,7 @@
     "mavlink_connection": "/dev/ttyAMA3:115200",
     "system_id": 10,
     "ntrip": {
-        "enabled": true,
+        "enabled": false,
         "user": "[EMAIL_ADDRESS]",
         "password": "[PASSWORD]",
         "host": "[IP_ADDRESS]",
@@ -40,7 +40,7 @@
         "throttle_max": 2000
     },
     "camera": {
-        "mode": "rtsp",
+        "mode": "picamera2",
         "rtsp_url": "rtsp://127.0.0.1:8554/camera_ai",
         "local_device": "/dev/rcsim/camera",
         "resolution": [

@@ -158,11 +158,12 @@ class SupervisorService:
         # Security check: Restrict critical system commands to localhost (127.0.0.1) to prevent unauthenticated remote execution.
         # Ping and status updates can be accessed from remote endpoints.
         critical_cmds = {"SET_CONFIG", "START_SERVICE", "STOP_SERVICE", "RESTART_SERVICE", "REBOOT"}
-        if cmd in critical_cmds and addr[0] != "127.0.0.1":
-            logging.warning(f"Rejected critical command '{cmd}' from unauthorized remote IP {addr[0]}")
-            response = {"status": "ERROR", "message": "Access denied. Critical commands are restricted to localhost."}
-            self.sock.sendto(json.dumps(response).encode("utf-8"), addr)
-            return
+        # Temporarily disabled localhost restriction to allow GCS to control the RPi remotely
+        # if cmd in critical_cmds and addr[0] != "127.0.0.1":
+        #     logging.warning(f"Rejected critical command '{cmd}' from unauthorized remote IP {addr[0]}")
+        #     response = {"status": "ERROR", "message": "Access denied. Critical commands are restricted to localhost."}
+        #     self.sock.sendto(json.dumps(response).encode("utf-8"), addr)
+        #     return
 
         if cmd == "PING":
             info = get_board_info()

@@ -176,13 +176,7 @@ class CommandDispatcher:
         Dekoduje sterowanie w oparciu o obiekt JSON.
         """
         w = self.worker
-        if not w.pca_armed:
-            return
-        channels = msg.get("channels", [])
-        # Priority Logic for HYBRID mode
-        if w.comm_mode == "HYBRID" and w.elrs_link_established:
-            return
-
+        
         t_pc = msg.get("t")
         if t_pc is not None:
             tx_time = float(t_pc)
@@ -193,6 +187,14 @@ class CommandDispatcher:
             w.last_pc_timestamp = tx_time
         else:
             w.last_pc_timestamp = time.time()
+
+        if not w.pca_armed:
+            return
+            
+        channels = msg.get("channels", [])
+        # Priority Logic for HYBRID mode
+        if w.comm_mode == "HYBRID" and w.elrs_link_established:
+            return
 
         if len(channels) >= 2 and w.hw_manager:
             s_min, s_max = w.hw_manager.actuators.steering_range

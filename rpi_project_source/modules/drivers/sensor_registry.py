@@ -75,17 +75,25 @@ class SensorRegistry:
                                   Sensor class or None.
         """
         cls._ensure_drivers_loaded()
-        for sensor_class in cls._registry:
-            try:
-                if sensor_class.scan(i2c):
-                    logger.info(
-                        f"Detected: {sensor_class.DRIVER_NAME} "
-                        f"(priority={sensor_class.PRIORITY})"
-                    )
-                    return sensor_class
-            except Exception as e:
-                logger.debug("Scan error for " f"{sensor_class.DRIVER_NAME}: {e}")
-        return None
+        
+        # Wyłączamy automatyczną twardą rekoneksję na czas skanowania (brak ACK z nieobecnych adresów to norma)
+        old_reconnect = getattr(i2c, "reconnect_on_fail", True)
+        i2c.reconnect_on_fail = False
+        
+        try:
+            for sensor_class in cls._registry:
+                try:
+                    if sensor_class.scan(i2c):
+                        logger.info(
+                            f"Detected: {sensor_class.DRIVER_NAME} "
+                            f"(priority={sensor_class.PRIORITY})"
+                        )
+                        return sensor_class
+                except Exception as e:
+                    logger.debug("Scan error for " f"{sensor_class.DRIVER_NAME}: {e}")
+            return None
+        finally:
+            i2c.reconnect_on_fail = old_reconnect
 
     @classmethod
     def get_by_name(cls, driver_name: str) -> type[IMUBase] | None:

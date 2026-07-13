@@ -82,6 +82,7 @@ class I2CWrapper:
 
         self._lock = threading.Lock()
         self._last_reconnect_time = 0.0
+        self.reconnect_on_fail = True
         if self.emulation_mode:
             self.logger.info(
                 f"I2CWrapper initialized in EMULATION MODE (Bus {bus_num})"
@@ -129,7 +130,8 @@ class I2CWrapper:
                     return self.bus.read_byte_data(address, register)
             except OSError:
                 if i == retries - 1:
-                    self.reconnect()
+                    if getattr(self, "reconnect_on_fail", True):
+                        self.reconnect()
                     raise
                 time.sleep(0.005)
         return 0
@@ -151,7 +153,8 @@ class I2CWrapper:
                     f"Retry {i+1}/{retries}"
                 )
                 if i == retries - 1:
-                    self.reconnect()
+                    if getattr(self, "reconnect_on_fail", True):
+                        self.reconnect()
                     raise
                 time.sleep(0.005)
 
@@ -165,7 +168,8 @@ class I2CWrapper:
                     return self.bus.read_word_data(address, register)
             except OSError:
                 if i == retries - 1:
-                    self.reconnect()
+                    if getattr(self, "reconnect_on_fail", True):
+                        self.reconnect()
                     raise
                 time.sleep(0.005)
         return 0
@@ -182,7 +186,8 @@ class I2CWrapper:
                     return self.bus.read_i2c_block_data(address, register, length)
             except OSError:
                 if i == retries - 1:
-                    self.reconnect()
+                    if getattr(self, "reconnect_on_fail", True):
+                        self.reconnect()
                     raise
                 time.sleep(0.005)
         return []
@@ -204,7 +209,8 @@ class I2CWrapper:
                     f"Retry {i+1}/{retries}"
                 )
                 if i == retries - 1:
-                    self.reconnect()
+                    if getattr(self, "reconnect_on_fail", True):
+                        self.reconnect()
                     raise
                 time.sleep(0.005)
 

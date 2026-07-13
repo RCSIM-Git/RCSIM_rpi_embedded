@@ -263,14 +263,23 @@ class SupervisorService:
 
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(new_config, f, indent=4)
-            # Use os.replace for atomic overwrite semantics across platforms
-            os.replace(tmp_path, self.config_path)
+            # Use os.replace for atomic overwrite, fallback to direct write if it's a Docker bind mount
+            try:
+                os.replace(tmp_path, self.config_path)
+            except OSError:
+                with open(self.config_path, "w", encoding="utf-8") as f:
+                    json.dump(new_config, f, indent=4)
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
             logging.info("Configuration file updated successfully.")
             return {"status": "OK"}
         except (IOError, OSError, PermissionError) as e:
             logging.error(f"Error writing config file: {e}")
             if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
             return {"status": "ERROR", "message": str(e)}
 
     def _restart_service(self) -> dict[str, str]:

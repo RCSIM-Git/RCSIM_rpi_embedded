@@ -129,7 +129,7 @@ class CommandDispatcher:
                 self.last_processed_tx_time = tx_time
                 w.last_pc_timestamp = tx_time
             else:
-                w.last_pc_timestamp = time.time()
+                w.last_pc_timestamp = 0.0
 
             # Priority Logic for HYBRID mode
             if w.comm_mode == "HYBRID" and w.elrs_link_established:
@@ -186,7 +186,7 @@ class CommandDispatcher:
             self.last_processed_tx_time = tx_time
             w.last_pc_timestamp = tx_time
         else:
-            w.last_pc_timestamp = time.time()
+            w.last_pc_timestamp = 0.0
 
         if not w.pca_armed:
             return

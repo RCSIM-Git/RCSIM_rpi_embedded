@@ -141,23 +141,34 @@ class CockpitApp {
     }
 
     async startWebRTC() {
-        this.pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        });
-
-        // Create Data Channels
-        this.controlChannel = this.pc.createDataChannel('control', { ordered: false, maxRetransmits: 0 });
-        this.telemetryChannel = this.pc.createDataChannel('telemetry');
-
-        this.telemetryChannel.onmessage = (e) => this.handleTelemetry(e.data);
-        
-        this.pc.onconnectionstatechange = () => {
-            console.log("Connection State:", this.pc.connectionState);
-            this.updateConnectionStatus(this.pc.connectionState === 'connected');
-        };
-
-        // Negotiation
         try {
+            if (!window.RTCPeerConnection) {
+                throw new Error("WebRTC Blocked (use HTTPS/localhost)");
+            }
+            this.pc = new RTCPeerConnection({
+                iceServers: []
+            });
+
+            // Create Data Channels
+            this.controlChannel = this.pc.createDataChannel('control', { ordered: false, maxRetransmits: 0 });
+            this.telemetryChannel = this.pc.createDataChannel('telemetry');
+
+            this.controlChannel.onopen = () => console.log("controlChannel: OPEN");
+            this.controlChannel.onclose = () => console.log("controlChannel: CLOSED");
+            this.controlChannel.onerror = (err) => console.error("controlChannel error:", err);
+
+            this.telemetryChannel.onopen = () => console.log("telemetryChannel: OPEN");
+            this.telemetryChannel.onclose = () => console.log("telemetryChannel: CLOSED");
+            this.telemetryChannel.onerror = (err) => console.error("telemetryChannel error:", err);
+
+            this.telemetryChannel.onmessage = (e) => this.handleTelemetry(e.data);
+            
+            this.pc.onconnectionstatechange = () => {
+                console.log("Connection State:", this.pc.connectionState);
+                this.updateConnectionStatus(this.pc.connectionState === 'connected');
+            };
+
+            // Negotiation
             const offer = await this.pc.createOffer();
             await this.pc.setLocalDescription(offer);
 
@@ -172,13 +183,14 @@ class CockpitApp {
         } catch (e) {
             console.error("WebRTC Error:", e);
             this.updateConnectionStatus(false);
+            this.connText.innerText = "ERR: " + e.message;
         }
     }
 
     async startVideo() {
         try {
             const videoPc = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                iceServers: []
             });
             
             videoPc.addTransceiver('video', { direction: 'recvonly' });
@@ -260,13 +272,19 @@ class CockpitApp {
 
     toggleArm() {
         const cmd = this.isArmed ? 'DISARM_PCA' : 'ARM_PCA';
-        this.sendCommand({ command: cmd });
+        if (this.sendCommand({ command: cmd })) {
+            this.setArmedState(!this.isArmed);
+        } else {
+            console.warn("Cannot send command, telemetry channel is not open.");
+        }
     }
 
     sendCommand(msg) {
         if (this.telemetryChannel && this.telemetryChannel.readyState === 'open') {
             this.telemetryChannel.send(JSON.stringify(msg));
+            return true;
         }
+        return false;
     }
 
     startControlLoop() {

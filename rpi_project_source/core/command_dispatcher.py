@@ -68,7 +68,7 @@ class CommandDispatcher:
 
             if msg_type == "control":
                 self._handle_json_control(msg)
-            elif msg_type in ["command", "ai_command"]:
+            elif msg_type in ["command", "ai_command"] or "command" in msg:
                 self.handle_command(msg)
 
         except Exception as e:

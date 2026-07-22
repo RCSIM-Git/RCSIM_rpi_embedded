@@ -146,7 +146,7 @@ class CockpitApp {
                 throw new Error("WebRTC Blocked (use HTTPS/localhost)");
             }
             this.pc = new RTCPeerConnection({
-                iceServers: []
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
             });
 
             // Create Data Channels

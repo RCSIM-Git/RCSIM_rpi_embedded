@@ -6,7 +6,6 @@ Wyszukuje optymalną bezkolizyjną ścieżkę w globalnym układzie.
 
 import heapq
 import logging
-import math
 
 from .costmap_manager import CostmapManager
 
@@ -15,13 +14,13 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class AStarPlanner:
     """
-    Znajduje najkrótszą drogę omijającą przeszkody zebraną z radaru LDS-02/Yolov8
+    Znajduje najkrótszą drogę omijającą przeszkody zebraną z LDS-02
     za pomocą tradycyjnego grafowego algorytmu A-Star.
     """
 
     A_STAR_PENALTY: float = 10.0
 
-    def __init__(self, costmap_manager: CostmapManager) -> None:
+    def __init__(self, costmap_manager: CostmapManager):
         self.cm = costmap_manager
 
     def plan_path(
@@ -48,7 +47,8 @@ class AStarPlanner:
             self.cm.check_and_scroll_map(start_pose[0], start_pose[1])
             sx, sy = self.cm.world_to_grid(start_pose[0], start_pose[1])
             if not (0 <= sx < height and 0 <= sy < width):
-                logger.warning("A* Start poza granicami mapy kosztów po rotacji.")
+                logger.warning(
+                    "A* Start poza granicami mapy kosztów po rotacji.")
                 return None
 
         if not (0 <= gx < height and 0 <= gy < width):
@@ -66,7 +66,9 @@ class AStarPlanner:
         g_score = {(sx, sy): 0.0}
 
         def heuristic(a: tuple[int, int], b: tuple[int, int]) -> float:
-            return math.hypot(a[0] - b[0], a[1] - b[1])
+            dx = abs(a[0] - b[0])
+            dy = abs(a[1] - b[1])
+            return max(dx, dy) + 0.414 * min(dx, dy)
 
         neighbors = [
             (0, 1, 1.0),
@@ -113,10 +115,12 @@ class AStarPlanner:
                     )
                     neighbor = (nx, ny)
 
-                    if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                    if neighbor not in g_score or \
+                            tentative_g_score < g_score[neighbor]:
                         came_from[neighbor] = current
                         g_score[neighbor] = tentative_g_score
-                        f_score = tentative_g_score + heuristic(neighbor, (gx, gy))
+                        f_score = tentative_g_score + \
+                            heuristic(neighbor, (gx, gy))
                         heapq.heappush(open_set, (f_score, neighbor))
 
         return None

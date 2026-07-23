@@ -1,0 +1,3 @@
+## 2024-07-03 - [A* Implementations]
+**Learning:** In Python A* implementations on Raspberry Pi (e.g., GlobalPlanner, AStarPlanner), avoid O(N) upfront allocation of huge 2D NumPy grids for tracking scores (use dictionaries for sparse `g_score` lookups instead). Use an inline Octile distance heuristic for 8-way grids, which is significantly faster and provides a tighter admissible heuristic than `math.hypot` (Euclidean). Ensure `max_iters` is scaled appropriately (e.g., rows * cols * 4) to accommodate cost map penalty delays.
+**Action:** Replace `np.full((rows, cols), np.inf)` with sparse dicts `g_score = {}`, and replace `math.hypot` with an Octile distance implementation in A* planners.

@@ -4,7 +4,6 @@ Licensed under the MIT License. See LICENSE file in the project root for full li
 """
 import heapq
 import logging
-import math
 
 import numpy as np
 
@@ -60,7 +59,7 @@ class GlobalPlanner:
         g_score = {start_idx: 0}
 
         rows, cols = grid_map.shape
-        max_iters = rows * cols
+        max_iters = rows * cols * 4
 
         iters = 0
         while open_set:
@@ -114,7 +113,9 @@ class GlobalPlanner:
         )
 
     def _heuristic(self, a, b):
-        return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
+        dx = abs(a[0] - b[0])
+        dy = abs(a[1] - b[1])
+        return dx + dy + (1.414 - 2) * min(dx, dy)
 
     def _is_valid(self, idx, grid_map):
         cols, rows = grid_map.shape[1], grid_map.shape[0]

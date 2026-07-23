@@ -6,7 +6,6 @@ Wyszukuje optymalną bezkolizyjną ścieżkę w globalnym układzie.
 
 import heapq
 import logging
-import math
 
 from .costmap_manager import CostmapManager
 
@@ -66,7 +65,9 @@ class AStarPlanner:
         g_score = {(sx, sy): 0.0}
 
         def heuristic(a: tuple[int, int], b: tuple[int, int]) -> float:
-            return math.hypot(a[0] - b[0], a[1] - b[1])
+            dx = abs(a[0] - b[0])
+            dy = abs(a[1] - b[1])
+            return dx + dy + (1.414 - 2) * min(dx, dy)
 
         neighbors = [
             (0, 1, 1.0),

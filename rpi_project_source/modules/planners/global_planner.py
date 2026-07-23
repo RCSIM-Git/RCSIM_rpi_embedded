@@ -130,13 +130,14 @@ class GlobalPlanner:
         heapq.heappush(open_set, (0, start_r, start_c))
 
         came_from = {}
-        g_score = np.full((rows, cols), np.inf, dtype=np.float32)
-        g_score[start_r, start_c] = 0.0
+        g_score = {(start_r, start_c): 0.0}
 
         def heuristic(r, c):
-            return math.hypot(goal_r - r, goal_c - c)
+            dx = abs(goal_r - r)
+            dy = abs(goal_c - c)
+            return dx + dy + (1.414 - 2) * min(dx, dy)
 
-        max_iters = rows * cols // 4
+        max_iters = rows * cols * 4
         iters = 0
 
         while open_set:
@@ -180,11 +181,11 @@ class GlobalPlanner:
 
                     added_cost = base_cost_step + hallway_penalty + terrain_penalty
 
-                    tentative_g_score = g_score[current_r, current_c] + added_cost
+                    tentative_g_score = g_score[(current_r, current_c)] + added_cost
 
-                    if tentative_g_score < g_score[neighbor_r, neighbor_c]:
+                    if (neighbor_r, neighbor_c) not in g_score or tentative_g_score < g_score[(neighbor_r, neighbor_c)]:
                         came_from[(neighbor_r, neighbor_c)] = (current_r, current_c)
-                        g_score[neighbor_r, neighbor_c] = tentative_g_score
+                        g_score[(neighbor_r, neighbor_c)] = tentative_g_score
                         f_score = tentative_g_score + heuristic(neighbor_r, neighbor_c)
                         heapq.heappush(open_set, (f_score, neighbor_r, neighbor_c))
 

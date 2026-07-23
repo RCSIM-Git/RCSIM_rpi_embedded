@@ -31,6 +31,10 @@ def sanitize_payload(obj: Any) -> Any:
     Returns:
         Any: Oczyszczony obiekt, bezpieczny do serializacji. / Sanitized object, safe for serialization.
     """
+    # Fast path for common primitive types to reduce recursive overhead
+    if type(obj) in (str, int, float, bool, type(None)):
+        return obj
+
     if isinstance(obj, dict):
         return {k: sanitize_payload(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -44,6 +48,9 @@ def sanitize_payload(obj: Any) -> Any:
     if isinstance(obj, complex):
         logger.warning("Wykryto i usunięto niedozwolony typ 'complex'.")
         return None
+
+    # We already checked primitive types in the fast path,
+    # but handle subclasses or other unexpected types here
     if not isinstance(obj, (type(None), str, int, float, bool)):
         if hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
             return sanitize_payload(obj.to_dict())

@@ -125,7 +125,7 @@ class TelemetryWorker(threading.Thread):
         self.telemetry_sender: TelemetrySender | None = None
         self.comm_mode: str = self.config.get("comm_mode", "WEBRTC")
         self.comm_protocol: str = self.config.get("comm_protocol", "NATIVE")
-        self.mavlink_service = None
+        self.mavlink_service: MAVLinkService | None = None
 
         # MAVLink Throttling (Dynamic)
         mav_rate = self.config.get("mavlink_throttle_hz", 10)
@@ -156,8 +156,6 @@ class TelemetryWorker(threading.Thread):
         self.AUTO_CALIB_COOLDOWN = 60.0
         self.telemetry_builder = TelemetryBuilder(self)
         self.command_dispatcher = CommandDispatcher(self)
-        self.comm_protocol: str = self.config.get("comm_protocol", "NATIVE")
-        self.mavlink_service: MAVLinkService | None = None
 
     def run(self) -> None:
         """

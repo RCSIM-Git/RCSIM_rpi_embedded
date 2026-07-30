@@ -155,3 +155,21 @@ def test_update_rth_calculates_steering_when_active(monkeypatch):
     assert steering == 0.5
     assert throttle == 0.2
     assert not arrived
+
+
+def test_update_rth_deceleration_near_home(monkeypatch):
+    """
+    Testuje, czy gaz jest płynnie zmniejszany przy zbliżaniu się do celu (< 10m).
+    """
+    monkeypatch.setattr(
+        "logic.navigation_manager.haversine_distance", lambda *args: 5.0
+    )
+    monkeypatch.setattr(NavigationManager, "calculate_steering", lambda *args: 0.1)
+
+    nav_manager = NavigationManager()
+    steering, throttle, arrived = nav_manager.update_rth(
+        True, {"lat": 0, "lon": 0}, 0.00004, 0.00004, 0, 0.1
+    )
+    assert not arrived
+    assert throttle == pytest.approx(0.1)
+

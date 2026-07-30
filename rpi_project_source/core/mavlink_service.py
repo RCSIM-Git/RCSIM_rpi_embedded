@@ -3,9 +3,10 @@ Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 """
 import logging
+import math
+import os
 import threading
 import time
-import os
 from typing import Any, Callable, List
 
 from pymavlink import mavutil
@@ -340,15 +341,27 @@ class MAVLinkService:
         if not self.master:
             return
         time_boot_ms = int((time.time() - self.boot_time) * 1000)
+
+        # Convert speed from km/h to cm/s
+        speed_cms = (speed_kmh / 3.6) * 100.0
+        hdg_rad = math.radians(hdg)
+
+        def clamp16(v: float) -> int:
+            return max(-32768, min(32767, int(v)))
+
+        vx = clamp16(speed_cms * math.cos(hdg_rad))
+        vy = clamp16(speed_cms * math.sin(hdg_rad))
+        vz = 0
+
         self.master.mav.global_position_int_send(
             time_boot_ms,
             int(lat * 1e7),
             int(lon * 1e7),
             int(alt * 1000),
             0,  # relative_alt
-            0,
-            0,
-            0,  # vx, vy, vz
+            vx,
+            vy,
+            vz,
             int(hdg * 100),
         )
 
@@ -384,5 +397,5 @@ class MAVLinkService:
 
     @property
     def link_active(self) -> bool:
-        """Zwraca True, jeśli otrzymano Heartbeat w ciągu ostatnich 2 sekund."""
+        """Zwraca True, jeśli otrzymano Heartbeat w ciągu ostatnich 5 sekund."""
         return (time.time() - self.last_remote_heartbeat) < self.HEARTBEAT_TIMEOUT

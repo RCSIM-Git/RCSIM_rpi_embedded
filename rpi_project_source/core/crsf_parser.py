@@ -1,4 +1,7 @@
 """
+DEPRECATED: Moduł zachowany dla kompatybilności wstecznej.
+Protokół CRSF/FBW został zarchiwizowany na rzecz MAVLink.
+
 CRSF Protocol Parser
 Parsuje binarne ramki wideo z Crossfire/ExpressLRS z portu szeregowego.
 Specyfikacja RC_CHANNELS_PACKED:
@@ -17,7 +20,10 @@ import serial
 
 
 class CRSFParser:
-    """Odczytuje port UART i na bieżąco dekoduje ramki CRSF (RC/Telemetria)."""
+    """
+    DEPRECATED: Zachowany dla kompatybilności wstecznej.
+    Odczytuje port UART i na bieżąco dekoduje ramki CRSF (RC/Telemetria).
+    """
 
     SYNC_BYTE = 0xC8
     TYPE_RC_CHANNELS_PACKED = 0x16

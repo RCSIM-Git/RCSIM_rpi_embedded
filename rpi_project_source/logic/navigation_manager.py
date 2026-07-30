@@ -165,7 +165,11 @@ class NavigationManager:
             GPSPoint(home_position["lat"], home_position["lon"]),
             dt,
         )
-        throttle = 0.2  # Stały niski gaz dla RTH / Constant low throttle for RTH
+        # Dynamic throttle deceleration when approaching home (under 10 meters)
+        if distance_to_home < 10.0:
+            throttle = max(0.05, min(0.2, 0.2 * (distance_to_home / 10.0)))
+        else:
+            throttle = 0.2  # Stały niski gaz dla RTH / Base low throttle for RTH
 
         return steering, throttle, False
 

@@ -207,21 +207,21 @@ class ControlSelector:
                 lidar_scan = lidar_scan_raw
         else:
             lidar_scan = None
-        frame_data.get("gps_data")
+        gps_data = frame_data.get("gps_data") or frame_data.get("gps")
         imu_data = frame_data.get("imu") or frame_data.get("imu_data") or {}
         manual_controls = frame_data.get(
             "manual_controls", {"steering": 0.0, "throttle": 0.0}
         )
         home_position = frame_data.get("home_position")
         dt = frame_data.get("dt", 1 / 30.0)
-        frame_data.get("image")
+        image = frame_data.get("image")
 
         # New: Planner Command from frame_data (inserted by Supervisor)
         planner_cmd = frame_data.get(
             "planner_cmd"
         )  # (steering, throttle, safety_score)
 
-        self._get_current_speed(frame_data)
+        current_speed = self._get_current_speed(frame_data)
         self.last_manual_steering = manual_controls["steering"]
         self.last_manual_throttle = manual_controls["throttle"]
 
@@ -255,7 +255,6 @@ class ControlSelector:
         # AI MODES (Legacy or specific)
         elif mode in (CONTROL_MODE_AI_STEER_ONLY, CONTROL_MODE_FULL_AUTOPILOT, "AI_AUTOPILOT"):
             if self.ai_manager and not self._ai_disabled:
-                image = frame_data.get("image")
                 if image is not None:
                     try:
                         steering, throttle = self.ai_manager.predict(image)
@@ -287,9 +286,9 @@ class ControlSelector:
             throttle = self.last_manual_throttle
 
         elif mode == CONTROL_MODE_RTH:
-            gps = frame_data.get("gps")
+            gps = gps_data
             if gps and gps.get("fix_quality", 0) in [4, 5] and home_position:
-                steering, _, arrived = self.nav_manager.update_rth(
+                steering, raw_throttle, arrived = self.nav_manager.update_rth(
                     True,
                     home_position,
                     gps["lat"],
@@ -297,15 +296,18 @@ class ControlSelector:
                     imu_data.get("heading", 0.0) if isinstance(imu_data, dict) else 0.0,
                     dt,
                 )
-                throttle = 0.2
+                throttle = raw_throttle
                 if arrived:
                     steering, throttle = 0.0, 0.0
+                elif planner_cmd:
+                    # Pass RTH steering/throttle through reactive planner safety evaluation
+                    _, _, p_safety = planner_cmd
+                    steering, throttle = self.reactive_override(
+                        (steering, throttle), p_safety
+                    )
             elif home_position:
                 # Fallback RTH using SLAM Pose (simplified)
-                # Note: This assumes home_position and slam_pose are in same local frame.
-                frame_data.get("pose", (0.0, 0.0, 0.0))
-                # For simplicity, we just stop if no stable GPS for now,
-                # or we could implement local RTH.
+                slam_pose = frame_data.get("pose", (0.0, 0.0, 0.0))
                 logging.warning("RTH: GPS lost. Holding position.")
                 steering, throttle = 0.0, 0.0
             else:

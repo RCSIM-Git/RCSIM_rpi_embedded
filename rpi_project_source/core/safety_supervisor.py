@@ -184,8 +184,8 @@ class SafetySupervisor:
                         new_state = SafetyState.STOP
                         self.reason = "CRITICAL FAILSAFE: All links lost & AI Hat missing. ABSOLUTE STOP."
             else:
-                # At least one link is active -> Can recover from Link Failsafe STOP
-                if self.state == SafetyState.STOP and "CRITICAL FAILSAFE" in self.reason:
+                # At least one link is active -> Can recover from Link Failsafe STOP/RTH
+                if self.state in [SafetyState.STOP, SafetyState.RTH] and "CRITICAL FAILSAFE" in self.reason:
                     logger.info(f"Safety: Link restored (ELRS Dead: {elrs_dead}, WebRTC Dead: {webrtc_dead}). Recovering from Failsafe.")
                     # new_state remains NORMAL as initialized at start of update
                     self.reason = "Link restored"

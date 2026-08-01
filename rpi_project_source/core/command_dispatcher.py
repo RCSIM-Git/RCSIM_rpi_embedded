@@ -31,6 +31,38 @@ class CommandDispatcher:
         self.path_assembler = BinaryPathAssembler()
         self.last_processed_tx_time = 0.0
         self.last_uploaded_waypoints = []
+        self.link_recovery_counter = 0
+
+    def _try_exit_failsafe(self, source: str) -> None:
+        """
+        Próbuje wyjść z trybu FAILSAFE z zachowaniem histerezy oraz weryfikacją SafetySupervisor.
+        """
+        w = self.worker
+        if w.current_mode != "FAILSAFE":
+            self.link_recovery_counter = 0
+            return
+
+        self.link_recovery_counter += 1
+        REQUIRED_PACKETS = 5
+
+        safety_ok = True
+        if getattr(w, "safety_supervisor", None) is not None:
+            from core.safety_supervisor import SafetyState
+            sup = w.safety_supervisor
+            state = getattr(sup, "state", None)
+            if isinstance(state, SafetyState):
+                safety_ok = (state == SafetyState.NORMAL)
+
+        if self.link_recovery_counter >= REQUIRED_PACKETS and safety_ok:
+            w.current_mode = "MANUAL"
+            self.logger.info(
+                f"Link hysteresis & safety verified ({self.link_recovery_counter} pkts) via {source} - Exiting FAILSAFE to MANUAL."
+            )
+            self.link_recovery_counter = 0
+        else:
+            self.logger.debug(
+                f"FAILSAFE recovery pending via {source}: count={self.link_recovery_counter}/{REQUIRED_PACKETS}, safety_ok={safety_ok}"
+            )
 
     def on_data_received(self, data: Any) -> None:
         """
@@ -161,9 +193,7 @@ class CommandDispatcher:
                 for i in range(2, num_channels):
                     w.extra_channels_data[i] = channels[i]
 
-            if w.current_mode == "FAILSAFE":
-                w.current_mode = "MANUAL"
-                self.logger.info("Link recovered via Binary - Exiting FAILSAFE.")
+            self._try_exit_failsafe("Binary")
             w.link_established = True
             return
 
@@ -216,9 +246,7 @@ class CommandDispatcher:
                 }
             }
 
-            if w.current_mode == "FAILSAFE":
-                w.current_mode = "MANUAL"
-                self.logger.info("Link recovered via JSON - Exiting FAILSAFE.")
+            self._try_exit_failsafe("JSON")
             w.link_established = True
 
     def handle_command(self, msg: dict[str, Any]) -> None:
@@ -337,8 +365,8 @@ class CommandDispatcher:
         elif cmd == "RESET_SAFETY":
             self.logger.info("COMMAND: RESET_SAFETY received.")
             w.safety_supervisor.reset_impact()
-            if w.current_mode == "FAILSAFE":
-                w.current_mode = "MANUAL"
+            self.link_recovery_counter = 5
+            self._try_exit_failsafe("RESET_SAFETY command")
 
         elif cmd == "VERSION_WARNING":
             payload = msg.get("payload", {})
@@ -513,9 +541,7 @@ class CommandDispatcher:
             if channels[i] < 65535:
                 w.extra_channels_data[i] = channels[i]
 
-        if w.current_mode == "FAILSAFE":
-            w.current_mode = "MANUAL"
-            self.logger.info("Link recovered via MAVLink - Exiting FAILSAFE.")
+        self._try_exit_failsafe("MAVLink")
 
         if not w.pca_armed:
             if getattr(self, "_last_disarm_msg", 0) < time.time() - 5.0:

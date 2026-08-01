@@ -72,7 +72,7 @@ class TestCommandDispatcher(unittest.TestCase):
 
         controls = self.mock_worker.last_control_input["manual_controls"]
         self.assertEqual(controls["steering"], 0.0)
-        self.assertGreater(self.mock_worker.last_pc_timestamp, 0.0)
+        self.assertEqual(self.mock_worker.last_pc_timestamp, 0.0)
 
     def test_handle_binary_control_crc_error(self):
         channels = [1500] * 8
@@ -101,8 +101,13 @@ class TestCommandDispatcher(unittest.TestCase):
         channels = [1500] * 8
         packet = self._create_binary_packet(channels)
 
-        self.dispatcher.on_data_received(packet)
+        # First 4 packets should maintain FAILSAFE (hysteresis requirement: 5 packets)
+        for _ in range(4):
+            self.dispatcher.on_data_received(packet)
+            self.assertEqual(self.mock_worker.current_mode, "FAILSAFE")
 
+        # 5th packet verifies link stability and transitions to MANUAL
+        self.dispatcher.on_data_received(packet)
         self.assertEqual(self.mock_worker.current_mode, "MANUAL")
 
 

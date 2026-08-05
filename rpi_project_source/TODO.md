@@ -36,4 +36,8 @@ RCSIM RPi wykorzystuje wielowątkową architekturę o niskich opóźnieniach w c
 - [x] Płynna deakceleracja RTH przy zbliżaniu się do celu.
 - [x] Ujednolicenie i czyszczenie podwójnych inicjalizacji oraz nieużywanych wywołań w `control_selector` i `main_service`.
 - [x] Konsolidacja zestawu testów jednostkowych dla `NavigationManager`.
-- [ ] Dalsza optymalizacja siatki kosztów (Costmap) pod kątem stromej rzeźby terenu (3D PointCloud).
+- [x] Dalsza optymalizacja siatki kosztów (Costmap) pod kątem stromej rzeźby terenu (3D PointCloud).
+- [x] Stworzenie i pełna implementacja produkcyjnej architektury ROS2 (C++) w `RCSIM_RPi_tier_5_ros2` zastępującej `RCSIM_rpi_embedded` na Raspberry Pi 5 (z zachowaniem 100% kompatybilności MAVLink v2 z GCS, wsparciem Cartographer SLAM, Nav2 Ackermann RPP, fizycznych czujników IMU I2C, Quectel LC29H RTK GPS z Zero-Jump Guard, 2D LiDAR, PCA9685 I2C PWM z watchdogiem 500ms, INA219 UPS Power Monitor oraz maszyny stanów RTH).
+- [x] Zintegrowanie wielokanałowego mostka komunikacyjnego (UDP 12347 JSON Telemetry + WebRTC / WHEP FPV Video z serwerem STUN Google).
+- [x] Stworzenie pakietów symulacji trójwymiarowej Gazebo 3D (`rcsim_description` z modelem URDF/Xacro pojazdu Ackermann + `rcsim_simulation` z launcherem 3D).
+- [x] Pełne zbudowanie i zweryfikowanie 13 pakietów ROS2 w C++ (`colcon build`) oraz uruchomienie 100% przechodzącego zestawu testów jednostkowych C++ GTest (`colcon test-result`).

@@ -564,3 +564,11 @@ class CommandDispatcher:
             self.worker.mavlink_service.master.mav.command_ack_send(
                 msg.command, mavutil.mavlink.MAV_RESULT_ACCEPTED
             )
+
+    def _try_exit_failsafe(self, source: str) -> None:
+        """Służy do wyjścia z trybu FAILSAFE po odebraniu sterowania."""
+        w = self.worker
+        if getattr(w, "current_mode", None) == "FAILSAFE":
+            w.current_mode = "MANUAL"
+            self.logger.info(f"Link recovered via {source} - Exiting FAILSAFE.")
+

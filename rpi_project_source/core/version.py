@@ -1,2 +1,2 @@
 # RCSIM RPi Version
-APP_VERSION = "1.3.8"
+APP_VERSION = "1.3.10"

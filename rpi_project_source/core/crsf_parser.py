@@ -250,8 +250,10 @@ class CRSFParser:
         Odczyt statystyk (np: z odbiornika Telemetry RX /LQ)
         [Uplink_RSSI_1][Uplink_RSSI_2][Uplink_LQ][Uplink_SNR][Active_Antenna][RF_Mode][TPower][Downlink_...][..][..]
         """
-        self.link_statistics["rssi_1"] = -payload[0]
-        self.link_statistics["rssi_2"] = -payload[1]
+        r1 = payload[0]
+        r2 = payload[1]
+        self.link_statistics["rssi_1"] = (r1 - 256) if r1 > 127 else -r1
+        self.link_statistics["rssi_2"] = (r2 - 256) if r2 > 127 else -r2
         self.link_statistics["link_quality"] = payload[2]
         self.link_statistics["snr"] = int.from_bytes(
             payload[3:4], byteorder="little", signed=True

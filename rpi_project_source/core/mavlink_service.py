@@ -107,10 +107,15 @@ class MAVLinkService:
                 self.send_heartbeat()
                 last_heartbeat = now
 
-            # Receive messages
+            # Drain bursts without starving heartbeat or other service threads.
+            received = 0
             try:
-                msg = self.master.recv_match(blocking=False)
-                if msg:
+                deadline = time.monotonic() + 0.005
+                while self.running and received < 256:
+                    msg = self.master.recv_match(blocking=False)
+                    if msg is None:
+                        break
+                    received += 1
                     self._rx_msg_count += 1
                     msg_type = msg.get_type()
                     # Track message types
@@ -118,6 +123,8 @@ class MAVLinkService:
                         self._rx_types = {}
                     self._rx_types[msg_type] = self._rx_types.get(msg_type, 0) + 1
                     self._handle_message(msg)
+                    if time.monotonic() >= deadline:
+                        break
             except Exception as e:
                 logger.error(f"Error receiving MAVLink message: {e}")
 
@@ -138,7 +145,8 @@ class MAVLinkService:
                 )
                 self._last_diag_log = now
 
-            time.sleep(0.01)
+            # Idle backoff only: sleeping per frame accumulates stale controls.
+            time.sleep(0.0 if received else 0.01)
 
     def _handle_message(self, msg):
         """Obsługa przychodzących wiadomości MAVLink."""

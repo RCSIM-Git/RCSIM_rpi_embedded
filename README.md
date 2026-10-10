@@ -20,11 +20,13 @@ The system is responsible for direct control of the physical RC vehicle, real-ti
    - H.264 video streaming from the IMX219 camera module via a native **MediaMTX** pipeline (WebRTC/WHEP and RTSP).
    - Low-level packet fragmentation protocol (**Chunking**) preventing IP fragmentation issues by capping telemetry and map packets under the MTU limit (max 1100 bytes).
    - Support for the **MAVLink** protocol for integration with external flight controllers/autopilots.
+   - Binary path uploads (`PT`) use zero-based fragment indices: `total > 0` and `index < total`. All fragments of a buffered message ID must declare the same total. Invalid headers are ignored without changing the pending upload; valid fragments may arrive out of order or be retransmitted.
 
 4. **Autonomous Navigation & SLAM**
    - **CostmapManager**: Real-time occupancy grid management based on LiDAR scans.
    - **Global Planner**: Optimal path calculation using the **A*** algorithm.
    - **Local & Reactive Planner**: Collision avoidance and path tracking utilizing the **Pure Pursuit** algorithm.
+     Pure Pursuit regression tests exercise the public `LocalPlanner` interface with a real costmap: straight driving, left/right turns and zero throttle near an obstacle. Run `python -m pytest -q tests/test_local_planner_fusion.py::TestPurePursuitIntegration` from `rpi_project_source`; these software tests do not validate physical vehicle behaviour.
    - **State Machine** and **Safety Supervisor**: Independent guard rails monitoring heartbeat, IMU crash G-forces, and obstacle proximity (Failsafe with automatic vehicle stop).
 
 ---

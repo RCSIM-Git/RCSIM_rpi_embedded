@@ -93,7 +93,7 @@ class PurePursuitPlanner:
                 lookahead_distance, self.lookahead_min, self.lookahead_max
             )
 
-        self.logger.debug(
+        logger.debug(
             f"Adaptive Lookahead: Speed={current_speed:.2f}m/s -> L={lookahead_distance:.2f}m"
         )
 

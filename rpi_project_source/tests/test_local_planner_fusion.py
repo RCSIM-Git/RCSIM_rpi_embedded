@@ -105,5 +105,47 @@ class TestLocalPlannerFusion(unittest.TestCase):
         self.assertLess(steering, 0.0)
 
 
+class TestPurePursuitIntegration(unittest.TestCase):
+    def setUp(self) -> None:
+        self.planner = LocalPlanner()
+        self.pose = (0.0, 0.0, 0.0)
+
+    def test_straight_path_returns_forward_controls(self) -> None:
+        steering, throttle, safety = self.planner.plan_pure_pursuit(
+            self.pose, (2.0, 0.0, 0.8)
+        )
+        self.assertAlmostEqual(steering, 0.0)
+        self.assertAlmostEqual(throttle, 0.75)
+        self.assertAlmostEqual(safety, 1.0)
+
+    def test_mirrored_targets_return_opposite_bounded_turns(self) -> None:
+        left = self.planner.plan_pure_pursuit(self.pose, (2.0, 1.0, 0.8))
+        right = self.planner.plan_pure_pursuit(self.pose, (2.0, -1.0, 0.8))
+        self.assertGreater(left[0], 0.0)
+        self.assertLess(right[0], 0.0)
+        self.assertAlmostEqual(left[0], -right[0])
+        self.assertAlmostEqual(left[1], right[1])
+        for steering, throttle, safety in (left, right):
+            self.assertTrue(np.all(np.isfinite((steering, throttle, safety))))
+            self.assertLessEqual(abs(steering), self.planner.pure_pursuit.max_steering_angle)
+            self.assertGreater(throttle, 0.0)
+            self.assertLess(throttle, 0.75)
+            self.assertEqual(safety, 1.0)
+
+    def test_nearby_lidar_obstacle_stops_throttle(self) -> None:
+        self.planner.update_occupancy(self.pose, [(0.0, 200.0)])
+        self.assertLess(
+            self.planner.cm.get_closest_obstacle_dist(self.pose),
+            self.planner.pure_pursuit.emergency_stop_dist,
+        )
+        steering, throttle, safety = self.planner.plan_pure_pursuit(
+            self.pose, (2.0, 0.0, 0.8)
+        )
+        self.assertTrue(np.isfinite(steering))
+        self.assertEqual(throttle, 0.0)
+        self.assertGreaterEqual(safety, 0.0)
+        self.assertLess(safety, 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()

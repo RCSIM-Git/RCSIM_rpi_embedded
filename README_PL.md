@@ -20,11 +20,13 @@ System odpowiada za bezpośrednią kontrolę nad fizycznym pojazdem RC, przetwar
    - Transmisja wideo H.264 z modułu kamery IMX219 za pośrednictwem natywnego potoku **MediaMTX** (WebRTC/WHEP oraz RTSP).
    - Niskopoziomowy protokół fragmentacji pakietów map i telemetrii (**Chunking**) zapobiegający problemom z limitem MTU (maksymalnie 1100 bajtów na pakiet w celu uniknięcia fragmentacji IP).
    - Wsparcie dla standardu **MAVLink** do integracji z zewnętrznymi autopilotami/kontrolerami lotu.
+   - Binarne przesyłanie ścieżki (`PT`) używa indeksów fragmentów od zera: `total > 0` i `index < total`. Wszystkie fragmenty buforowanej transmisji o danym ID muszą deklarować tę samą liczbę fragmentów. Błędne nagłówki są ignorowane bez zmiany oczekującej transmisji; poprawne fragmenty mogą przychodzić w dowolnej kolejności lub być retransmitowane.
 
 4. **Nawigacja Autonomiczna i SLAM**
    - **CostmapManager**: Zarządzanie siatką zajętości (occupancy grid) w czasie rzeczywistym na podstawie odczytów LiDAR.
    - **Global Planner**: Wyznaczanie optymalnej ścieżki za pomocą algorytmu **A***.
    - **Local & Reactive Planner**: Bezpieczne omijanie przeszkód i podążanie za wyznaczoną ścieżką przy użyciu algorytmu **Pure Pursuit**.
+     Testy regresyjne Pure Pursuit sprawdzają publiczny interfejs `LocalPlanner` z rzeczywistą mapą kosztów: jazdę prosto, skręt w lewo/prawo i zerowy gaz przy przeszkodzie. Uruchom `python -m pytest -q tests/test_local_planner_fusion.py::TestPurePursuitIntegration` z katalogu `rpi_project_source`; testy programowe nie weryfikują zachowania fizycznego pojazdu.
    - **Maszyna Stanów (State Machine)** i **Safety Supervisor**: Niezależny strażnik bezpieczeństwa monitorujący sygnał życia (heartbeat), przeciążenia IMU oraz odległość od przeszkód (Failsafe z automatycznym zatrzymaniem pojazdu).
 
 ---

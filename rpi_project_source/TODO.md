@@ -30,6 +30,8 @@ RCSIM RPi wykorzystuje wielowątkową architekturę o niskich opóźnieniach w c
 
 ## Status Zadań (Roadmap Tasks)
 
+- [x] Usunięcie wyjątku niezainicjalizowanego loggera Pure Pursuit; regresje sterowania przez LocalPlanner dla jazdy prosto, skrętów i zatrzymania przy przeszkodzie.
+- [x] Walidacja nagłówków fragmentów ścieżki PT: odrzucanie zerowej liczby fragmentów, indeksów poza zakresem i sprzecznej liczby fragmentów bez zmiany bufora; testy regresji dla duplikatów i odbioru w odwrotnej kolejności.
 - [x] Zastąpienie zarchiwizowanego protokołu CRSF/FBW natywnym serwisem MAVLink v2.
 - [x] Zapewnienie pełnej telemetrii prędkości w `GLOBAL_POSITION_INT` (składowe $v_x, v_y$).
 - [x] Zintegrowanie `ReactivePlanner` z trybem RTH (reaktywne unikanie przeszkód podczas powrotu).

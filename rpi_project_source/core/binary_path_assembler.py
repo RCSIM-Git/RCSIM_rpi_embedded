@@ -44,6 +44,10 @@ class BinaryPathAssembler:
         header = data[2:10]
         msg_id, index, total, payload_len = struct.unpack("<HHHH", header)
 
+        if total == 0 or index >= total:
+            self.logger.warning("Invalid path chunk index or total")
+            return None
+
         chunk_payload = data[10:-1]
         if len(chunk_payload) != payload_len:
             self.logger.error(
@@ -60,6 +64,10 @@ class BinaryPathAssembler:
             }
 
         buffer = self._buffers[msg_id]
+        if total != buffer["total"]:
+            self.logger.warning("Inconsistent path chunk total")
+            return None
+
         buffer["chunks"][index] = chunk_payload
         buffer["last_seen"] = time.time()
 

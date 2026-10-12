@@ -4,6 +4,10 @@ Zbiera, chłonie błędy i filtruje surowe dane ze wszystkich szyn I2C, SPI oraz
 """
 
 import logging
+import hashlib
+import math
+import platform
+import time
 from typing import Any
 
 from modules.drivers.base_sensor import IMUBase
@@ -42,6 +46,8 @@ class SensorAggregator:
             return
 
         imu_config = self.config.get("imu", {})
+        if not imu_config.get("enabled", True):
+            return
         driver_name = imu_config.get("driver", "auto")
 
         from modules.drivers.sensor_registry import SensorRegistry
@@ -133,12 +139,10 @@ class SensorAggregator:
         if self.imu:
             try:
                 # Omijamy fallback drivera starych IMU przekazując throttle dla Magnetic Compensation
-                if hasattr(self.imu, "read_data"):
+                try:
                     sensor_data["imu"] = self.imu.read_data(throttle=self.last_throttle)
-                else:
+                except TypeError:
                     sensor_data["imu"] = self.imu.read_data()
-            except TypeError:
-                sensor_data["imu"] = self.imu.read_data()
             except Exception as e:
                 if "[Errno 11]" in str(e) or "EAGAIN" in str(e):
                     logger.debug(f"IMU temporarily busy: {e}")
@@ -149,19 +153,17 @@ class SensorAggregator:
 
             # Aplikacja kalibracji pokładowej / Apply onboard calibration
             if sensor_data["imu"]:
-                self._apply_imu_calibration(sensor_data["imu"])
-
-        # Wstrzykiwanie bezpiecznego bloku danych w razie uszkodzenia fizycznego IMU
-        if not sensor_data["imu"]:
-            sensor_data["imu"] = {
-                "ax": 0.0,
-                "ay": 0.0,
-                "az": 9.81,
-                "gx": 0.0,
-                "gy": 0.0,
-                "gz": 0.0,
-                "temperature": 25.0,
-            }
+                calibration = self.config.get("imu_calibration", {})
+                explicit_si = (calibration.get("accel_unit") == "m/s2"
+                               and calibration.get("gyro_unit") == "rad/s")
+                if not explicit_si:
+                    # Legacy saved offsets use the native driver's g/deg/s units.
+                    self._apply_imu_calibration(sensor_data["imu"])
+                sensor_data["imu"] = self._normalize_imu(sensor_data["imu"])
+                if sensor_data["imu"] and explicit_si:
+                    self._apply_imu_calibration(sensor_data["imu"])
+            else:
+                sensor_data["imu"] = None
 
         # Obliczenie szacowanej orientacji / Calculate estimated orientation
         if sensor_data["imu"]:
@@ -207,6 +209,52 @@ class SensorAggregator:
                         self._notified_failures.add("ups")
 
         return sensor_data
+
+    def _normalize_imu(self, readings: dict[str, Any]) -> dict[str, Any] | None:
+        """Normalize measured samples; a failed read never becomes a fake 1 g sample."""
+        driver = getattr(self.imu, "DRIVER_NAME", "")
+        units = {
+            "native_mpu6050": ("g", "deg/s"),
+            "native_mpu9250": ("g", "deg/s"),
+            "native_gy91": ("g", "deg/s"),
+            "native_bmx160": ("m/s2", "deg/s"),
+            "native_bmx160_bmp388": ("m/s2", "deg/s"),
+            "native_bno08x": ("g", "rad/s"),
+        }.get(driver, (readings.get("accel_unit"), readings.get("gyro_unit")))
+        accel_unit, gyro_unit = units
+        if accel_unit not in ("g", "m/s2") or gyro_unit not in ("deg/s", "rad/s"):
+            return None
+        data = dict(readings)
+        for prefix, scale in (("a", 9.81 if accel_unit == "g" else 1.0),
+                              ("g", math.pi / 180 if gyro_unit == "deg/s" else 1.0)):
+            for axis in "xyz":
+                key = prefix + axis
+                value = data.get(key)
+                if value is None:
+                    data.pop(key, None)
+                elif not isinstance(value, (int, float)) or not math.isfinite(value):
+                    return None
+                else:
+                    data[key] = value * scale
+        if not all(key in data for key in ("ax", "ay", "az")):
+            return None
+        self._imu_sample_sequence = getattr(self, "_imu_sample_sequence", 0) + 1
+        if not hasattr(self, "_imu_device_uid"):
+            identity = self.config.get("device_uid")
+            if not identity:
+                try:
+                    with open("/etc/machine-id", encoding="ascii") as identity_file:
+                        identity = identity_file.read().strip()
+                except OSError:
+                    identity = platform.node()
+            self._imu_device_uid = hashlib.sha256(str(identity).encode()).hexdigest()[:24]
+        data.update(source="rpi_raw", driver=driver, accel_unit="m/s2",
+                    gyro_unit="rad/s", mag_unit="uT", angle_unit="deg",
+                    calibration_owner="raspberry_pi", sample_time_us=time.monotonic_ns() // 1000,
+                    sample_sequence=self._imu_sample_sequence,
+                    device_uid=self._imu_device_uid,
+                    sensor_id=getattr(self.imu, "address", getattr(self.imu, "addr", 0)))
+        return data
 
     def _apply_imu_calibration(self, imu_data: dict[str, Any]) -> None:
         """
@@ -266,7 +314,7 @@ class SensorAggregator:
         import math
         import time
 
-        now = time.time()
+        now = time.monotonic()
         if not hasattr(self, "_last_orient_time"):
             self._last_orient_time = now
             self._pitch_est = 0.0
@@ -303,6 +351,9 @@ class SensorAggregator:
         except Exception:
             pitch_acc = 0.0
             roll_acc = 0.0
+
+        if not all(key in imu_data for key in ("gx", "gy", "gz")):
+            return  # Missing gyro is not a measured zero angular rate.
 
         # Przeliczenie żyroskopu z rad/s na stopnie/s
         gx_deg = gx * (180.0 / math.pi)

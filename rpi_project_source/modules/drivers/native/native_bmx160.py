@@ -280,7 +280,7 @@ class NativeBMX160(IMUBase):
         # Guard against read failure
         if not data or len(data) < 20:
             logger.warning("BMX160: Read failed or incomplete data.")
-            return [0.0] * 9
+            raise OSError("Incomplete BMX160 sample")
 
         if data[1] & 0x80:
             magnx = -0x10000 + ((data[1] << 8) | (data[0]))
@@ -448,7 +448,6 @@ class NativeBMX160(IMUBase):
             "mx": mx,
             "my": my,
             "mz": mz,
-            "temperature": 25.0,  # Placeholder, DFRobot code doesn't read temp
         }
 
     def calibrate(self) -> bool:

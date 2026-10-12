@@ -84,6 +84,17 @@ class TestTelemetryBuilder(unittest.TestCase):
         except Exception as e:
             self.fail(f"TelemetryBuilder failed on invalid data: {e}")
 
+    def test_raw_sample_separate_from_estimated_orientation(self):
+        imu = {"ax": 0.0, "ay": 0.0, "az": 9.81, "roll": 1.0, "pitch": 2.0,
+               "source": "rpi_raw", "sample_time_us": 1, "sample_sequence": 8}
+        packet = self.builder.prepare_telemetry({"imu": imu})
+        self.assertNotIn("roll", packet["im"])
+        self.assertEqual(packet["rpi_orientation"]["roll"], 1.0)
+        self.assertNotIn("orientation", packet)
+        self.assertEqual(packet["im"]["sample_sequence"], 8)
+        self.assertGreaterEqual(packet["im"]["sample_age_ms"], 0)
+        self.assertIn("roll", imu)
+
 
 if __name__ == "__main__":
     unittest.main()

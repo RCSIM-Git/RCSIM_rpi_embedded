@@ -372,6 +372,7 @@ class NativeMPU9250(IMUBase):
 
         # --- Combine into a standardized dictionary ---
         scaled_data = {
+            "temperature": self._bytes_to_int(mpu_data[6], mpu_data[7]) / 333.87 + 21.0,
             "ax": accel_x,
             "ay": accel_y,
             "az": accel_z,
@@ -398,9 +399,6 @@ class NativeMPU9250(IMUBase):
                                         / IMU data in standard format.
         """
         data = self.read_scaled(throttle=throttle)
-        # Dodaj pole temperature jeśli nie istnieje (dla kompatybilności)
-        if "temperature" not in data:
-            data["temperature"] = 25.0  # Wartość domyślna / Default value
         return data
 
     def calibrate(self) -> bool:

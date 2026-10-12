@@ -93,8 +93,8 @@ class NativeBNO08x(IMUBase):
             # Odczyty mogą zawieść niezależnie
             # Wrap individual reads as they can fail independently
             acc = self.bno.acceleration  # (x, y, z) m/s^2
-            # gyro = self.bno.gyro         # (x, y, z) rad/s
-            # mag = self.bno.magnetic      # (x, y, z) uT
+            gyro = self.bno.gyro         # (x, y, z) rad/s
+            mag = self.bno.magnetic      # (x, y, z) uT
             quat = self.bno.quaternion  # (i, j, k, real) -> (x, y, z, w)
 
             data: dict[str, Any] = {}
@@ -109,7 +109,10 @@ class NativeBNO08x(IMUBase):
                 data["qz"] = quat[2]
                 data["qw"] = quat[3]
 
-            data["temperature"] = 25.0
+            if gyro:
+                data.update(zip(("gx", "gy", "gz"), gyro))
+            if mag:
+                data.update(zip(("mx", "my", "mz"), mag))
 
             self.error_count = 0
             return data

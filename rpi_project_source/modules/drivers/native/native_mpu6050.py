@@ -110,10 +110,6 @@ class NativeMPU6050(IMUBase):
             "gx": raw["gyro_x"] / self._GYRO_SCALE_FACTOR_250DPS,
             "gy": raw["gyro_y"] / self._GYRO_SCALE_FACTOR_250DPS,
             "gz": raw["gyro_z"] / self._GYRO_SCALE_FACTOR_250DPS,
-            # Dodane dla kompatybilności z interfejsem (brak magnetometru)
-            "mx": 0.0,
-            "my": 0.0,
-            "mz": 0.0,
         }
         return scaled_data
 

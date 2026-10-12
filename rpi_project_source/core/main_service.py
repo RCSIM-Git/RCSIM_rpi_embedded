@@ -627,13 +627,14 @@ class TelemetryWorker(threading.Thread):
 
         # 1. High Frequency: Attitude (IMU)
         if idx % self._mavlink_mod == 0:
-            imu = sensor_data.get("imu", {})
-            ms.send_attitude(
-                imu.get("roll", 0.0),
-                imu.get("pitch", 0.0),
-                imu.get("yaw", self.current_pose[2]),
-                imu_data=imu,
-            )
+            imu = sensor_data.get("imu")
+            if imu:
+                ms.send_attitude(
+                    math.radians(imu["roll"]) if "roll" in imu else None,
+                    math.radians(imu["pitch"]) if "pitch" in imu else None,
+                    math.radians(imu["yaw"]) if "yaw" in imu else None,
+                    imu_data=imu,
+                )
 
         # 2. Medium Frequency: Position (GPS)
         if idx % self._mavlink_gps_mod == 0:

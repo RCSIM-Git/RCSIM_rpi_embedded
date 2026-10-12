@@ -281,6 +281,17 @@ class MAVLinkService:
             0,
             mavutil.mavlink.MAV_STATE_ACTIVE,
         )
+        self._send_imu_capability()
+
+    def _send_imu_capability(self):
+        # Version 1 companion IMU convention; bit 1 means onboard calibration.
+        now = time.monotonic()
+        value = 3 if getattr(self, "_imu_calibrated", False) else 1
+        if (now - getattr(self, "_imu_capability_time", float("-inf")) >= 1
+                or value != getattr(self, "_imu_capability_value", None)):
+            self.master.mav.named_value_int_send(
+                int((time.time() - self.boot_time) * 1000), b"RCSIM_RPI", value)
+            self._imu_capability_time, self._imu_capability_value = now, value
 
     def send_status(self, voltage: float, current: float, cpu_load: int):
         """Wysyła SYS_STATUS."""
@@ -308,38 +319,41 @@ class MAVLinkService:
     def send_attitude(
         self, roll: float, pitch: float, yaw: float, imu_data: dict = None
     ):
-        """Wysyła ATTITUDE (rad) oraz opcjonalnie RAW_IMU."""
+        """Send orientation in radians and measured IMU in SI HIGHRES_IMU fields."""
         if not self.master:
             return
         self._tx_telem_count += 1
+        self._imu_calibrated = bool(imu_data and imu_data.get("calibrated"))
+        self._send_imu_capability()
         time_boot_ms = int((time.time() - self.boot_time) * 1000)
 
-        self.master.mav.attitude_send(
-            time_boot_ms,
-            roll,
-            pitch,
-            yaw,
-            imu_data.get("gx", 0) if imu_data else 0,
-            imu_data.get("gy", 0) if imu_data else 0,
-            imu_data.get("gz", 0) if imu_data else 0,
-        )
+        if all(isinstance(value, (int, float)) and math.isfinite(value)
+               for value in (roll, pitch, yaw)):
+            self.master.mav.attitude_send(
+                time_boot_ms, roll, pitch, yaw,
+                imu_data.get("gx", float("nan")) if imu_data else float("nan"),
+                imu_data.get("gy", float("nan")) if imu_data else float("nan"),
+                imu_data.get("gz", float("nan")) if imu_data else float("nan"),
+            )
 
-        if imu_data:
-            # Clamp values to int16 range to prevent overflow crashes
-            def clamp16(v):
-                return max(-32768, min(32767, int(v)))
-
-            self.master.mav.raw_imu_send(
-                int(time.time() * 1e6),
-                clamp16(imu_data.get("ax", 0) * 1000),
-                clamp16(imu_data.get("ay", 0) * 1000),
-                clamp16(imu_data.get("az", 0) * 1000),
-                clamp16(imu_data.get("gx", 0) * 1000),
-                clamp16(imu_data.get("gy", 0) * 1000),
-                clamp16(imu_data.get("gz", 0) * 1000),
-                clamp16(imu_data.get("mx", 0) * 10),  # 1 uT = 10 mG
-                clamp16(imu_data.get("my", 0) * 10),
-                clamp16(imu_data.get("mz", 0) * 10),
+        if imu_data and imu_data.get("accel_unit") == "m/s2":
+            # HIGHRES_IMU defines SI units, unlike RAW_IMU's unspecified counts.
+            fields = ("ax", "ay", "az", "gx", "gy", "gz", "mx", "my", "mz",
+                      "pressure", "diff_pressure", "pressure_alt", "temperature")
+            values, updated = [], 0
+            for bit, key in enumerate(fields):
+                value = imu_data.get(key)
+                valid = isinstance(value, (int, float)) and math.isfinite(value)
+                if valid:
+                    updated |= 1 << bit
+                    if bit in (6, 7, 8):
+                        value *= 0.01  # uT -> gauss
+                    elif bit == 9:
+                        value *= 0.01  # Pa -> hPa
+                values.append(value if valid else 0.0)
+            self.master.mav.highres_imu_send(
+                imu_data.get("sample_time_us", int(time.monotonic() * 1e6)),
+                *values, updated,
             )
 
     def send_position(

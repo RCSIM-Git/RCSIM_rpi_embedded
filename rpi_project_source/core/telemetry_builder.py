@@ -41,6 +41,18 @@ class TelemetryBuilder:
             "sync": w.slam_frame_count,
             "sp": getattr(w, "current_speed", 0.0),
         }
+        imu = sensor_data.get("imu")
+        if imu:
+            packet["im"] = dict(imu)
+            packet["rpi_orientation"] = {
+                key: packet["im"].pop(key) for key in ("roll", "pitch", "yaw")
+                if key in packet["im"]
+            }
+            packet["rpi_orientation"].update(source="rpi_complementary", angle_unit="deg")
+            sample_time = imu.get("sample_time_us")
+            if isinstance(sample_time, (int, float)):
+                packet["im"]["sample_age_ms"] = max(
+                    0.0, (time.monotonic_ns() / 1000 - sample_time) / 1000)
 
         # Navigation State
         if w.nav_manager and w.nav_manager.current_path:

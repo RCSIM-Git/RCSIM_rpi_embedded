@@ -14,6 +14,7 @@ on the Raspberry Pi (Manual, AI, Autopilot, Failsafe).
 from __future__ import annotations
 
 import logging
+import math
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -257,7 +258,25 @@ class ControlSelector:
             if self.ai_manager and not self._ai_disabled:
                 if image is not None:
                     try:
-                        steering, throttle = self.ai_manager.predict(image)
+                        if "ai_controls" in frame_data:
+                            ai_controls = frame_data["ai_controls"]
+                        else:
+                            _, ai_controls = self.ai_manager.predict(
+                                image, sensor_data=frame_data
+                            )
+                        if not isinstance(ai_controls, dict):
+                            raise ValueError("AI did not provide controls")
+                        steering = float(ai_controls["steering"])
+                        throttle = float(ai_controls["throttle"])
+                        if not math.isfinite(steering) or not math.isfinite(throttle):
+                            raise ValueError("AI provided non-finite controls")
+                        if mode == CONTROL_MODE_AI_STEER_ONLY:
+                            throttle = self.last_manual_throttle
+                        if planner_cmd:
+                            _, _, safety_score = planner_cmd
+                            steering, throttle = self.reactive_override(
+                                (steering, throttle), safety_score
+                            )
                         self._consecutive_ai_failures = 0
                     except Exception as e:
                         logging.error(f"AI prediction error: {e}")

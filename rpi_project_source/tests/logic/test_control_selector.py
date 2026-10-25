@@ -115,7 +115,7 @@ def test_control_selector_ai_mode_success(mock_nav_manager, mock_ai_manager):
     # Arrange
     from logic.control_selector import ControlSelector
 
-    mock_ai_manager.predict.return_value = (0.9, 0.6)
+    mock_ai_manager.predict.return_value = ([], {"steering": 0.9, "throttle": 0.6})
     selector = ControlSelector(mock_nav_manager, mock_ai_manager)
     frame_data = {"image": "mock_image_data"}
 
@@ -123,9 +123,50 @@ def test_control_selector_ai_mode_success(mock_nav_manager, mock_ai_manager):
     steering, throttle = selector.process_frame("AI_AUTOPILOT", frame_data)
 
     # Assert
-    mock_ai_manager.predict.assert_called_once_with("mock_image_data", frame_data)
+    mock_ai_manager.predict.assert_called_once_with(
+        "mock_image_data", sensor_data=frame_data
+    )
     assert steering == 0.9
     assert throttle == 0.6
+
+
+def test_control_selector_reuses_precomputed_ai_controls(mock_nav_manager, mock_ai_manager):
+    from logic.control_selector import ControlSelector
+
+    selector = ControlSelector(mock_nav_manager, mock_ai_manager)
+    frame_data = {
+        "image": "mock_image_data",
+        "ai_controls": {"steering": -0.4, "throttle": 0.7},
+        "planner_cmd": (-0.4, 0.7, 1.0),
+    }
+
+    assert selector.process_frame("FULL_AUTOPILOT", frame_data) == (-0.4, 0.7)
+    mock_ai_manager.predict.assert_not_called()
+
+
+def test_control_selector_ai_steer_only_keeps_manual_throttle(
+    mock_nav_manager, mock_ai_manager
+):
+    from logic.control_selector import ControlSelector
+
+    selector = ControlSelector(mock_nav_manager, mock_ai_manager)
+    frame_data = {
+        "image": "mock_image_data",
+        "ai_controls": {"steering": -0.4, "throttle": 0.7},
+        "manual_controls": {"steering": 0.2, "throttle": 0.3},
+    }
+
+    assert selector.process_frame("AI_STEER_ONLY", frame_data) == (-0.4, 0.3)
+
+
+def test_control_selector_stops_on_missing_ai_controls(mock_nav_manager, mock_ai_manager):
+    from logic.control_selector import ControlSelector
+
+    selector = ControlSelector(mock_nav_manager, mock_ai_manager)
+    frame_data = {"image": "mock_image_data", "ai_controls": None}
+
+    assert selector.process_frame("FULL_AUTOPILOT", frame_data) == (0.0, 0.0)
+    mock_ai_manager.predict.assert_not_called()
 
 
 def test_control_selector_ai_mode_no_manager(mock_nav_manager):

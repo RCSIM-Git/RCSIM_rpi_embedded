@@ -1,5 +1,8 @@
 # 🍓 RCSIM Deployment Module (Raspberry Pi 5 + Hailo-8)
 
+> 🌐 **Language / Język:** **English** | [Polski](README_PL.md)
+
+
 This repository contains the onboard software and deployment infrastructure for the **RCSIM (Race Ready Autonomous System)** autonomous vehicle, designed to run directly on a **Raspberry Pi 5** with a **Hailo-8 / Hailo-8L** hardware accelerator.
 
 The system is responsible for direct control of the physical RC vehicle, real-time sensor processing, AI inference on the NPU (Neural Processing Unit), path planning (SLAM/Cartographer/A*/Pure Pursuit), and low-latency two-way streaming/telemetry (WebRTC/UDP) with the Ground Control Station (GCS) on PC.

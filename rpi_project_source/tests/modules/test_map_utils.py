@@ -1,3 +1,8 @@
+"""PL: Testy konwersji współrzędnych i obliczeń geograficznych.
+
+EN: Tests for coordinate conversion and geographic calculations.
+"""
+
 import os
 import sys
 import unittest
@@ -8,7 +13,16 @@ from modules import map_utils
 
 
 class TestMapUtils(unittest.TestCase):
+    """PL: Sprawdza funkcje pomocnicze modułu map_utils.
+
+    EN: Verify helper functions provided by the map_utils module.
+    """
+
     def test_deg_to_num(self):
+        """PL: Sprawdza konwersję stopni na indeksy kafelków mapy.
+
+        EN: Verify conversion from degrees to map tile indices.
+        """
         # Known value: lat=0, lon=0, zoom=0 -> x=0, y=0 (1 tile total)
         x, y = map_utils.deg_to_num(0, 0, 0)
         self.assertEqual(x, 0)
@@ -29,6 +43,10 @@ class TestMapUtils(unittest.TestCase):
         self.assertEqual(y, 335)
 
     def test_haversine_distance(self):
+        """PL: Sprawdza obliczanie odległości wzorem haversine.
+
+        EN: Verify distance calculation using the haversine formula.
+        """
         # Distance between two points on equator, 1 degree apart
         # 1 degree lat/lon is approx 111km
         dist = map_utils.haversine_distance(0, 0, 0, 1)
@@ -39,6 +57,10 @@ class TestMapUtils(unittest.TestCase):
         self.assertEqual(dist, 0)
 
     def test_calculate_bearing(self):
+        """PL: Sprawdza obliczanie azymutu dla głównych kierunków.
+
+        EN: Verify bearing calculation for the cardinal directions.
+        """
         # East
         b = map_utils.calculate_bearing(0, 0, 0, 1)
         self.assertAlmostEqual(b, 90.0, delta=0.1)

@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Mostek RPi -> ROS2 (Wariant B).
-Działa jako węzeł ROS2 na Raspberry Pi. Komunikuje się z `main_service.py` używając UDP:
-- Subskrybuje telemetrię RPi (UDP port 12347) i publikuje topics ROS2 (/scan, /imu/data_raw, /odom)
-- Subskrybuje topic /cmd_vel i wysyła pakiety sterujące UDP do RPi (port 12346)
-Aby Wariant B zadziałał, w config.json należy ustawić "GCS_IP": "127.0.0.1".
+PL: Mostkuje telemetrię RPi do tematów ROS 2 i polecenia cmd_vel przez UDP.
+EN: Bridges RPi telemetry to ROS 2 topics and cmd_vel commands over UDP.
 """
 
 import base64
@@ -27,15 +23,13 @@ from sensor_msgs.msg import Imu, LaserScan
 
 
 class RpiRos2Bridge(Node):
-    """
-    Węzeł ROS2 pełniący rolę mostka dla Raspberry Pi (Wariant B).
-    ROS2 node acting as a bridge for Raspberry Pi (Variant B).
+    """PL: Węzeł ROS 2 wymieniający telemetrię i sterowanie z Raspberry Pi.
+    EN: ROS 2 node exchanging telemetry and control with the Raspberry Pi.
     """
 
     def __init__(self) -> None:
-        """
-        Inicjalizuje węzeł mostka ROS2.
-        Initializes the ROS2 bridge node.
+        """PL: Konfiguruje tematy ROS 2, gniazdo UDP i wątek odbioru.
+        EN: Configures ROS 2 topics, the UDP socket, and the receive thread.
         """
         super().__init__("rpi_ros2_bridge")
 
@@ -74,12 +68,8 @@ class RpiRos2Bridge(Node):
         )
 
     def cmd_vel_callback(self, msg: Twist) -> None:
-        """
-        Callback dla topicu poleceń prędkości (cmd_vel).
-        Callback for velocity commands topic (cmd_vel).
-
-        Args:
-            msg (Twist): Wiadomość Twist z żądaną prędkością. / Twist message with requested velocity.
+        """PL: Normalizuje polecenia Twist i wysyła je do RPi przez UDP.
+        EN: Normalizes Twist commands and sends them to the RPi over UDP.
         """
         # Normalizacja prędkosci do -1.0 .. 1.0 dla protokołu RCSIM
         throttle = msg.linear.x / self.max_speed
@@ -101,21 +91,16 @@ class RpiRos2Bridge(Node):
             self.get_logger().warn(f"Błąd wysyłania komendy do RPi: {e}")
 
     def get_ros_time(self) -> Any:
-        """
-        Pobiera aktualny czas ROS.
-        Gets current ROS time.
-
-        Returns:
-            Any: Czas ROS w formacie wiadomości. / ROS time as a message.
+        """PL: Zwraca aktualny czas zegara ROS w formacie wiadomości.
+        EN: Returns the current ROS clock time as a message value.
         """
         t = self.get_clock().now()
         msg = t.to_msg()
         return msg
 
     def udp_recv_loop(self) -> None:
-        """
-        Pętla nasłuchująca i odbierająca pakiety telemetryczne UDP z RCSIM.
-        Loop listening and receiving UDP telemetry packets from RCSIM.
+        """PL: Odbiera pakiety telemetrii UDP i przekazuje je do dekodowania.
+        EN: Receives UDP telemetry packets and passes them for decoding.
         """
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -138,12 +123,8 @@ class RpiRos2Bridge(Node):
         sock.close()
 
     def process_telemetry(self, data: bytes) -> None:
-        """
-        Przetwarza surowe dane telemetrii i publikuje wiadomości ROS2.
-        Processes raw telemetry data and publishes ROS2 messages.
-
-        Args:
-            data (bytes): Surowe bajty JSON. / Raw JSON bytes.
+        """PL: Dekoduje telemetrię i publikuje wiadomości odom, IMU i LiDAR.
+        EN: Decodes telemetry and publishes odometry, IMU, and LiDAR messages.
         """
         try:
             packet = json.loads(data.decode("utf-8"))
@@ -210,9 +191,8 @@ class RpiRos2Bridge(Node):
             self.get_logger().debug(f"Telemetry parse error: {e}")
 
     def destroy_node(self) -> None:
-        """
-        Czyści i usuwa bezpiecznie zasoby węzła.
-        Cleans up and safely removes node resources.
+        """PL: Zatrzymuje wątek odbioru i zamyka zasoby węzła.
+        EN: Stops the receive thread and closes node resources.
         """
         self.running = False
         if self.recv_thread.is_alive():
@@ -222,12 +202,8 @@ class RpiRos2Bridge(Node):
 
 
 def main(args: Any = None) -> None:
-    """
-    Główna funkcja uruchamiająca węzeł mostka.
-    Main function to run the bridge node.
-
-    Args:
-        args (Any, optional): Argumenty wiersza poleceń. / Command line arguments.
+    """PL: Inicjalizuje ROS 2, uruchamia mostek i sprząta po jego zamknięciu.
+    EN: Initializes ROS 2, runs the bridge, and cleans up after shutdown.
     """
     rclpy.init(args=args)
     node = RpiRos2Bridge()

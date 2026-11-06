@@ -1,4 +1,7 @@
-"""Regression coverage for receive backlog and scheduler fairness."""
+"""PL: Testy ograniczania kolejki odbiorczej i sprawiedliwości pętli.
+
+EN: Tests for receive-backlog limits and loop scheduler fairness.
+"""
 
 from collections import deque
 from types import SimpleNamespace
@@ -10,6 +13,10 @@ from core import mavlink_service
 
 
 def run_one_cycle(monkeypatch, messages, *, clock=None, handler=None):
+    """PL: Uruchamia jedną iterację pętli odbiorczej z kontrolowanymi mockami.
+
+    EN: Run one receive-loop cycle with controlled mocks.
+    """
     service = mavlink_service.MAVLinkService()
     service.running = True
     pending = deque(messages)
@@ -22,6 +29,10 @@ def run_one_cycle(monkeypatch, messages, *, clock=None, handler=None):
     sleeps = []
 
     def stop_at_yield(delay):
+        """PL: Zatrzymuje usługę po oddaniu sterowania przez pętlę.
+
+        EN: Stop the service when the loop yields control.
+        """
         sleeps.append(delay)
         service.running = False
 
@@ -32,6 +43,10 @@ def run_one_cycle(monkeypatch, messages, *, clock=None, handler=None):
 
 @pytest.mark.parametrize("count", [1, 150, 256, 600])
 def test_receive_burst_before_yield(monkeypatch, count):
+    """PL: Sprawdza limit obsługi wiadomości przed oddaniem sterowania.
+
+    EN: Verify the message-processing limit before yielding control.
+    """
     message = SimpleNamespace(get_type=lambda: "RC_CHANNELS_OVERRIDE")
     service, pending, sleeps = run_one_cycle(monkeypatch, [message] * count)
     assert service._rx_msg_count == min(count, 256)
@@ -42,10 +57,18 @@ def test_receive_burst_before_yield(monkeypatch, count):
 
 
 def test_slow_handler_limits_receive_batch(monkeypatch):
+    """PL: Sprawdza skrócenie partii przy wolnym handlerze.
+
+    EN: Verify the receive batch shrinks when the handler is slow.
+    """
     elapsed = [0.0]
     message = SimpleNamespace(get_type=lambda: "RC_CHANNELS_OVERRIDE")
 
     def handle(_message):
+        """PL: Symuluje handler zużywający czas procesora.
+
+        EN: Simulate a message handler that consumes processing time.
+        """
         elapsed[0] += 0.006
 
     service, pending, sleeps = run_one_cycle(
@@ -57,6 +80,10 @@ def test_slow_handler_limits_receive_batch(monkeypatch):
 
 
 def test_empty_receive_backs_off(monkeypatch):
+    """PL: Sprawdza krótkie opóźnienie po pustym odbiorze.
+
+    EN: Verify a short backoff after an empty receive.
+    """
     service, pending, sleeps = run_one_cycle(monkeypatch, [])
     assert service._rx_msg_count == 0
     assert sleeps == [0.01]

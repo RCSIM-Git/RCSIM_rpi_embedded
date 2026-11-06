@@ -1,11 +1,9 @@
-"""
+"""PL: Zarządza połączeniami WebRTC, kanałami danych i sygnalizacją HTTP.
+
+EN: Manages WebRTC connections, data channels, and HTTP signaling.
+
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
-Menedżer WebRTC (WebRTC Manager).
-
-Zarządza komunikacją WebRTC DataChannel i sygnalizacją HTTP.
-Manages WebRTC DataChannel communication and HTTP Signaling.
 """
 
 import asyncio
@@ -18,24 +16,29 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 
 
 class WebRTCManager:
-    """
-    Zarządza komunikacją WebRTC DataChannel i sygnalizacją HTTP.
-    Manages WebRTC DataChannel communication and HTTP Signaling.
+    """PL: Obsługuje sygnalizację HTTP i wysyłanie danych przez WebRTC.
 
-    Uruchamia pętlę asyncio w wątku tła, aby nie blokować głównej pętli.
-    Runs asyncio loop in background thread to avoid blocking main sync loop.
+    Pętlę asyncio uruchamia w osobnym wątku.
+
+    EN: Handles HTTP signaling and data transmission over WebRTC.
+
+    Runs the asyncio loop in a separate thread.
     """
 
     def __init__(
         self, port: int = 8080, on_data_received: Callable[[str], None] | None = None
     ) -> None:
-        """
-        Inicjalizuje menedżera WebRTC.
-        Initializes the WebRTC manager.
+        """PL: Inicjalizuje serwer sygnalizacyjny i rejestry połączeń.
 
         Args:
-            port (int): Port dla serwera Http / HTTP port.
-            on_data_received: Callback dla dancyh / data callback.
+            port: Port HTTP używany przez serwer sygnalizacyjny.
+            on_data_received: Opcjonalny callback dla wiadomości przychodzących.
+
+        EN: Initializes the signaling server and connection registries.
+
+        Args:
+            port: HTTP port used by the signaling server.
+            on_data_received: Optional callback for incoming messages.
         """
         self.port = port
         self.on_data_received = on_data_received
@@ -56,18 +59,18 @@ class WebRTCManager:
         }
 
     def start(self) -> None:
-        """
-        Uruchamia usługę WebRTC/HTTP w wątku tła.
-        Starts the WebRTC/HTTP service in a background thread.
+        """PL: Uruchamia wątek obsługujący pętlę asyncio i serwer HTTP.
+
+        EN: Starts the thread that runs the asyncio loop and HTTP server.
         """
         self._thread = threading.Thread(target=self._run_async_loop, daemon=True)
         self._thread.start()
         self.logger.info(f"WebRTCManager started on port {self.port}")
 
     def stop(self) -> None:
-        """
-        Zatrzymuje usługę.
-        Stops the service.
+        """PL: Zamyka połączenia WebRTC, zatrzymuje pętlę i dołącza wątek.
+
+        EN: Closes WebRTC connections, stops the event loop, and joins the thread.
         """
         self._shutdown_event.set()
         if self._loop and self._loop.is_running():
@@ -86,13 +89,17 @@ class WebRTCManager:
             self._thread.join(timeout=2.0)
 
     def send_data(self, data: str, channel_label: str = "telemetry") -> None:
-        """
-        Wysyła dane przez kanał danych o podanej etykiecie.
-        Sends data through data channels with the specified label.
+        """PL: Kolejkuje wysłanie tekstu przez otwarte kanały o wskazanej etykiecie.
 
         Args:
-            data (str): Dane tekstowe do wysłania. / Text data to send.
-            channel_label (str): Nazwa kanału docelowego (np. 'telemetry', 'lidar').
+            data: Tekstowa wiadomość do wysłania.
+            channel_label: Etykieta kanału docelowego.
+
+        EN: Schedules the text for sending over open channels with the given label.
+
+        Args:
+            data: Text message to send.
+            channel_label: Label of the target channel.
         """
         if not self._loop or not data:
             return
@@ -108,6 +115,10 @@ class WebRTCManager:
             return
 
         def _safe_send(chan, msg):
+            """PL: Wysyła wiadomość, jeśli kanał nadal jest otwarty.
+
+            EN: Sends the message if the channel is still open.
+            """
             if chan.readyState == "open":
                 try:
                     chan.send(msg)
@@ -120,9 +131,13 @@ class WebRTCManager:
             self._loop.call_soon_threadsafe(_safe_send, channel, data)
 
     def _run_async_loop(self) -> None:
-        """
-        Wewnętrzna metoda uruchamiająca pętlę asyncio.
-        Internal method to run the asyncio loop.
+        """PL: Tworzy pętlę asyncio, trasy sygnalizacyjne i opcjonalną stronę PWA.
+
+        Następnie uruchamia serwer HTTP i obsługuje pętlę aż do zatrzymania.
+
+        EN: Creates the asyncio loop, signaling routes, and optional PWA page.
+
+        Then starts the HTTP server and runs the loop until shutdown.
         """
         self._loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._loop)
@@ -141,6 +156,10 @@ class WebRTCManager:
 
         if os.path.exists(web_assets_path):
             async def handle_index(request):
+                """PL: Serwuje główny plik aplikacji mobilnej.
+
+                EN: Serves the main file of the mobile application.
+                """
                 return web.FileResponse(os.path.join(web_assets_path, "index.html"))
 
             app.router.add_get("/", handle_index)
@@ -164,15 +183,21 @@ class WebRTCManager:
             self._loop.close()
 
     async def _handle_options(self, request: web.Request) -> web.Response:
-        """
-        Obsługuje żądania OPTIONS dla CORS.
-        Handles OPTIONS requests for CORS.
+        """PL: Zwraca nagłówki CORS dla żądania OPTIONS.
 
         Args:
-            request (web.Request): Żądanie HTTP. / HTTP request.
+            request: Żądanie HTTP aiohttp.
 
         Returns:
-            web.Response: Odpowiedź HTTP. / HTTP response.
+            Odpowiedź HTTP z nagłówkami CORS.
+
+        EN: Returns CORS headers for an OPTIONS request.
+
+        Args:
+            request: aiohttp HTTP request.
+
+        Returns:
+            An HTTP response containing CORS headers.
         """
         origin = request.headers.get("Origin", "*")
         return web.Response(
@@ -184,15 +209,21 @@ class WebRTCManager:
         )
 
     async def _handle_offer(self, request: web.Request) -> web.Response:
-        """
-        Obsługuje ofertę WebRTC (SDP Offer) i zwraca odpowiedź (SDP Answer).
-        Handles WebRTC offer (SDP Offer) and returns answer (SDP Answer).
+        """PL: Negocjuje połączenie WebRTC na podstawie oferty SDP klienta.
 
         Args:
-            request (web.Request): Żądanie HTTP z ofertą. / HTTP request with offer.
+            request: Żądanie HTTP zawierające ofertę SDP.
 
         Returns:
-            web.Response: Odpowiedź HTTP z ofertą SDP. / HTTP response with SDP answer.
+            Odpowiedź JSON z SDP answer i nagłówkiem CORS.
+
+        EN: Negotiates a WebRTC connection from the client's SDP offer.
+
+        Args:
+            request: HTTP request containing the SDP offer.
+
+        Returns:
+            A JSON response with the SDP answer and CORS header.
         """
         params = await request.json()
         self.logger.info(f"Incoming WebRTC Offer received from {request.remote}")
@@ -204,12 +235,15 @@ class WebRTCManager:
 
         @pc.on("datachannel")
         def on_datachannel(channel: Any) -> None:
-            """
-            Callback wywoływany przy odebraniu DataChannel.
-            Callback executed when receiving a DataChannel.
+            """PL: Rejestruje kanał danych i podpina jego zdarzenia.
 
             Args:
-                channel (Any): Kanał danych. / Data channel.
+                channel: Odebrany kanał danych WebRTC.
+
+            EN: Registers the data channel and attaches its event handlers.
+
+            Args:
+                channel: Received WebRTC data channel.
             """
             lbl = channel.label
             self.logger.info(f"DataChannel received: {lbl}")
@@ -219,12 +253,15 @@ class WebRTCManager:
 
             @channel.on("message")
             def on_message(message: Any) -> None:
-                """
-                Callback wiadomości przychodzącej.
-                Incoming message callback.
+                """PL: Przekazuje odebraną wiadomość do opcjonalnego callbacku.
 
                 Args:
-                    message (Any): Odebrana wiadomość. / Received message.
+                    message: Odebrana wiadomość tekstowa lub binarna.
+
+                EN: Passes the received message to the optional callback.
+
+                Args:
+                    message: Received text or binary message.
                 """
                 # Call the external callback
                 if self.on_data_received:
@@ -236,6 +273,10 @@ class WebRTCManager:
 
             @channel.on("open")
             def on_open() -> None:
+                """PL: Rejestruje kanał po otwarciu połączenia.
+
+                EN: Registers the channel when the connection opens.
+                """
                 lbl = channel.label
                 self.logger.info(f"DataChannel '{lbl}' OPEN")
                 if lbl not in self._data_channels:
@@ -244,6 +285,10 @@ class WebRTCManager:
 
             @channel.on("close")
             def on_close() -> None:
+                """PL: Usuwa kanał z rejestru po zamknięciu.
+
+                EN: Removes the channel from the registry when it closes.
+                """
                 lbl = channel.label
                 self.logger.info(f"DataChannel '{lbl}' CLOSED")
                 if lbl in self._data_channels:
@@ -251,9 +296,9 @@ class WebRTCManager:
 
         @pc.on("connectionstatechange")
         async def on_connectionstatechange() -> None:
-            """
-            Callback zmiany stanu połączenia.
-            Connection state change callback.
+            """PL: Obsługuje stan połączenia i usuwa zamknięte sesje.
+
+            EN: Handles connection state changes and removes closed sessions.
             """
             self.logger.info(f"Connection state change: {pc.connectionState}")
             if pc.connectionState == "failed":
@@ -274,9 +319,9 @@ class WebRTCManager:
         )
 
     async def _cleanup(self) -> None:
-        """
-        Czyści zasoby asynchroniczne.
-        Cleans up asynchronous resources.
+        """PL: Zamyka wszystkie połączenia i anuluje pozostałe zadania asyncio.
+
+        EN: Closes all peer connections and cancels remaining asyncio tasks.
         """
         self.logger.info("Starting WebRTC cleanup...")
 

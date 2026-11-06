@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Frontier Explorer for Raspberry Pi.
-
-Moduł do wykrywania granic między obszarami poznanymi a niepoznanymi
-na siatce zajętości (Occupancy Grid / SLAM map).
-Służy do automatycznej eksploracji (Auto-Explore).
-Na podstawie podejścia: Expanding Wavefront Frontier Detection.
+"""PL: Wykrywa granice obszarów poznanych i nieznanych na mapie SLAM.
+EN: Detects frontiers between known and unknown areas on a SLAM map.
 """
 
 import logging
@@ -18,16 +13,21 @@ logger = logging.getLogger(__name__)
 
 
 class Frontier:
-    """Reprezentacja pojedynczej granicy (Frontier)."""
+    """PL: Przechowuje rozmiar granicy i współrzędne jej środka.
+    EN: Stores a frontier's size and centroid coordinates.
+    """
 
     def __init__(self, size: int, centroid_m: Tuple[float, float]):
+        """PL: Tworzy granicę o podanym rozmiarze i środku w metrach.
+        EN: Creates a frontier with the given size and centroid in meters.
+        """
         self.size = size
         self.centroid_m = centroid_m
 
 
 class FrontierExplorer:
-    """
-    Wyszukuje granice eksploracji w siatce mapy i wybiera najbardziej obiecujący cel.
+    """PL: Wyszukuje granice eksploracji i wybiera cel dla robota.
+    EN: Finds exploration frontiers and selects a target for the robot.
     """
 
     def __init__(
@@ -37,6 +37,9 @@ class FrontierExplorer:
         walkable_threshold: int = 50,
         min_frontier_size: int = 8,
     ):
+        """PL: Konfiguruje rozdzielczość mapy i kryteria granicy.
+        EN: Configures map resolution and frontier detection thresholds.
+        """
         self.resolution = resolution
         self.unknown_value = unknown_value
         self.walkable_threshold = walkable_threshold
@@ -60,9 +63,8 @@ class FrontierExplorer:
         start_pose: Tuple[float, float],
         origin: Tuple[float, float] = (0.0, 0.0),
     ) -> List[Frontier]:
-        """
-        Główna metoda BFS znajdująca i grupująca komórki brzegowe.
-        Returnuje listę obiektów Frontier.
+        """PL: Grupuje osiągalne komórki graniczne metodą BFS.
+        EN: Groups reachable frontier cells using breadth-first search.
         """
         rows, cols = grid.shape
         center_r, center_c = rows // 2, cols // 2
@@ -123,7 +125,9 @@ class FrontierExplorer:
     def _is_new_frontier_cell(
         self, grid: np.ndarray, r: int, c: int, is_frontier: np.ndarray
     ) -> bool:
-        """Komórka jest nową granicą jeśli jest Unknown i sąsiaduje z przynajmniej 1 Free."""
+        """PL: Sprawdza, czy nieznana komórka sąsiaduje z wolnym obszarem.
+        EN: Checks whether an unknown cell borders free space.
+        """
         if grid[r, c] != self.unknown_value or is_frontier[r, c]:
             return False
 
@@ -147,7 +151,9 @@ class FrontierExplorer:
         center_r: int,
         center_c: int,
     ) -> Frontier:
-        """BFS budujący krawędź granicy."""
+        """PL: Grupuje sąsiednie komórki granicy i oblicza jej środek.
+        EN: Groups adjacent frontier cells and computes their centroid.
+        """
         size = 1
         sum_r, sum_c = init_r, init_c
 
@@ -178,7 +184,9 @@ class FrontierExplorer:
     def get_best_frontier(
         self, frontiers: List[Frontier], current_pose: Tuple[float, float]
     ) -> Tuple[float, float] | None:
-        """Zwraca (x, y) centroidu najlepszej granicy (rozmiar vs. odległość w linii prostej)."""
+        """PL: Wybiera granicę według jej rozmiaru i odległości od robota.
+        EN: Selects a frontier based on its size and distance from the robot.
+        """
         if not frontiers:
             return None
 

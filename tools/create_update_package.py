@@ -1,3 +1,8 @@
+"""PL: Pakuje źródła RPI do archiwum aktualizacji.
+
+EN: Package RPI sources into an update archive.
+"""
+
 import os
 import zipfile
 
@@ -16,6 +21,10 @@ EXCLUDES = {
 
 
 def zip_directory(source_dir, output_filename):
+    """PL: Zapisuje zawartość źródłowego katalogu do archiwum ZIP.
+
+    EN: Write the source directory contents to a ZIP archive.
+    """
     with zipfile.ZipFile(output_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(source_dir):
             # Exclude directories

@@ -1,9 +1,9 @@
 # The MIT License (MIT)
 # ... (nagłówek licencji bez zmian) ...
 
-"""
-Native MPU-6050 Driver using a shared I2C wrapper.
-Natywny sterownik MPU-6050 używający współdzielonego wrappera I2C.
+"""PL: Natywny sterownik IMU MPU-6050 korzystający ze wspólnego wrappera I2C.
+
+EN: Native MPU-6050 IMU driver using a shared I2C wrapper.
 """
 
 import logging
@@ -17,9 +17,9 @@ from .native_i2c import I2CWrapper
 
 @SensorRegistry.register
 class NativeMPU6050(IMUBase):
-    """
-    A lightweight, direct-register-access driver for the MPU-6050 IMU.
-    Lekki sterownik z bezpośrednim dostępem do rejestrów dla IMU MPU-6050.
+    """PL: Odczytuje surowe i przeskalowane dane MPU-6050 przez rejestry I2C.
+
+    EN: Reads raw and scaled MPU-6050 data through its I2C registers.
     """
 
     DRIVER_NAME = "native_mpu6050"
@@ -28,7 +28,10 @@ class NativeMPU6050(IMUBase):
 
     @classmethod
     def scan(cls, i2c) -> bool:
-        """WHO_AM_I check: 0x68."""
+        """PL: Sprawdza rejestr WHO_AM_I pod kątem identyfikatora 0x68.
+
+        EN: Checks the WHO_AM_I register for identifier 0x68.
+        """
         try:
             who = i2c.read_byte_data(0x68, 0x75)
             return who == cls._CHIP_ID
@@ -48,9 +51,9 @@ class NativeMPU6050(IMUBase):
     _GYRO_SCALE_FACTOR_250DPS = 131.0
 
     def __init__(self, i2c_wrapper: I2CWrapper, address: int = 0x68):
-        """
-        Initializes the MPU6050 driver.
-        Inicjalizuje sterownik MPU6050.
+        """PL: Weryfikuje identyfikator układu i wybudza MPU-6050.
+
+        EN: Verifies the chip identifier and wakes up the MPU-6050.
         """
         self.i2c = i2c_wrapper
         self.address = address
@@ -67,22 +70,26 @@ class NativeMPU6050(IMUBase):
         self.wake_up()
 
     def wake_up(self) -> None:
-        """
-        Wakes up the MPU6050.
-        Wybudza MPU6050.
+        """PL: Wybudza MPU-6050 przez zapis do rejestru zasilania.
+
+        EN: Wakes the MPU-6050 by writing to its power management register.
         """
         self.i2c.write_byte_data(self.address, self._PWR_MGMT_1, 0x00)
 
     def _bytes_to_int(self, high: int, low: int) -> int:
+        """PL: Dekoduje dwa bajty big-endian jako liczbę 16-bit ze znakiem.
+
+        EN: Decodes two big-endian bytes as a signed 16-bit integer.
+        """
         value = (high << 8) | low
         if value >= 0x8000:
             return -((65535 - value) + 1)
         return value
 
     def read_raw(self) -> dict[str, int]:
-        """
-        Reads raw data from the sensor.
-        Odczytuje surowe dane z czujnika.
+        """PL: Odczytuje surowe próbki akcelerometru, temperatury i żyroskopu.
+
+        EN: Reads raw accelerometer, temperature, and gyroscope samples.
         """
         data = self.i2c.read_i2c_block_data(self.address, self._ACCEL_XOUT_H, 14)
         raw_data = {
@@ -97,9 +104,9 @@ class NativeMPU6050(IMUBase):
         return raw_data
 
     def read_scaled(self) -> dict[str, float]:
-        """
-        Reads scaled data from the sensor.
-        Odczytuje przeskalowane dane z czujnika.
+        """PL: Zwraca przyspieszenie w g, temperaturę w °C i żyroskop w °/s.
+
+        EN: Returns acceleration in g, temperature in °C, and gyroscope in °/s.
         """
         raw = self.read_raw()
         scaled_data = {
@@ -115,16 +122,20 @@ class NativeMPU6050(IMUBase):
 
     # --- NOWA METODA (NAPRAWA BŁĘDU) ---
     def read_data(self) -> dict[str, float]:
-        """
-        Alias dla read_scaled() wymagany przez HardwareManager.
-        Alias for read_scaled() required by HardwareManager.
+        """PL: Zwraca przeskalowane pomiary w formacie wymaganym przez HardwareManager.
+
+        EN: Returns scaled readings in the format required by HardwareManager.
         """
         return self.read_scaled()
 
     def calibrate(self) -> bool:
-        """
-        Przeprowadza kalibrację sensora (wyznaczenie biasu żyroskopu).
-        Performs sensor calibration (gyro bias estimation).
+        """PL: Wykonuje 100 odczytów kontrolnych jako uproszczoną kalibrację.
+
+        Metoda nie oblicza ani nie odejmuje biasu z odczytów.
+
+        EN: Performs 100 check samples as a simplified calibration routine.
+
+        The method does not calculate or subtract a bias from readings.
         """
         logging.info("MPU-6050: Starting gyro calibration (100 samples)...")
         # To jest uproszczona wersja, w rzeczywistych zastosowaniach

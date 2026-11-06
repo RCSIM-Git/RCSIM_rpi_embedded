@@ -1,8 +1,17 @@
+"""PL: Testy estymacji ruchu na podstawie modelu kinematycznego.
+
+EN: Tests for motion estimation using the kinematic model.
+"""
+
 import pytest
 import math
 from modules.utils.kinematics import estimate_motion, ControlInput, KinematicConfig
 
 def test_estimate_motion_straight():
+    """PL: Sprawdza ruch prostoliniowy bez zmiany orientacji.
+
+    EN: Verify straight-line motion without an orientation change.
+    """
     # Test straight line kinematics
     control = ControlInput(throttle=0.5, steering=0.0)
     config = KinematicConfig(max_speed_mps=2.0, max_steer_rad=0.5, wheelbase_m=0.25)
@@ -15,6 +24,10 @@ def test_estimate_motion_straight():
     assert dyaw == 0.0
 
 def test_estimate_motion_turn_no_imu():
+    """PL: Sprawdza estymację skrętu bez danych z IMU.
+
+    EN: Verify turn estimation without IMU data.
+    """
     # Test turn with model-based dyaw calculation
     control = ControlInput(throttle=1.0, steering=0.5)
     config = KinematicConfig(max_speed_mps=2.0, max_steer_rad=0.5, wheelbase_m=0.2)
@@ -30,6 +43,10 @@ def test_estimate_motion_turn_no_imu():
     assert dyaw == pytest.approx(dyaw_expected)
 
 def test_estimate_motion_turn_with_imu():
+    """PL: Sprawdza wykorzystanie żyroskopu do estymacji zmiany kursu.
+
+    EN: Verify gyroscope data is used to estimate heading change.
+    """
     # Test gyro prioritization for dyaw
     control = ControlInput(throttle=1.0, steering=0.5)
     config = KinematicConfig(max_speed_mps=2.0, max_steer_rad=0.5, wheelbase_m=0.2)

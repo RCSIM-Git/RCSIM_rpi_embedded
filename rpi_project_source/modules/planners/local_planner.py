@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Local Planner - Fasada Planowania Lokalnego (RPi).
-
-Ten moduł zarządza fuzją danych z sensorów (LiDAR) oraz udostępnia
-interfejsy dla różnych algorytmów sterowania i omijania przeszkód.
-Użytkuje CostmapManager do zarządzania mapą zajętości.
+"""PL: Udostępnia fasadę lokalnego planowania i fuzji danych o przeszkodach.
+EN: Provides a local planning facade and obstacle data fusion.
 """
 
 import logging
@@ -22,12 +18,14 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class LocalPlanner:
-    """
-    Główny punkt dostępowy dla planowania toru jazdy na Raspberry Pi.
-    Wzorzec: Fasada (Facade).
+    """PL: Łączy mapę kosztów i algorytmy planowania lokalnego.
+    EN: Combines the cost map and local path planning algorithms.
     """
 
     def __init__(self, config: dict[str, Any] = None) -> None:
+        """PL: Tworzy menedżer mapy i podplanery dla przekazanej konfiguracji.
+        EN: Creates the map manager and subplanners for the supplied configuration.
+        """
         self.config: dict[str, Any] = config or {}
 
         # Inicjalizacja składowych menedżera
@@ -46,12 +44,16 @@ class LocalPlanner:
 
     @property
     def costmap(self) -> np.ndarray:
-        """Udostępnia surową macierz mapy zajętości."""
+        """PL: Zwraca macierz mapy kosztów.
+        EN: Returns the cost map matrix.
+        """
         return self.cm.costmap
 
     @property
     def costmap_manager(self) -> CostmapManager:
-        """Dostęp do menedżera mapy."""
+        """PL: Zwraca menedżer mapy kosztów.
+        EN: Returns the cost map manager.
+        """
         return self.cm
 
     def update_occupancy(
@@ -60,7 +62,9 @@ class LocalPlanner:
         lidar_points: list[tuple[float, float]],
         imu_orientation: dict[str, float] = None,  # [PLAN-010]
     ) -> None:
-        """Zaktualizowanie przeszkód z sensorów (LiDAR, Terrain)."""
+        """PL: Aktualizuje mapę kosztów danymi LiDAR i nachyleniem IMU.
+        EN: Updates the cost map with LiDAR and IMU slope data.
+        """
         # [PLAN-004] Guard against None
         if lidar_points is None:
             lidar_points = []
@@ -81,20 +85,23 @@ class LocalPlanner:
         camera_extrinsics: dict[str, Any] = None,
         imu_orientation: dict[str, float] = None,
     ) -> None:
-        """
-        Zaktualizowanie mapy zajętości z fuzją wielu źródeł.
-        Dla modeli E2E, detekcje są ignorowane.
+        """PL: Aktualizuje mapę z wejść LiDAR, detekcji i orientacji IMU.
+        EN: Updates the map from LiDAR, detections, and IMU orientation inputs.
         """
         self.update_occupancy(pose, lidar_points, imu_orientation)
 
     def update_map(
         self, pose: tuple[float, float, float], lidar_points: list[tuple[float, float]]
     ) -> None:
-        """Alias kompatybilności wstecznej dla update_occupancy"""
+        """PL: Zachowuje zgodny alias aktualizacji mapy LiDAR.
+        EN: Preserves a compatible alias for LiDAR map updates.
+        """
         self.update_occupancy(pose, lidar_points)
 
     def clear_map(self) -> None:
-        """Czyści globalną siatkę kosztów."""
+        """PL: Czyści mapę kosztów pod blokadą.
+        EN: Clears the cost map while holding the lock.
+        """
         with self._lock:
             self.cm.clear_map()
 
@@ -103,7 +110,9 @@ class LocalPlanner:
         robot_pose: tuple[float, float, float],
         goal_pose: tuple[float, float] = None,
     ) -> tuple[float, float, float]:
-        """Przekazuje rozkaz do silnika DWA / Reactive."""
+        """PL: Przekazuje bieżącą pozycję i cel do planera reaktywnego.
+        EN: Forwards the current pose and goal to the reactive planner.
+        """
         with self._lock:
             if not self.reactive:
                 return 0.0, 0.0, 0.0
@@ -116,7 +125,9 @@ class LocalPlanner:
         current_speed: float = 0.0,
         is_reversed: bool = False,
     ) -> tuple[float, float, float]:
-        """Praca w trybie Pure Pursuit z asystentem sił odbijających."""
+        """PL: Wyznacza sterowanie metodą Pure Pursuit z unikaniem przeszkód.
+        EN: Computes Pure Pursuit controls with obstacle avoidance.
+        """
         with self._lock:
             if not self.pure_pursuit:
                 return 0.0, 0.0, 0.0
@@ -127,7 +138,9 @@ class LocalPlanner:
     def plan_path(
         self, start_pose: tuple[float, float], goal_global: tuple[float, float]
     ) -> list[tuple[float, float]] | None:
-        """Pobierz drogę optymalną w grafie (Algorytm A*)."""
+        """PL: Planuje trasę A* i zapisuje ją jako ostatnią ścieżkę.
+        EN: Plans an A* route and stores it as the latest path.
+        """
         with self._lock:
             if not self.astar:
                 return None
@@ -142,7 +155,9 @@ class LocalPlanner:
             return path
 
     def update_config(self, config: dict[str, Any]) -> None:
-        """Przesyła re-konfigurację kaskadowo w dół do agentów sterujących (Hot Reloading)."""
+        """PL: Przekazuje konfigurację do mapy i podplanerów.
+        EN: Propagates configuration to the map manager and subplanners.
+        """
         if config is None:
             return
 
@@ -168,5 +183,7 @@ class LocalPlanner:
         logger.info("LocalPlanner (Facade) config updated successfully.")
 
     def is_healthy(self) -> bool:
-        """Sprawdza czy wszystkie komponenty planera są gotowe."""
+        """PL: Sprawdza dostępność wszystkich składowych planera.
+        EN: Checks whether all planner components are available.
+        """
         return all([self.cm, self.pure_pursuit, self.reactive, self.astar])

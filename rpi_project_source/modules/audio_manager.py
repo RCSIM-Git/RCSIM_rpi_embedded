@@ -1,34 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Moduł AudioManagera (Audio Manager Module) dla RPi.
-Audio Manager Module for RPi.
-
-Ten moduł jest odpowiedzialny za przechwytywanie i analizę dźwięku
-z podłączonego mikrofonu USB. Umożliwia detekcję prostych zdarzeń
-dźwiękowych, które mogą być wykorzystane jako triggery w logice
-autonomicznej pojazdu.
-This module is responsible for capturing and analyzing sound
-from a connected USB microphone. It enables the detection of simple
-sound events that can be used as triggers in the vehicle's
-autonomous logic.
-
-Kluczowe funkcjonalności / Key features:
--   **Przechwytywanie dźwięku / Audio Capture:** Używa biblioteki PyAudio do nagrywania
-    dźwięku w osobnym, nieblokującym wątku.
-    Uses the PyAudio library to record sound in a separate, non-blocking thread.
--   **Wykrywanie zdarzeń / Event Detection:** Implementuje prostą detekcję głośnych dźwięków
-    poprzez analizę wartości RMS (Root Mean Square) strumienia audio.
-    Stanowi to podstawę pod przyszłe, bardziej zaawansowane modele klasyfikacji dźwięku.
-    Implements simple loud sound detection by analyzing the RMS (Root Mean Square)
-    value of the audio stream. This serves as a foundation for future,
-    more advanced sound classification models.
--   **Odporność na błędy / Fault Tolerance:** Moduł jest zaprojektowany tak, aby działać
-    poprawnie nawet w przypadku braku mikrofonu lub biblioteki PyAudio,
-    nie powodując awarii całej aplikacji.
-    The module is designed to work correctly even if the microphone or PyAudio
-    library is missing, without causing a complete application crash.
+PL: Przechwytuje dźwięk z mikrofonu i wykrywa głośne zdarzenia.
+EN: Captures microphone audio and detects loud events.
 """
 
 import logging
@@ -60,19 +34,13 @@ logger = logging.getLogger(__name__)
 
 
 class AudioManager:
-    """
-    Zarządza przechwytywaniem i prostą analizą dźwięku z mikrofonu.
-    Manages audio capture and simple analysis from the microphone.
+    """PL: Prowadzi strumień audio i umieszcza wykryte zdarzenia w kolejce.
+    EN: Runs the audio stream and queues detected events.
     """
 
     def __init__(self, threshold_rms: int = 500):
-        """
-        Inicjalizuje AudioManager.
-        Initializes the Audio Manager.
-
-        Args:
-            threshold_rms (int): Próg RMS, powyżej którego dźwięk jest uznawany za "głośne zdarzenie".
-                                 RMS threshold above which sound is considered a "loud event".
+        """PL: Inicjalizuje przechwytywanie audio z podanym progiem RMS.
+        EN: Initializes audio capture with the specified RMS threshold.
         """
         if not PYAUDIO_AVAILABLE:
             logger.warning(
@@ -91,13 +59,8 @@ class AudioManager:
         self._thread = threading.Thread(target=self._capture_loop, daemon=True)
 
     def start(self) -> bool:
-        """
-        Uruchamia wątek przechwytywania dźwięku.
-        Starts the audio capture thread.
-
-        Returns:
-            bool: True, jeśli udało się uruchomić, False w przeciwnym razie.
-                  True if started successfully, else False.
+        """PL: Otwiera wejście audio i uruchamia wątek przechwytujący.
+        EN: Opens the audio input and starts the capture thread.
         """
         if not self.is_enabled:
             return False
@@ -124,9 +87,8 @@ class AudioManager:
         return True
 
     def stop(self):
-        """
-        Zatrzymuje wątek przechwytywania dźwięku i zwalnia zasoby.
-        Stops the audio capture thread and releases resources.
+        """PL: Zatrzymuje przechwytywanie i zwalnia zasoby PyAudio.
+        EN: Stops capture and releases PyAudio resources.
         """
         if not self.is_enabled or not self._thread.is_alive():
             return
@@ -143,9 +105,8 @@ class AudioManager:
         logger.info("AudioManager został zatrzymany.")
 
     def _capture_loop(self):
-        """
-        Główna pętla wątku, która odczytuje i analizuje dane z mikrofonu.
-        Main thread loop that reads and analyzes microphone data.
+        """PL: Czyta próbki audio i kolejkuje zdarzenia przekraczające próg.
+        EN: Reads audio samples and queues events that exceed the threshold.
         """
         while not self._stop_event.is_set():
             try:
@@ -171,13 +132,8 @@ class AudioManager:
                 self._stop_event.set()  # Zatrzymaj pętlę w przypadku poważnego błędu / Stop loop on serious error
 
     def get_latest_event(self):
-        """
-        Pobiera ostatnie wykryte zdarzenie dźwiękowe z kolejki.
-        Retrieves the latest detected audio event from the queue.
-
-        Returns:
-            dict or None: Słownik z danymi zdarzenia lub None, jeśli kolejka jest pusta.
-                          Dictionary with event data or None if queue is empty.
+        """PL: Pobiera następne zdarzenie audio bez blokowania.
+        EN: Retrieves the next audio event without blocking.
         """
         try:
             return self.event_queue.get_nowait()

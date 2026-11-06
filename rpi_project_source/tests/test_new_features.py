@@ -1,5 +1,6 @@
-"""
-Unit tests for new features in the RPi application.
+"""PL: Testy funkcji nawigacji, kontroli i unikania kolizji RPI.
+
+EN: Tests for RPI navigation, control, and collision-avoidance features.
 """
 
 import os
@@ -30,7 +31,10 @@ from modules.ai_manager import AIManager
 
 @pytest.fixture
 def nav_manager():
-    """Provides a fresh NavigationManager instance for each test."""
+    """PL: Tworzy nową instancję NavigationManager do testu.
+
+    EN: Create a fresh NavigationManager instance for a test.
+    """
     return NavigationManager(kp=0.5, ki=0.1, kd=0.05)
 
 
@@ -44,7 +48,10 @@ def nav_manager():
     ],
 )
 def test_calculate_bearing(nav_manager, point_a, point_b, expected_bearing):
-    """Test the bearing calculation between two GPS points."""
+    """PL: Sprawdza wyznaczanie azymutu między punktami GPS.
+
+    EN: Verify bearing calculation between two GPS points.
+    """
     lat1, lon1 = point_a
     lat2, lon2 = point_b
     bearing = nav_manager._calculate_bearing(lat1, lon1, lat2, lon2)
@@ -60,7 +67,10 @@ def test_calculate_bearing(nav_manager, point_a, point_b, expected_bearing):
     ],
 )
 def test_haversine_distance(nav_manager, point_a, point_b, expected_distance_m):
-    """Test the haversine distance calculation."""
+    """PL: Sprawdza obliczanie odległości wzorem haversine.
+
+    EN: Verify distance calculation using the haversine formula.
+    """
     lat1, lon1 = point_a
     lat2, lon2 = point_b
     distance = nav_manager._haversine_distance(lat1, lon1, lat2, lon2)
@@ -68,7 +78,10 @@ def test_haversine_distance(nav_manager, point_a, point_b, expected_distance_m):
 
 
 def test_calculate_steering_clipping(nav_manager):
-    """Test if steering value is correctly clipped to [-1.0, 1.0]."""
+    """PL: Sprawdza ograniczanie sterowania do przedziału od -1 do 1.
+
+    EN: Verify steering is clamped to the range from -1 to 1.
+    """
     # Force a large error that would result in steering > 1.0
     nav_manager.kp = 100.0  # Exaggerate Kp
     # Target is East (90), current is North (0) -> error is 90
@@ -81,7 +94,10 @@ def test_calculate_steering_clipping(nav_manager):
 
 
 def test_update_rth_arrived_home(nav_manager):
-    """Test RTH when the vehicle has arrived at the home position."""
+    """PL: Sprawdza zatrzymanie pojazdu po dotarciu do domu w trybie RTH.
+
+    EN: Verify the vehicle stops after reaching home in RTH mode.
+    """
     home = {"lat": 52.2297, "lon": 21.0122}
     # Current position is within the 2.0m arrival threshold
     current = {"lat": 52.229701, "lon": 21.012201}
@@ -94,7 +110,10 @@ def test_update_rth_arrived_home(nav_manager):
 
 
 def test_pid_error_wrapping(nav_manager):
-    """Test that the PID error correctly wraps around the -180/180 degree boundary."""
+    """PL: Sprawdza zawijanie błędu PID na granicy ±180 stopni.
+
+    EN: Verify PID error wrapping at the ±180-degree boundary.
+    """
     # Target is ~354 deg, current is 10 deg. Error should be -15.7, not 344.
     nav_manager.calculate_steering(GPSPoint(0, 0), 10, GPSPoint(0.1, -0.01), 0.1)  # Bearing is ~354.3 deg
     assert nav_manager.previous_error == pytest.approx(-15.7, abs=1.0)
@@ -105,7 +124,10 @@ def test_pid_error_wrapping(nav_manager):
 
 
 def test_pid_integral_clamping(nav_manager):
-    """Test that the integral term is correctly clamped."""
+    """PL: Sprawdza ograniczanie członu całkującego regulatora PID.
+
+    EN: Verify clamping of the PID integral term.
+    """
     nav_manager.integral_max = 0.5
     nav_manager.integral_min = -0.5
     nav_manager.ki = 1.0
@@ -123,7 +145,10 @@ def test_pid_integral_clamping(nav_manager):
 
 
 def test_pid_dt_zero(nav_manager):
-    """Test that the derivative term is zero when dt is zero to prevent division by zero."""
+    """PL: Sprawdza obsługę zerowego kroku czasu bez dzielenia przez zero.
+
+    EN: Verify zero time steps are handled without division by zero.
+    """
     nav_manager.calculate_steering(GPSPoint(0, 0), 0, GPSPoint(1, 0), 0.1)  # Initial step
     # Second step with dt=0
     steering = nav_manager.calculate_steering(GPSPoint(0, 0), 0, GPSPoint(1, 0), 0)
@@ -137,56 +162,94 @@ def test_pid_dt_zero(nav_manager):
 
 @pytest.fixture
 def mock_nav_manager():
+    """PL: Udostępnia mock NavigationManager.
+
+    EN: Provide a mocked NavigationManager.
+    """
     return MagicMock(spec=NavigationManager)
 
 
 @pytest.fixture
 def mock_ai_manager():
+    """PL: Udostępnia mock AIManager.
+
+    EN: Provide a mocked AIManager.
+    """
     return MagicMock(spec=AIManager)
 
 
 @pytest.fixture
 def control_selector(mock_nav_manager, mock_ai_manager):
-    """Provides a ControlSelector instance with mocked dependencies."""
+    """PL: Tworzy ControlSelector z zamockowanymi zależnościami.
+
+    EN: Create a ControlSelector with mocked dependencies.
+    """
     return ControlSelector(nav_manager=mock_nav_manager, ai_manager=mock_ai_manager)
 
 
 # Tests for ACC (_apply_acc)
 def test_acc_no_lidar_or_throttle(control_selector):
+    """PL: Sprawdza ACC bez danych LiDAR lub przy nieaktywnym gazie.
+
+    EN: Verify ACC behavior without LiDAR data or forward throttle.
+    """
     assert control_selector._apply_acc(None, 1.0) == 1.0
     assert control_selector._apply_acc([], -0.5) == 1.0
 
 
 def test_acc_clear_path(control_selector):
+    """PL: Sprawdza pełny gaz przy wolnej drodze.
+
+    EN: Verify full throttle on a clear path.
+    """
     lidar_scan = [(0, 300.0)]  # 3 meters away
     assert control_selector._apply_acc(lidar_scan, 0.8) == 1.0
 
 
 def test_acc_warning_zone(control_selector):
+    """PL: Sprawdza redukcję gazu w strefie ostrzegawczej.
+
+    EN: Verify throttle reduction in the warning zone.
+    """
     # Object at 1.25m -> (1.25 - 0.5) / 1.5 = 0.5 multiplier
     lidar_scan = [(0, 125.0)]  # 1.25 meters
     assert control_selector._apply_acc(lidar_scan, 0.8) == pytest.approx(0.5)
 
 
 def test_acc_danger_zone(control_selector):
+    """PL: Sprawdza zatrzymanie w strefie niebezpiecznej.
+
+    EN: Verify throttle is stopped in the danger zone.
+    """
     lidar_scan = [(0, 40.0)]  # 0.4 meters
     assert control_selector._apply_acc(lidar_scan, 0.8) == 0.0
 
 
 def test_acc_irrelevant_points(control_selector):
-    """Points are outside the -10 to 10 degree cone."""
+    """PL: Sprawdza pomijanie punktów poza stożkiem obserwacji ACC.
+
+    EN: Verify points outside the ACC observation cone are ignored.
+    """
     lidar_scan = [(30, 50.0), (-45, 60.0)]
     assert control_selector._apply_acc(lidar_scan, 0.8) == 1.0
 
 
 # Tests for main logic (process_frame)
 def test_process_frame_failsafe_mode(control_selector):
+    """PL: Sprawdza zerowe sterowanie w trybie failsafe.
+
+    EN: Verify zero controls are returned in failsafe mode.
+    """
     steering, throttle = control_selector.process_frame("FAILSAFE", {})
     assert steering == 0.0
     assert throttle == 0.0
 
 
 def test_process_frame_manual_mode(control_selector):
+    """PL: Sprawdza przekazywanie ręcznego sterowania.
+
+    EN: Verify manual controls are passed through.
+    """
     frame_data = {"manual_controls": {"steering": 0.7, "throttle": -0.5}}
     steering, throttle = control_selector.process_frame("MANUAL", frame_data)
     assert steering == 0.7
@@ -194,7 +257,10 @@ def test_process_frame_manual_mode(control_selector):
 
 
 def test_process_frame_manual_mode_with_acc(control_selector):
-    """ACC should reduce throttle in manual mode if moving forward."""
+    """PL: Sprawdza ograniczanie ręcznego gazu przez ACC.
+
+    EN: Verify ACC limits manual throttle while moving forward.
+    """
     frame_data = {
         "manual_controls": {"steering": 0.2, "throttle": 0.8},
         "lidar_scan": [(0, 40.0)],  # 0.4m -> ACC stop
@@ -205,6 +271,10 @@ def test_process_frame_manual_mode_with_acc(control_selector):
 
 
 def test_process_frame_rth_mode(control_selector, mock_nav_manager):
+    """PL: Sprawdza przekazanie danych do nawigacji RTH.
+
+    EN: Verify input data is passed to RTH navigation.
+    """
     mock_nav_manager.update_rth.return_value = (
         0.5,
         0.2,
@@ -223,6 +293,10 @@ def test_process_frame_rth_mode(control_selector, mock_nav_manager):
 
 
 def test_process_frame_rth_arrived(control_selector, mock_nav_manager):
+    """PL: Sprawdza zerowe sterowanie po dotarciu do celu RTH.
+
+    EN: Verify zero controls after reaching the RTH destination.
+    """
     mock_nav_manager.update_rth.return_value = (0.0, 0.0, True)  # Arrived
     frame_data = {"gps_data": {}, "imu_data": {}, "home_position": {}}
     steering, throttle = control_selector.process_frame("RTH", frame_data)
@@ -231,6 +305,10 @@ def test_process_frame_rth_arrived(control_selector, mock_nav_manager):
 
 
 def test_process_frame_rth_missing_data(control_selector, mock_nav_manager):
+    """PL: Sprawdza bezpieczne zachowanie RTH przy braku danych.
+
+    EN: Verify safe RTH behavior when required data is missing.
+    """
     steering, throttle = control_selector.process_frame("RTH", {})  # No data
     assert not mock_nav_manager.update_rth.called
     assert steering == 0.0
@@ -238,6 +316,10 @@ def test_process_frame_rth_missing_data(control_selector, mock_nav_manager):
 
 
 def test_process_frame_ai_mode(control_selector, mock_ai_manager):
+    """PL: Sprawdza wykorzystanie predykcji AI w trybie autopilota.
+
+    EN: Verify AI predictions are used in autopilot mode.
+    """
     mock_ai_manager.predict.return_value = (0.9, 0.6)
     image_mock = np.zeros((120, 160, 3), dtype=np.uint8)
     frame_data = {"image": image_mock}
@@ -248,6 +330,10 @@ def test_process_frame_ai_mode(control_selector, mock_ai_manager):
 
 
 def test_process_frame_ai_mode_no_ai_manager(mock_nav_manager):
+    """PL: Sprawdza zachowanie trybu AI bez dostępnego menedżera AI.
+
+    EN: Verify AI mode behavior when no AI manager is available.
+    """
     # Create a selector without an AI manager
     selector = ControlSelector(nav_manager=mock_nav_manager, ai_manager=None)
     image_mock = np.zeros((120, 160, 3), dtype=np.uint8)
@@ -258,7 +344,10 @@ def test_process_frame_ai_mode_no_ai_manager(mock_nav_manager):
 
 
 def test_update_rth_not_active(nav_manager):
-    """Test RTH when it is not active."""
+    """PL: Sprawdza brak sterowania, gdy tryb RTH jest nieaktywny.
+
+    EN: Verify no control output when RTH mode is inactive.
+    """
     steering, throttle, arrived = nav_manager.update_rth(
         is_rth_active=False,
         home_position={"lat": 1, "lon": 1},
@@ -273,7 +362,10 @@ def test_update_rth_not_active(nav_manager):
 
 
 def test_process_frame_ai_mode_no_image_data(control_selector, mock_ai_manager):
-    """Test AI mode when the camera image is missing."""
+    """PL: Sprawdza tryb AI przy braku obrazu z kamery.
+
+    EN: Verify AI mode behavior when camera image data is missing.
+    """
     frame_data = {"image": None}  # No image
     steering, throttle = control_selector.process_frame("AI_AUTOPILOT", frame_data)
     assert not mock_ai_manager.predict.called

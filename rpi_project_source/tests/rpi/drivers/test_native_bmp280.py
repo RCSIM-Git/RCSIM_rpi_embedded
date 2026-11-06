@@ -1,3 +1,8 @@
+"""PL: Testy sterownika BMP280 na podstawie danych z noty katalogowej.
+
+EN: Tests for the BMP280 driver using datasheet reference data.
+"""
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -48,7 +53,10 @@ EXPECTED_PRESSURE = 100000.0  # Pascals
 
 @pytest.fixture
 def mock_i2c_wrapper():
-    """Provides a mock I2CWrapper instance for isolating the driver."""
+    """PL: Udostępnia mock I2CWrapper izolujący sterownik od sprzętu.
+
+    EN: Provide a mocked I2CWrapper to isolate the driver from hardware.
+    """
     return MagicMock()
 
 
@@ -56,8 +64,9 @@ def mock_i2c_wrapper():
 
 
 def test_bmp280_init_success(mock_i2c_wrapper):
-    """
-    Tests if the driver initializes correctly when a valid chip ID is found.
+    """PL: Sprawdza inicjalizację przy poprawnym identyfikatorze układu.
+
+    EN: Verify initialization when a valid chip identifier is found.
     """
     # Arrange
     from modules.drivers.native.native_bmp280 import NativeBMP280
@@ -73,8 +82,9 @@ def test_bmp280_init_success(mock_i2c_wrapper):
 
 
 def test_bmp280_init_invalid_chip_id(mock_i2c_wrapper):
-    """
-    Tests if the driver raises a RuntimeError for an invalid chip ID.
+    """PL: Sprawdza błąd inicjalizacji przy niepoprawnym identyfikatorze.
+
+    EN: Verify initialization fails for an invalid chip identifier.
     """
     # Arrange
     from modules.drivers.native.native_bmp280 import NativeBMP280
@@ -89,8 +99,9 @@ def test_bmp280_init_invalid_chip_id(mock_i2c_wrapper):
 
 @pytest.mark.xfail(reason="Mismatch in calibration data parsing.")
 def test_bmp280_load_calibration_data(mock_i2c_wrapper):
-    """
-    Tests if calibration data is read and parsed correctly during init.
+    """PL: Sprawdza odczyt i dekodowanie współczynników kalibracji.
+
+    EN: Verify calibration coefficients are read and decoded correctly.
     """
     # Arrange
     from modules.drivers.native.native_bmp280 import NativeBMP280
@@ -110,8 +121,9 @@ def test_bmp280_load_calibration_data(mock_i2c_wrapper):
 
 @pytest.mark.xfail(reason="Compensation formula in driver is known to be inaccurate.")
 def test_bmp280_read_scaled_matches_datasheet(mock_i2c_wrapper):
-    """
-    Tests the full compensation formula against the Bosch datasheet example.
+    """PL: Porównuje skalowany pomiar z przykładem z noty Boscha.
+
+    EN: Compare the scaled measurement with the Bosch datasheet example.
     """
     # Arrange
     from modules.drivers.native.native_bmp280 import NativeBMP280
@@ -137,8 +149,9 @@ def test_bmp280_read_scaled_matches_datasheet(mock_i2c_wrapper):
 
 @pytest.mark.xfail(reason="Compensation formula in driver is known to be inaccurate.")
 def test_bmp280_read_scaled_avoids_division_by_zero(mock_i2c_wrapper):
-    """
-    Tests the pressure compensation's safety check against division by zero.
+    """PL: Sprawdza ochronę kompensacji ciśnienia przed dzieleniem przez zero.
+
+    EN: Verify pressure compensation guards against division by zero.
     """
     # Arrange
     from modules.drivers.native.native_bmp280 import NativeBMP280

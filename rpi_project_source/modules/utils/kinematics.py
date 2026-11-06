@@ -1,9 +1,5 @@
-"""
-Biblioteka matematyczna - Kinematyka Ackermanna.
-Mathematical library - Ackermann Kinematics.
-
-Przelicza przesunięcie przestrzenne na układzie współrzędnych bez bycia wpiętym
-w logikę zapytań sprzętowych I2C/UART modułów RPi.
+"""PL: Szacuje ruch robota z wejść sterujących modelem kinematyki Ackermanna.
+EN: Estimates robot motion from control inputs using Ackermann kinematics.
 """
 
 import math
@@ -11,18 +7,16 @@ from typing import Any, NamedTuple
 
 
 class ControlInput(NamedTuple):
-    """
-    Ackermann control input values.
-    Wartości wejściowe sterowania Ackermanna.
+    """PL: Przechowuje wartości gazu i skrętu dla modelu Ackermanna.
+    EN: Stores throttle and steering values for the Ackermann model.
     """
     throttle: float
     steering: float
 
 
 class KinematicConfig(NamedTuple):
-    """
-    Ackermann kinematics configuration.
-    Konfiguracja kinematyki Ackermanna.
+    """PL: Określa maksymalną prędkość, skręt i rozstaw osi modelu.
+    EN: Defines the model's maximum speed, steering angle, and wheelbase.
     """
     max_speed_mps: float = 2.0
     max_steer_rad: float = 0.52
@@ -35,18 +29,8 @@ def estimate_motion(
     config: KinematicConfig = KinematicConfig(),
     imu_data: dict[str, Any] | None = None,
 ) -> tuple[float, float, float]:
-    """
-    Estymuje przesunięcie robota (dx, dy, dyaw) na podstawie wejść sterujących i IMU.
-    Estimates the robot's motion (dx, dy, dyaw) based on control inputs and IMU.
-
-    Args:
-        control (ControlInput): Wejścia sterujące (przepustnica, skręt). / Control inputs (throttle, steering).
-        dt (float): Czas od ostatniej aktualizacji [s]. / Time since last update [s].
-        config (KinematicConfig): Konfiguracja parametrów kinematycznych. / Kinematics configuration.
-        imu_data (dict[str, Any] | None): Opcjonalne najnowsze odczyty sprzętowe z IMU. / Optional IMU data.
-
-    Returns:
-        tuple[float, float, float]: (dx, dy, dyaw) przesunięcie lokalne w metrach i radianach.
+    """PL: Szacuje lokalne przesunięcie i obrót z gazu, skrętu oraz opcjonalnego IMU.
+    EN: Estimates local translation and rotation from throttle, steering, and optional IMU data.
     """
     v = control.throttle * config.max_speed_mps
     steer_angle = control.steering * config.max_steer_rad

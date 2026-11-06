@@ -1,9 +1,8 @@
-"""
-Actuator Controller - Menedżer Serwomechanizmów i Sygnałów PWM (RPi).
-Actuator Controller - Servomechanisms and PWM signals manager (RPi).
+"""PL: Steruje serwami i sygnałami PWM na Raspberry Pi.
+EN: Controls servos and PWM signals on Raspberry Pi.
 
-Zajmuje się izolacją logiki przeliczania wychyleń kierownicy [-1, 1] i przepustnicy na mikrosekundy używane
-w kontrolerach sprzętowych PCA9685/Hatak.
+PL: Przelicza sterowanie pojazdem na impulsy dla kontrolera PCA9685.
+EN: Converts vehicle controls into pulses for the PCA9685 controller.
 """
 
 import logging
@@ -16,13 +15,21 @@ logger = logging.getLogger(__name__)
 
 
 class EMAFilter:
-    """Filtr wygładzający sygnał PWM. / PWM signal smoothing filter."""
+    """PL: Wygładza wartości sygnału PWM filtrem wykładniczym.
+    EN: Smooths PWM values with an exponential moving average.
+    """
 
     def __init__(self, alpha: float):
+        """PL: Tworzy filtr z ograniczonym współczynnikiem wygładzania.
+        EN: Creates a filter with a bounded smoothing coefficient.
+        """
         self.alpha = max(0.01, min(1.0, alpha))
         self.last_value: float | None = None
 
     def apply(self, value: float) -> float:
+        """PL: Filtruje próbkę i zwraca wygładzoną wartość.
+        EN: Filters a sample and returns the smoothed value.
+        """
         if self.last_value is None:
             self.last_value = value
             return value
@@ -31,18 +38,23 @@ class EMAFilter:
 
 
 class SlewRateLimiter:
-    """
-    Ogranicznik prędkości narastania sygnału. / Slew Rate Limiter.
-    Zabezpiecza sprzęt przed gwałtownymi skokami PWM.
+    """PL: Ogranicza tempo zmian wartości sygnału PWM.
+    EN: Limits the rate of change of a PWM signal.
     """
 
     def __init__(self, max_rate_us_per_ms: float):
+        """PL: Ustawia maksymalną szybkość zmian w mikrosekundach na milisekundę.
+        EN: Sets the maximum change rate in microseconds per millisecond.
+        """
         # Konwersja us/ms na us/s dla wewnętrznych obliczeń / Convert us/ms to us/s
         self.max_rate = max_rate_us_per_ms * 1000.0
         self.last_value: float | None = None
         self.last_time: float = 0.0
 
     def apply(self, target_value: float) -> int:
+        """PL: Zwraca wartość docelową ograniczoną szybkością zmian.
+        EN: Returns the target value constrained by the configured rate.
+        """
         now = time.time()
         if self.last_value is None:
             self.last_value = target_value
@@ -66,9 +78,8 @@ class SlewRateLimiter:
 
 
 class ActuatorController:
-    """
-    Sub-moduł (SRP) odseparowany od dawnego God-Objectu `HardwareManager`.
-    Obejmuje wyłączne operacje matematyczne rzutowania sygnałów PWM i komunikację wysyłania komend do osi pojazdu.
+    """PL: Mapuje polecenia sterujące na sygnały sprzętowych kanałów PWM.
+    EN: Maps control commands to hardware PWM channel signals.
     """
 
     def __init__(
@@ -77,6 +88,9 @@ class ActuatorController:
         i2c_bus: Any,
         init_pca_neutral: bool = False,
     ):
+        """PL: Konfiguruje kanały, filtry i kontroler PCA9685.
+        EN: Configures channels, filters, and the PCA9685 controller.
+        """
         self.config = hardware_config
         self.i2c = i2c_bus
         self.pca: PCA9685 | None = None
@@ -124,7 +138,9 @@ class ActuatorController:
         self._init_pca9685()
 
     def _init_pca9685(self) -> None:
-        """Inicjalizuje kontroler PWM PCA9685 za pomocą ujednoliconego wrappera."""
+        """PL: Inicjalizuje PCA9685 z ustawieniami sprzętowymi i failsafe.
+        EN: Initializes the PCA9685 with hardware and failsafe settings.
+        """
         pca_config = self.config.get("pca9685", {})
         freq = pca_config.get("frequency", 50)
 
@@ -160,6 +176,9 @@ class ActuatorController:
             self.pca = None
 
     def set_steering(self, value: float) -> None:
+        """PL: Przelicza i wysyła wychylenie kierownicy jako impuls PWM.
+        EN: Converts and sends the steering command as a PWM pulse.
+        """
         if not self.pca:
             return
 
@@ -177,6 +196,9 @@ class ActuatorController:
         self.set_channel_pulse(self.steering_channel, pulse_us)
 
     def set_throttle(self, value: float) -> None:
+        """PL: Przelicza i wysyła gaz jako impuls PWM.
+        EN: Converts and sends throttle as a PWM pulse.
+        """
         if not self.pca:
             return
 
@@ -194,7 +216,9 @@ class ActuatorController:
         self.set_channel_pulse(self.throttle_channel, pulse_us)
 
     def set_channel_pulse(self, channel: int, pulse_us: int) -> None:
-        """Sets raw pulse with Hard Clamping [PLAN-003] and Slew Rate Limiting [SAFETY-008]."""
+        """PL: Ogranicza i filtruje impuls przed wysłaniem go do kanału.
+        EN: Clamps and filters a pulse before sending it to the channel.
+        """
         if self.pca:
             # 1. Hard Clamping for safety
             if channel == self.steering_channel:
@@ -223,26 +247,41 @@ class ActuatorController:
     def write_controls(
         self, steering: float, throttle: float, extra: dict[int, int]
     ) -> None:
+        """PL: Zapisuje sterowanie kierownicą, gazem i dodatkowymi kanałami.
+        EN: Writes steering, throttle, and additional channel commands.
+        """
         self.set_steering(steering)
         self.set_throttle(throttle)
         for ch, pulse_us in extra.items():
             self.set_channel_pulse(ch, pulse_us)
 
     def set_pwm(self, pulse_us: int, force: bool = False, channel: int = -1) -> None:
+        """PL: Ustawia bezpośrednio impuls PWM na wskazanym kanale.
+        EN: Directly sets a PWM pulse on the selected channel.
+        """
         target_channel = self.throttle_channel if channel == -1 else channel
         if self.pca:
             self.pca.set_servo_pulse(target_channel, pulse_us, force=force)
 
     def calibrate_esc(self, channel: int = -1) -> None:
+        """PL: Uruchamia procedurę kalibracji regulatora ESC.
+        EN: Starts the ESC calibration procedure.
+        """
         target_channel = self.throttle_channel if channel == -1 else channel
         if self.pca:
             self.pca.calibrate_esc(target_channel)
 
     def disable_all_channels(self) -> None:
+        """PL: Wyłącza wszystkie kanały kontrolera PWM.
+        EN: Disables all PWM controller channels.
+        """
         if self.pca:
             self.pca.disable_all_channels()
 
     def arm_pca(self) -> None:
+        """PL: Ustawia neutralne sterowanie i uzbraja kontroler PCA.
+        EN: Sets neutral controls and arms the PCA controller.
+        """
         if self.pca:
             self.set_steering(0.0)
             self.set_throttle(0.0)
@@ -252,9 +291,8 @@ class ActuatorController:
             )
 
     def cleanup(self) -> None:
-        """
-        Gwarantuje bezpieczne zatrzymanie (Fail-Safe) [PLAN-003].
-        Sets neutral signals before disabling PCA.
+        """PL: Ustawia sygnały neutralne i zamyka kontroler w trybie failsafe.
+        EN: Sets neutral signals and closes the controller in failsafe mode.
         """
         logger.info("ActuatorController: Fail-Safe Triggered. Setting neutrals...")
         try:

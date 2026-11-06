@@ -19,19 +19,13 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""
-Native BMP180 Barometric Pressure and Temperature Sensor Driver.
-Natywny sterownik czujnika ciśnienia i temperatury BMP180.
+"""PL: Odczytuje BMP180 i przelicza surowe próbki na ciśnienie oraz temperaturę.
 
-This driver provides a low-level interface to the Bosch BMP180 sensor. It handles
-reading the factory calibration data and applies the complex compensation formulas
-from the datasheet to convert raw sensor readings into accurate temperature and
-pressure values.
+Sterownik pobiera dane kalibracyjne i stosuje wzory kompensacyjne Boscha.
 
-Ten sterownik dostarcza niskopoziomowy interfejs do czujnika Bosch BMP180.
-Obsługuje odczyt fabrycznych danych kalibracyjnych i stosuje złożone wzory
-kompensacyjne z noty katalogowej, aby przekształcić surowe odczyty z czujnika
-na dokładne wartości temperatury i ciśnienia.
+EN: Reads the BMP180 and converts raw samples into pressure and temperature.
+
+The driver loads calibration data and applies Bosch compensation formulas.
 """
 
 import logging
@@ -42,9 +36,9 @@ from .native_i2c import I2CWrapper
 
 
 class NativeBMP180:
-    """
-    A lightweight driver for the BMP180 barometer, implementing datasheet calculations.
-    Lekki sterownik dla barometru BMP180, implementujący obliczenia z noty katalogowej.
+    """PL: Obsługuje BMP180 i oblicza pomiary według wzorów z noty katalogowej.
+
+    EN: Operates the BMP180 and calculates readings using the datasheet formulas.
     """
 
     # --- I2C and Register Definitions ---
@@ -61,15 +55,17 @@ class NativeBMP180:
     _CHIP_ID = 0x55
 
     def __init__(self, i2c_wrapper: I2CWrapper, address: int = _DEFAULT_ADDRESS):
-        """
-        Initializes the BMP180 driver and reads calibration data.
-        Inicjalizuje sterownik BMP180 i odczytuje dane kalibracyjne.
+        """PL: Weryfikuje identyfikator BMP180 i wczytuje współczynniki kalibracji.
 
         Args:
-            i2c_wrapper (I2CWrapper): The shared I2C wrapper instance.
-                                      Współdzielona instancja wrappera I2C.
-            address (int): The I2C address of the BMP180. Defaults to 0x77.
-                           Adres I2C czujnika BMP180. Domyślnie 0x77.
+            i2c_wrapper: Współdzielony wrapper magistrali I2C.
+            address: Adres I2C czujnika BMP180, domyślnie 0x77.
+
+        EN: Verifies the BMP180 identifier and loads calibration coefficients.
+
+        Args:
+            i2c_wrapper: Shared I2C bus wrapper.
+            address: BMP180 I2C address, defaulting to 0x77.
         """
         self.i2c = i2c_wrapper
         self.address = address
@@ -88,15 +84,9 @@ class NativeBMP180:
         self._load_calibration_data()
 
     def _load_calibration_data(self) -> None:
-        """
-        Reads and unpacks the 22-byte factory calibration data from the sensor's EEPROM.
-        Odczytuje i rozpakowuje 22-bajtowe fabryczne dane kalibracyjne z EEPROM czujnika.
+        """PL: Wczytuje 22 bajty fabrycznych współczynników kalibracyjnych.
 
-        These coefficients are unique to each sensor and are required for the
-        compensation formulas.
-
-        Te współczynniki są unikalne dla każdego czujnika i są niezbędne do
-        wzorów kompensacyjnych.
+        EN: Reads the 22 bytes of factory calibration coefficients.
         """
         calib_data = self.i2c.read_i2c_block_data(
             self.address, self._REG_CALIB_START, 22
@@ -112,13 +102,15 @@ class NativeBMP180:
         self.calib_coeffs = dict(zip(keys, coeffs))
 
     def _read_raw_temp(self) -> int:
-        """
-        Reads the uncompensated (raw) temperature value from the sensor.
-        Odczytuje nieskompensowaną (surową) wartość temperatury z czujnika.
+        """PL: Uruchamia pomiar i odczytuje surową wartość temperatury.
 
         Returns:
-            int: The raw 16-bit temperature value.
-                 Surowa 16-bitowa wartość temperatury.
+            Surową 16-bitową wartość temperatury.
+
+        EN: Starts a measurement and reads the raw temperature value.
+
+        Returns:
+            The raw 16-bit temperature value.
         """
         self.i2c.write_byte_data(self.address, self._REG_CONTROL, self._CMD_READ_TEMP)
         time.sleep(0.005)  # Datasheet specifies a max 4.5ms wait time
@@ -126,13 +118,15 @@ class NativeBMP180:
         return (data[0] << 8) | data[1]
 
     def _read_raw_pressure(self) -> int:
-        """
-        Reads the uncompensated (raw) pressure value from the sensor.
-        Odczytuje nieskompensowaną (surową) wartość ciśnienia z czujnika.
+        """PL: Uruchamia pomiar i odczytuje surową wartość ciśnienia.
 
         Returns:
-            int: The raw 16-bit pressure value.
-                 Surowa 16-bitowa wartość ciśnienia.
+            Surową wartość ciśnienia przed kompensacją.
+
+        EN: Starts a measurement and reads the raw pressure value.
+
+        Returns:
+            The uncompensated pressure value.
         """
         # OSS=0 (oversampling setting)
         self.i2c.write_byte_data(
@@ -145,19 +139,15 @@ class NativeBMP180:
         return ((data[0] << 16) + (data[1] << 8) + data[2]) >> 8
 
     def read_scaled(self) -> tuple[float, float]:
-        """
-        Reads and returns the compensated temperature and pressure.
-        Odczytuje i zwraca skompensowaną temperaturę i ciśnienie.
-
-        This method implements the full calculation procedure as described in
-        the Bosch BMP180 datasheet.
-
-        Ta metoda implementuje pełną procedurę obliczeniową opisaną w nocie
-        katalogowej Bosch BMP180.
+        """PL: Oblicza skompensowaną temperaturę w °C i ciśnienie w paskalach.
 
         Returns:
-            tuple[float, float]: A tuple containing (temperature in °C, pressure in Pascals).
-                                 Krotka zawierająca (temperaturę w °C, ciśnienie w Pascalach).
+            Krotkę zawierającą temperaturę i ciśnienie.
+
+        EN: Calculates compensated temperature in °C and pressure in pascals.
+
+        Returns:
+            A tuple containing temperature and pressure.
         """
         c = self.calib_coeffs  # Use a shorter alias for convenience
 
@@ -200,9 +190,9 @@ class NativeBMP180:
         return temp, pressure
 
     def read_data(self) -> dict[str, float]:
-        """
-        Returns data in a dictionary format for HardwareManager compatibility.
-        Zwraca dane w formacie słownika dla kompatybilności z HardwareManager.
+        """PL: Zwraca temperaturę i ciśnienie jako słownik zgodny z HardwareManager.
+
+        EN: Returns temperature and pressure in a HardwareManager-compatible dictionary.
         """
         temp, pressure = self.read_scaled()
         return {"temperature": temp, "pressure": pressure}

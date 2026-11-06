@@ -1,5 +1,5 @@
-"""
-Unit tests for the ACC functionality in ControlSelector.
+"""PL: Testuje adaptacyjny tempomat i reakcję na odległość z LiDAR.
+EN: Tests adaptive cruise control and responses to LiDAR distance.
 """
 
 import pytest
@@ -8,18 +8,24 @@ from logic.control_selector import ControlSelector
 
 @pytest.fixture
 def control_selector():
-    """Provides a ControlSelector instance with mocked dependencies."""
+    """PL: Tworzy selektor sterowania bez zewnętrznych menedżerów.
+    EN: Creates a control selector without external managers.
+    """
     return ControlSelector(nav_manager=None, ai_manager=None)
 
 
 def test_acc_no_lidar_data(control_selector: ControlSelector):
-    """Tests that ACC returns a multiplier of 1.0 when no LiDAR data is available."""
+    """PL: Sprawdza brak redukcji gazu bez danych LiDAR.
+    EN: Checks that throttle is not reduced when LiDAR data is absent.
+    """
     multiplier = control_selector._apply_acc(lidar_scan=None, throttle_input=1.0)
     assert multiplier == 1.0
 
 
 def test_acc_throttle_is_zero_or_negative(control_selector: ControlSelector):
-    """Tests that ACC is not applied when the vehicle is reversing or stationary."""
+    """PL: Sprawdza pominięcie ACC podczas cofania i postoju.
+    EN: Checks that ACC is skipped while reversing or stationary.
+    """
     lidar_scan = [(-5, 30), (0, 30), (5, 30)]  # Obstacle at 30cm
     # Reversing
     multiplier = control_selector._apply_acc(lidar_scan=lidar_scan, throttle_input=-0.5)
@@ -30,14 +36,18 @@ def test_acc_throttle_is_zero_or_negative(control_selector: ControlSelector):
 
 
 def test_acc_obstacle_far_away(control_selector: ControlSelector):
-    """Tests that the multiplier is 1.0 when the nearest obstacle is far away."""
+    """PL: Sprawdza brak ograniczenia gazu dla odległej przeszkody.
+    EN: Checks that a distant obstacle does not limit throttle.
+    """
     lidar_scan = [(-5, 250), (0, 300), (5, 280)]  # Nearest obstacle at 2.5m
     multiplier = control_selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
     assert multiplier == 1.0
 
 
 def test_acc_obstacle_in_linear_zone(control_selector: ControlSelector):
-    """Tests the linear throttle reduction zone."""
+    """PL: Sprawdza liniowe ograniczanie gazu w aktywnym zakresie ACC.
+    EN: Checks linear throttle reduction within the ACC range.
+    """
     # Obstacle exactly at 2.0m -> multiplier should be 1.0
     lidar_scan = [(-2, 200), (3, 210)]
     multiplier = control_selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
@@ -55,14 +65,18 @@ def test_acc_obstacle_in_linear_zone(control_selector: ControlSelector):
 
 
 def test_acc_obstacle_too_close(control_selector: ControlSelector):
-    """Tests that the multiplier is 0.0 when an obstacle is too close."""
+    """PL: Sprawdza wyzerowanie mnożnika dla zbyt bliskiej przeszkody.
+    EN: Checks that the multiplier becomes zero for a very close obstacle.
+    """
     lidar_scan = [(-5, 40), (0, 30), (5, 45)]  # Nearest obstacle at 30cm
     multiplier = control_selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
     assert multiplier == 0.0
 
 
 def test_acc_filters_angles(control_selector: ControlSelector):
-    """Tests that only obstacles within the -10 to +10 degree arc are considered."""
+    """PL: Sprawdza uwzględnianie tylko przeszkód w przednim kącie skanu.
+    EN: Checks that only obstacles within the forward scan angle are considered.
+    """
     # Obstacle at 30cm but outside the arc, should be ignored
     lidar_scan = [(-15, 30), (15, 30)]
     multiplier = control_selector._apply_acc(lidar_scan=lidar_scan, throttle_input=1.0)
@@ -75,7 +89,9 @@ def test_acc_filters_angles(control_selector: ControlSelector):
 
 
 def test_acc_disabled():
-    """Tests that ACC is completely bypassed and returns 1.0 when disabled in config."""
+    """PL: Sprawdza pominięcie ACC po wyłączeniu go w konfiguracji.
+    EN: Checks that ACC is bypassed when disabled in configuration.
+    """
     config = {"safety": {"acc_enabled": False, "acc_min_dist_m": 0.5, "acc_max_dist_m": 2.0}}
     selector = ControlSelector(nav_manager=None, ai_manager=None, config=config)
     lidar_scan = [(0, 30)]  # 30cm obstacle directly in front
@@ -84,7 +100,9 @@ def test_acc_disabled():
 
 
 def test_acc_custom_ranges():
-    """Tests that ACC uses custom min and max distance ranges from config."""
+    """PL: Sprawdza użycie skonfigurowanych progów odległości ACC.
+    EN: Checks that ACC uses configured distance thresholds.
+    """
     # Custom config: min_dist = 1.0m, max_dist = 3.0m
     config = {"safety": {"acc_enabled": True, "acc_min_dist_m": 1.0, "acc_max_dist_m": 3.0}}
     selector = ControlSelector(nav_manager=None, ai_manager=None, config=config)
@@ -106,7 +124,9 @@ def test_acc_custom_ranges():
 
 
 def test_acc_custom_ranges_edge_case():
-    """Tests edge case where max_dist <= min_dist."""
+    """PL: Sprawdza awaryjne ograniczenie przy nieprawidłowym zakresie ACC.
+    EN: Checks safe limiting when the ACC distance range is invalid.
+    """
     config = {"safety": {"acc_enabled": True, "acc_min_dist_m": 2.0, "acc_max_dist_m": 1.0}}
     selector = ControlSelector(nav_manager=None, ai_manager=None, config=config)
     lidar_scan = [(0, 150)]  # 1.5m obstacle

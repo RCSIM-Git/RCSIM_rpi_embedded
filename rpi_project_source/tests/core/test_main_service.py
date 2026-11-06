@@ -1,6 +1,5 @@
-"""
-Unit tests for the main service and TelemetryWorker.
-Testy jednostkowe dla głównego serwisu i TelemetryWorker.
+"""PL: Testuje budowę telemetrii i obsługę danych oraz poleceń przez usługę.
+EN: Tests telemetry construction and service handling of data and commands.
 """
 
 import json
@@ -20,7 +19,9 @@ sys.path.insert(0, project_root)
 
 @pytest.fixture
 def config_mock():
-    """Provides a default config dictionary."""
+    """PL: Zwraca minimalną konfigurację workera telemetrycznego.
+    EN: Returns a minimal configuration for the telemetry worker.
+    """
     return {
         "hardware": {},
         "main_loop_freq_hz": 30,
@@ -31,9 +32,8 @@ def config_mock():
 
 @pytest.fixture
 def telemetry_worker(config_mock) -> TelemetryWorker:
-    """
-    Provides a TelemetryWorker instance with mocked dependencies for testing.
-    Dostarcza instancję TelemetryWorker z zamockowanymi zależnościami do testów.
+    """PL: Tworzy worker z atrapami zależności zewnętrznych.
+    EN: Creates a worker with mocked external dependencies.
     """
     worker = TelemetryWorker(config_mock)
     # Mock internal components that are not part of the logic being tested
@@ -49,9 +49,8 @@ def telemetry_worker(config_mock) -> TelemetryWorker:
 
 
 def test_prepare_telemetry_packet_structure(telemetry_worker: TelemetryWorker):
-    """
-    Tests if the generated telemetry packet has the correct structure.
-    Testuje, czy generowany pakiet telemetryczny ma poprawną strukturę.
+    """PL: Sprawdza strukturę i podstawowe pola pakietu telemetrii.
+    EN: Checks the structure and key fields of a telemetry packet.
     """
     # Mocking frame_data expected by TelemetryBuilder
     frame_data = {
@@ -75,9 +74,8 @@ def test_prepare_telemetry_packet_structure(telemetry_worker: TelemetryWorker):
 
 
 def test_on_data_received_updates_last_control_input(telemetry_worker: TelemetryWorker):
-    """
-    Tests if incoming data (not a command) correctly updates `last_control_input`.
-    Testuje, czy dane przychodzące (niebędące komendą) poprawnie aktualizują `last_control_input`.
+    """PL: Sprawdza aktualizację sterowania po odebraniu pakietu kanałów.
+    EN: Checks control state updates after receiving a channel packet.
     """
     # Arrange
     # CommandDispatcher expects "type": "control" and "channels": [steering_pwm, throttle_pwm]
@@ -99,9 +97,8 @@ def test_on_data_received_updates_last_control_input(telemetry_worker: Telemetry
 
 
 def test_on_data_received_handles_command(telemetry_worker: TelemetryWorker):
-    """
-    Tests if a message with type 'command' is passed to the command handler.
-    Testuje, czy wiadomość typu 'command' jest przekazywana do obsługi komend.
+    """PL: Sprawdza przekazanie odebranej komendy do jej obsługi.
+    EN: Checks that a received command is forwarded to its handler.
     """
     # Arrange
     command_data = {"type": "command", "command": "set_mode", "mode": "RTH"}
@@ -116,9 +113,8 @@ def test_on_data_received_handles_command(telemetry_worker: TelemetryWorker):
 def test_on_data_received_logs_warning_on_invalid_json(
     telemetry_worker: TelemetryWorker, caplog
 ):
-    """
-    Tests that a warning is logged if the incoming data is not valid JSON.
-    Testuje, czy ostrzeżenie jest logowane, gdy przychodzące dane nie są poprawnym JSON-em.
+    """PL: Sprawdza ostrzeżenie logowane dla niepoprawnego JSON-u.
+    EN: Checks that invalid JSON produces a warning log entry.
     """
     # Arrange
     invalid_json = "this is not json"
@@ -135,9 +131,8 @@ def test_on_data_received_logs_warning_on_invalid_json(
 
 
 def test_handle_command_set_mode(telemetry_worker: TelemetryWorker):
-    """
-    Tests if the 'set_mode' command correctly changes the worker's current mode.
-    Testuje, czy komenda 'set_mode' poprawnie zmienia aktualny tryb workera.
+    """PL: Sprawdza zmianę trybu workera po poprawnej komendzie.
+    EN: Checks that a valid command changes the worker's mode.
     """
     # Arrange
     command = {"command": "set_mode", "mode": "RTH"}
@@ -153,9 +148,8 @@ def test_handle_command_set_mode(telemetry_worker: TelemetryWorker):
 def test_handle_command_set_mode_invalid_mode(
     telemetry_worker: TelemetryWorker, caplog
 ):
-    """
-    Tests that a 'set_mode' command with an invalid mode is ignored and a warning is logged.
-    Testuje, czy komenda 'set_mode' z nieprawidłowym trybem jest ignorowana i logowane jest ostrzeżenie.
+    """PL: Sprawdza, że nieprawidłowy tryb nie zmienia stanu workera.
+    EN: Checks that an invalid mode does not change the worker state.
     """
     # Arrange
     command = {"command": "set_mode", "mode": ""} # Empty mode or invalid
@@ -169,9 +163,8 @@ def test_handle_command_set_mode_invalid_mode(
 
 
 def test_handle_command_set_home(telemetry_worker: TelemetryWorker):
-    """
-    Tests if the 'set_home' command correctly updates the home position.
-    Testuje, czy komenda 'set_home' poprawnie aktualizuje pozycję domową.
+    """PL: Sprawdza zapis pozycji domowej po odebraniu komendy.
+    EN: Checks that the home position is stored after receiving a command.
     """
     # Arrange
     home_pos = {"lat": 52.0, "lon": 21.0}

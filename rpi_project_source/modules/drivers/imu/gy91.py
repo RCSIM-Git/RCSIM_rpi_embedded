@@ -1,9 +1,6 @@
-"""
-Przykładowy sterownik dla sensora GY-91 (MPU-9250 + BMP280).
-Example driver for the GY-91 sensor (MPU-9250 + BMP280).
+"""PL: Udostępnia mockowy sterownik GY-91 z przykładowymi danymi 10-DoF.
 
-Ten moduł dostarcza sterownik do obsługi popularnego modułu GY-91.
-This module provides a driver to handle the popular GY-91 module.
+EN: Provides a mock GY-91 driver with sample 10-DoF data.
 """
 
 import logging
@@ -13,21 +10,15 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class GY91:
-    """
-    Sterownik dla sensora GY-91 (MPU-9250 + BMP280).
-    Driver for the GY-91 sensor (MPU-9250 + BMP280).
+    """PL: Zwraca wyłącznie symulowane dane modułu GY-91.
 
-    Na razie zwraca tylko mockowe dane.
-    Currently returns mock data only.
+    EN: Returns simulated data for the GY-91 module only.
     """
 
     def __init__(self, i2c_bus: Any) -> None:
-        """
-        Inicjalizuje sterownik GY91.
-        Initializes the GY91 driver.
+        """PL: Zapisuje magistralę I2C przekazaną do mockowego sterownika.
 
-        Args:
-            i2c_bus (Any): Magistrala I2C. / I2C bus.
+        EN: Stores the I2C bus passed to the mock driver.
         """
         self.i2c: Any = i2c_bus
         logger.info(
@@ -35,12 +26,9 @@ class GY91:
         )
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Zwraca słownik z danymi sensora w ustandaryzowanym formacie.
-        Returns a dictionary with sensor data in a standardized format.
+        """PL: Zwraca symulowane dane IMU i barometru w ustandaryzowanym słowniku.
 
-        Returns:
-            dict[str, Any]: Słownik z danymi 10-DoF (ax, ay, az, gx, gy, gz, mx, my, mz, temp, pressure).
+        EN: Returns simulated IMU and barometer data in a standardized dictionary.
         """
         return {
             "ax": 9.8,
@@ -57,9 +45,9 @@ class GY91:
         }
 
     def calibrate(self) -> bool:
-        """
-        Mockowa kalibracja.
-        Mock calibration.
+        """PL: Zapisuje informację o mockowej kalibracji i zwraca sukces.
+
+        EN: Logs the mock calibration and returns success.
         """
         logger.info("GY91 (mock): Calibration successful.")
         return True

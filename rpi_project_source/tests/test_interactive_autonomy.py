@@ -1,9 +1,18 @@
+"""PL: Ręczny scenariusz integracyjny dla autonomicznej nawigacji RPI.
+
+EN: Manual integration scenario for RPI autonomous navigation.
+"""
+
 import os
 import sys
 import traceback
 
 
 def log(msg):
+    """PL: Wypisuje komunikat diagnostyczny i opróżnia bufor wyjścia.
+
+    EN: Print a diagnostic message and flush the output buffer.
+    """
     print(msg)
     sys.stdout.flush()
 
@@ -43,6 +52,10 @@ try:
     log("Imported NavigationManager")
 
     def test_interaction_loop():
+        """PL: Sprawdza obsługę polecenia GO_TO i telemetrii nawigacji.
+
+        EN: Verify GO_TO command handling and navigation telemetry.
+        """
         log(">>> Starting Interactive Autonomy Logic Test")
 
         # 1. Setup Config

@@ -1,6 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+PL: Filtruje wyniki detekcji YOLO, usuwa duplikaty i rysuje ramki.
+EN: Filters YOLO detections, removes duplicates, and draws bounding boxes.
 """
 import cv2
 import numpy as np
@@ -9,17 +11,8 @@ import numpy as np
 def non_max_suppression(
     boxes: np.ndarray, scores: np.ndarray, iou_thres: float = 0.45
 ) -> np.ndarray:
-    """
-    Wykonuje Non-Maximum Suppression (NMS) za pomocą cv2.dnn.NMSBoxes (C++).
-    Performs Non-Maximum Suppression (NMS) using cv2.dnn.NMSBoxes (C++ backend).
-
-    Args:
-        boxes: Tablica [N, 4] współrzędnych (x1, y1, x2, y2).
-        scores: Tablica [N] wyników pewności.
-        iou_thres: Próg IoU do odrzucania nakładających się pudełek.
-
-    Returns:
-        np.ndarray: Indeksy pudełek do zachowania.
+    """PL: Zwraca indeksy ramek pozostałych po tłumieniu nakładających się detekcji.
+    EN: Returns indices of boxes remaining after suppressing overlapping detections.
     """
     if len(boxes) == 0:
         return np.array([], dtype=int)
@@ -44,12 +37,14 @@ def non_max_suppression(
 
 
 class SimpleTracker:
-    """
-    Prosty tracker euklidesowy dla detekcji.
-    Simple Euclidean distance tracker for detections.
+    """PL: Przypisuje stabilne identyfikatory pobliskim detekcjom.
+    EN: Assigns stable identifiers to nearby detections.
     """
 
     def __init__(self, max_disappeared: int = 5, max_distance: int = 50):
+        """PL: Ustawia limity zniknięć i odległości dopasowania obiektów.
+        EN: Sets object disappearance and matching distance limits.
+        """
         self.next_object_id = 0
         self.objects = {}  # id -> center
         self.disappeared = {}  # id -> count
@@ -57,17 +52,26 @@ class SimpleTracker:
         self.max_distance = max_distance
 
     def register(self, center):
+        """PL: Rejestruje nowy obiekt i zwraca jego identyfikator.
+        EN: Registers a new object and returns its identifier.
+        """
         self.objects[self.next_object_id] = center
         self.disappeared[self.next_object_id] = 0
         self.next_object_id += 1
         return self.next_object_id - 1
 
     def deregister(self, object_id):
+        """PL: Usuwa obiekt i jego licznik zniknięć z trackera.
+        EN: Removes an object and its disappearance counter from the tracker.
+        """
         if object_id in self.objects:
             del self.objects[object_id]
             del self.disappeared[object_id]
 
     def update(self, detections: list[dict]) -> list[dict]:
+        """PL: Dopasowuje detekcje do obiektów i aktualizuje ich identyfikatory.
+        EN: Matches detections to objects and updates their identifiers.
+        """
         if not detections:
             for object_id in list(self.disappeared.keys()):
                 self.disappeared[object_id] += 1
@@ -138,9 +142,8 @@ def postprocess_yolo(
     max_dets: int = 50,
     tracker_params: dict | None = None,
 ) -> list[dict]:
-    """
-    raw_output: [1, num_anchors, 4 + 1 + num_classes] lub [1, num_anchors, 4 + num_classes]
-    Zakładamy standard YOLOv8/v11: xywh + obj_conf + class_probs
+    """PL: Filtruje surowe wyjście YOLO i zwraca posortowane detekcje.
+    EN: Filters raw YOLO output and returns sorted detections.
     """
     # Support for dictionary input (if passed directly from AIManager result)
     if isinstance(raw_output, dict):
@@ -240,17 +243,8 @@ def postprocess_yolo(
 def draw_detections(
     frame: np.ndarray, detections: list[dict], thickness: int = 2
 ) -> np.ndarray:
-    """
-    Rysuje detekcje na kopii klatki obrazu.
-    Draws detections on a copy of the video frame.
-
-    Args:
-        frame: Obraz BGR (numpy array).
-        detections: Lista detekcji z postprocess_yolo.
-        thickness: Grubość linii.
-
-    Returns:
-        np.ndarray: Obraz z narysowanymi ramkami.
+    """PL: Rysuje ramki i etykiety detekcji na kopii obrazu.
+    EN: Draws detection boxes and labels on a copy of the image.
     """
     img = frame.copy()
 

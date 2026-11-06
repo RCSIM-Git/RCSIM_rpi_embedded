@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""PL: Testy inferencji AI i przygotowania wejścia w trybie Hailo/mock.
+
+EN: Tests for AI inference and input preprocessing in Hailo/mock modes.
+"""
+
 import logging
 import os
 import sys
@@ -15,7 +20,16 @@ from modules.ai_manager import AIManager
 
 
 class TestAIManagerHailo(unittest.TestCase):
+    """PL: Sprawdza integrację AIManager z interfejsem Hailo.
+
+    EN: Verify AIManager integration with the Hailo interface.
+    """
+
     def setUp(self):
+        """PL: Przygotowuje konfigurację i mockowy model AI.
+
+        EN: Prepare the configuration and mocked AI model.
+        """
         self.config = {
             "autonomous_navigation": {
                 "hef_path": "models/rcsimai.hef",
@@ -27,7 +41,10 @@ class TestAIManagerHailo(unittest.TestCase):
         self.ai = AIManager(self.logger, self.config)
 
     def test_raw_inference_mock(self):
-        """Testuje czy infer() zwraca poprawny słownik z surowym tensorem."""
+        """PL: Sprawdza strukturę wyniku surowej inferencji mockowej.
+
+        EN: Verify the result structure of mocked raw inference.
+        """
         mock_frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
 
         result = self.ai.infer(mock_frame)
@@ -52,7 +69,10 @@ class TestAIManagerHailo(unittest.TestCase):
             print("Successfully verified Mock Raw Inference")
 
     def test_preprocess(self):
-        """Testuje czy obraz jest poprawnie przygotowany do wejścia."""
+        """PL: Sprawdza przygotowanie obrazu do wejściowych strumieni Hailo.
+
+        EN: Verify image preprocessing for Hailo input streams.
+        """
         mock_frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
 
         # We need to ensure we have input vstream info mock or real

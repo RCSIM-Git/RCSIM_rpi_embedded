@@ -1,4 +1,7 @@
-"""
+"""PL: Ładuje, przechowuje i zapisuje konfigurację aplikacji w formacie JSON.
+
+EN: Loads, stores, and saves the application configuration in JSON format.
+
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 """
@@ -9,12 +12,22 @@ from typing import Any
 
 
 class ConfigManager:
-    """
-    Manages configuration loading, validation, and hot-reloading.
-    Zarządza ładowaniem, walidacją i dynamicznym odświeżaniem konfiguracji.
+    """PL: Zarządza wczytywaniem, kontrolą i odświeżaniem konfiguracji.
+
+    EN: Manages configuration loading, validation, and hot reloading.
     """
 
     def __init__(self, config_path: str):
+        """PL: Inicjalizuje manager dla wskazanego pliku i od razu go wczytuje.
+
+        Args:
+            config_path: Ścieżka do pliku JSON z konfiguracją.
+
+        EN: Initializes the manager for the given file and loads it immediately.
+
+        Args:
+            config_path: Path to the JSON configuration file.
+        """
         self.config_path = config_path
         self.last_mtime = 0.0
         self.config: dict[str, Any] = {}
@@ -24,9 +37,15 @@ class ConfigManager:
         self.load_config()
 
     def load_config(self) -> dict[str, Any]:
-        """
-        Loads the configuration from the file.
-        Ładuje konfigurację z pliku.
+        """PL: Wczytuje konfigurację i zachowuje poprzednią przy błędzie odczytu.
+
+        Returns:
+            Wczytany słownik albo bieżąca konfiguracja, jeśli wystąpi błąd.
+
+        EN: Loads the configuration and preserves the previous one on read errors.
+
+        Returns:
+            The loaded dictionary, or the current configuration if loading fails.
         """
         try:
             if not os.path.exists(self.config_path):
@@ -55,11 +74,15 @@ class ConfigManager:
             return self.config
 
     def check_for_updates(self) -> dict[str, Any] | None:
-        """
-        Checks if the configuration file has been modified.
-        Returns new config if changed, None otherwise.
-        Sprawdza, czy plik konfiguracyjny został zmodyfikowany.
-        Zwraca nową konfigurację jeśli nastąpiła zmiana, w przeciwnym razie None.
+        """PL: Sprawdza czas modyfikacji pliku i wczytuje zmiany, jeśli istnieją.
+
+        Returns:
+            Nową konfigurację po zmianie pliku albo ``None`` bez zmian.
+
+        EN: Checks the file modification time and reloads it when it has changed.
+
+        Returns:
+            The reloaded configuration when changed, or ``None`` otherwise.
         """
         try:
             if not os.path.exists(self.config_path):
@@ -76,16 +99,36 @@ class ConfigManager:
             return None
 
     def get(self, key: str, default: Any = None) -> Any:
-        """
-        Safe getter for config values.
-        Bezpieczny getter dla wartości konfiguracyjnych.
+        """PL: Zwraca wartość konfiguracji albo podaną wartość domyślną.
+
+        Args:
+            key: Klucz szukanej wartości.
+            default: Wartość zwracana, gdy klucz nie istnieje.
+
+        EN: Returns a configuration value or the provided default.
+
+        Args:
+            key: Key of the requested value.
+            default: Value to return when the key is absent.
         """
         return self.config.get(key, default)
 
     def save_config(self, new_config: dict[str, Any]) -> bool:
-        """
-        Saves the configuration to the file.
-        Zapisuje konfigurację do pliku.
+        """PL: Zapisuje konfigurację atomowo i aktualizuje stan managera.
+
+        Args:
+            new_config: Słownik konfiguracji do zapisania.
+
+        Returns:
+            ``True`` po udanym zapisie, w przeciwnym razie ``False``.
+
+        EN: Atomically saves the configuration and updates the manager state.
+
+        Args:
+            new_config: Configuration dictionary to write.
+
+        Returns:
+            ``True`` if saving succeeds, otherwise ``False``.
         """
         try:
             # Atomic write pattern

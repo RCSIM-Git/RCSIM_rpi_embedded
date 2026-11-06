@@ -1,6 +1,10 @@
 """
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+PL: Wykrywa sensory I2C, inicjalizuje sterowniki i ujednolica ich dane.
+
+EN: Detects I2C sensors, initializes drivers, and standardizes their data.
 """
 
 """
@@ -30,19 +34,16 @@ SensorDriver = Union[
 
 
 class IMUGroup:
-    """
-    A container for detected sensor drivers that provides standardized output.
-    This class acts as a unified interface to a collection of heterogeneous
-    sensors, normalizing their outputs into a single, consistent dictionary
-    format.
+    """PL: Łączy dostępne sterowniki IMU, barometru i magnetometru.
 
-    Kontener na wykryte sterowniki sensorów, który dostarcza ustandaryzowany
-    format wyjściowy. Klasa ta działa jak zunifikowany interfejs do kolekcji
-    różnorodnych sensorów, normalizując ich dane wyjściowe do jednego,
-    spójnego formatu słownika.
+    EN: Combines available IMU, barometer, and magnetometer drivers.
     """
 
     def __init__(self) -> None:
+        """PL: Inicjalizuje puste przypisania sensorów i zerowy bias żyroskopu.
+
+        EN: Initializes empty sensor references and zero gyroscope bias.
+        """
         self.imu: Union[NativeMPU6050, NativeMPU9250] | None = None
         self.barometer: Union[NativeBMP180, NativeBMP280] | None = None
         self.magnetometer: NativeQMC5883L | None = None
@@ -52,24 +53,19 @@ class IMUGroup:
         self.gyro_bias: dict[str, float] = {"gx": 0.0, "gy": 0.0, "gz": 0.0}
 
     def read_all(self) -> dict[str, float | None]:
-        """
-        Reads data from all detected sensors, converts it to standard SI units,
-        and returns it in a unified dictionary format.
+        """PL: Odczytuje sensory i scala pomiary w ujednoliconym słowniku SI.
 
-        Odczytuje dane ze wszystkich wykrytych sensorów, konwertuje je na
-        standardowe jednostki SI i zwraca w zunifikowanym formacie słownika.
-
-        -   **Acceleration:** g's -> m/s^2
-        -   **Gyroscope:** degrees/s -> rad/s (with bias correction)
-        -   **Pressure:** Pascals -> hectopascals (hPa)
-        -   **Altitude:** Calculated from pressure using the international
-            barometric formula.
+        Przelicza przyspieszenie, żyroskop, ciśnienie i wysokość.
 
         Returns:
-            dict[str, float | None]: A dictionary containing all available
-                                        sensor data. Keys are standardized
-                                        (ax, ay, az, gx, gy, gz, mx, my, mz,
-                                        temp, pressure, altitude).
+            Słownik dostępnych pomiarów z ustandaryzowanymi nazwami pól.
+
+        EN: Reads the sensors and merges their measurements into a standard SI dictionary.
+
+        Converts acceleration, gyroscope readings, pressure, and altitude.
+
+        Returns:
+            A dictionary of available readings with standardized field names.
         """
         data: dict[str, float | None] = {}
 
@@ -117,17 +113,15 @@ class IMUGroup:
         return data
 
     def calibrate_gyro(self, samples: int = 200) -> None:
-        """
-        Calculates the gyroscope's stationary bias by averaging a number of
-        samples. This should be performed once while the sensor is completely
-        still.
-
-        Oblicza stacjonarny bias żyroskopu poprzez uśrednienie pewnej liczby
-        próbek. Powinno to być wykonane jednorazowo, gdy czujnik jest
-        całkowicie nieruchomy.
+        """PL: Oblicza bias żyroskopu przez uśrednienie próbek nieruchomego IMU.
 
         Args:
-            samples (int): The number of samples to average. Defaults to 200.
+            samples: Liczba próbek do uśrednienia, domyślnie 200.
+
+        EN: Calculates gyroscope bias by averaging samples from a stationary IMU.
+
+        Args:
+            samples: Number of samples to average, defaulting to 200.
         """
         if not self.imu:
             logging.warning("Gyro calibration skipped: No IMU detected.")
@@ -155,27 +149,30 @@ class IMUGroup:
 
 
 class SensorManager:
-    """
-    Detects, initializes, and manages all supported I2C sensors.
-    Wykrywa, inicjalizuje i zarządza wszystkimi wspieranymi sensorami I2C.
+    """PL: Wykrywa i inicjalizuje obsługiwane sensory na magistrali I2C.
+
+    EN: Detects and initializes supported sensors on the I2C bus.
     """
 
     def __init__(self, i2c_wrapper: I2CWrapper):
+        """PL: Przygotowuje managera do skanowania wskazanej magistrali I2C.
+
+        EN: Prepares the manager to scan the specified I2C bus.
+        """
         self.i2c = i2c_wrapper
         self.imu_group = IMUGroup()
         self.logger = logging.getLogger(__name__)
 
     def detect_and_initialize(self) -> IMUGroup:
-        """
-        Scans the I2C bus for known device addresses and attempts to initialize
-        a driver for each detected sensor.
-
-        Skanuje magistralę I2C w poszukiwaniu znanych adresów urządzeń i
-        próbuje zainicjalizować sterownik dla każdego wykrytego sensora.
+        """PL: Wykrywa obsługiwane układy i inicjalizuje ich sterowniki.
 
         Returns:
-            IMUGroup: An `IMUGroup` instance containing all successfully
-                      initialized drivers.
+            Grupę sensorów ze sterownikami, których inicjalizacja się powiodła.
+
+        EN: Detects supported chips and initializes their drivers.
+
+        Returns:
+            A sensor group containing successfully initialized drivers.
         """
         devices = self._scan_bus()
         self.logger.info(f"Detected I2C addresses: {[hex(d) for d in devices]}")
@@ -229,15 +226,15 @@ class SensorManager:
         return self.imu_group
 
     def _scan_bus(self) -> list[int]:
-        """
-        Scans the I2C bus for connected devices. A device is considered
-        present if it acknowledges its address.
-
-        Skanuje magistralę I2C w poszukiwaniu podłączonych urządzeń.
-        Urządzenie jest uważane za obecne, jeśli potwierdzi swój adres.
+        """PL: Skanuje zakres adresów I2C i zbiera adresy odpowiadających urządzeń.
 
         Returns:
-            list[int]: A list of detected I2C addresses.
+            Listę wykrytych adresów urządzeń.
+
+        EN: Scans the I2C address range and collects addresses that acknowledge.
+
+        Returns:
+            A list of detected device addresses.
         """
         devices: list[int] = []
         # Standard I2C address range

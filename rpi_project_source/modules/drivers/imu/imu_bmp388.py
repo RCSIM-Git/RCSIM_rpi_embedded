@@ -1,11 +1,6 @@
-"""
-Mockowy sterownik dla sensora ciśnienia/temperatury BMP388.
-Mock driver for the BMP388 pressure/temperature sensor.
+"""PL: Udostępnia mockowe odczyty ciśnienia i temperatury BMP388.
 
-Ten moduł dostarcza symulowane dane dla sensora BMP388, używane do testów
-altimetru i termometru.
-This module provides simulated data for the BMP388 sensor, used for testing
-the altimeter and thermometer.
+EN: Provides mock pressure and temperature readings for the BMP388.
 """
 
 import logging
@@ -15,18 +10,15 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class BMP388:
-    """
-    Mockowy sterownik dla sensora BMP388.
-    Mock driver for the BMP388 sensor.
+    """PL: Zwraca symulowane pomiary sensora BMP388.
+
+    EN: Returns simulated BMP388 sensor measurements.
     """
 
     def __init__(self, i2c_bus: Any) -> None:
-        """
-        Inicjalizuje mockowy sterownik BMP388.
-        Initializes the BMP388 mock driver.
+        """PL: Zapisuje magistralę I2C przekazaną do mockowego sterownika.
 
-        Args:
-            i2c_bus (Any): Magistrala I2C. / I2C bus.
+        EN: Stores the I2C bus passed to the mock driver.
         """
         self.i2c: Any = i2c_bus
         logger.info(
@@ -34,20 +26,16 @@ class BMP388:
         )
 
     def read_data(self) -> dict[str, float]:
-        """
-        Zwraca słownik z symulowanymi danymi ciśnienia i temperatury.
-        Returns a dictionary with simulated pressure and temperature data.
+        """PL: Zwraca symulowaną temperaturę, ciśnienie i wysokość.
 
-        Returns:
-            dict[str, float]: Słownik zawierający temperaturę, ciśnienie i wysokość.
-                              / Dictionary containing temperature, pressure, and altitude.
+        EN: Returns simulated temperature, pressure, and altitude.
         """
         return {"temperature": 25.5, "pressure": 1013.5, "altitude": 120.5}
 
     def calibrate(self) -> bool:
-        """
-        Mockowa kalibracja.
-        Mock calibration.
+        """PL: Zapisuje informację o mockowej kalibracji i zwraca sukces.
+
+        EN: Logs the mock calibration and returns success.
         """
         logger.info("BMP388 (mock): Calibration successful.")
         return True

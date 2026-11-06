@@ -1,14 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Moduł menedżera nawigacji (Navigation Manager).
-Navigation Manager Module.
-
-Ten moduł zawiera logikę odpowiedzialną za autonomiczną nawigację pojazdu
-na podstawie danych GPS i IMU.
-This module contains the logic responsible for autonomous vehicle navigation
-based on GPS and IMU data.
+PL: Obsługuje autonomiczną nawigację, prowadzenie ścieżki i powrót do domu.
+EN: Handles autonomous navigation, path following, and return-to-home behavior.
 """
 
 import logging
@@ -22,29 +16,21 @@ from modules.planners.global_planner import GlobalPlanner
 
 
 class GPSPoint(NamedTuple):
-    """
-    Geographical point representing latitude and longitude.
-    Reprezentacja punktu geograficznego (szerokość i długość geograficzna).
+    """PL: Reprezentuje punkt geograficzny jako szerokość i długość.
+    EN: Represents a geographic point as latitude and longitude.
     """
     lat: float
     lon: float
 
 
 class NavigationManager:
-    """
-    Zarządza autonomiczną nawigacją, w tym logiką RTH, A* i sterowaniem PID.
-    Manages autonomous navigation, including RTH logic, A*, and PID control.
+    """PL: Zarządza nawigacją GPS, planowaniem trasy i sterowaniem.
+    EN: Manages GPS navigation, route planning, and steering control.
     """
 
     def __init__(self, kp: float = 1.0, ki: float = 0.0, kd: float = 0.1) -> None:
-        """
-        Inicjalizuje menedżera nawigacji.
-        Initializes the navigation manager.
-
-        Args:
-            kp (float): Współczynnik proporcjonalny regulatora PID. / Proportional gain for PID.
-            ki (float): Współczynnik całkujący regulatora PID. / Integral gain for PID.
-            kd (float): Współczynnik różniczkujący regulatora PID. / Derivative gain for PID.
+        """PL: Konfiguruje regulator PID, planowanie trasy i eksplorację.
+        EN: Configures the PID controller, route planner, and exploration.
         """
         self.kp: float = kp
         self.ki: float = ki
@@ -80,18 +66,8 @@ class NavigationManager:
         target_pos: GPSPoint,
         dt: float,
     ) -> float:
-        """
-        Oblicza sterowanie za pomocą regulatora PID w celu osiągnięcia celu.
-        Calculates the steering value using a PID controller to reach a target.
-
-        Args:
-            current_pos (GPSPoint): Aktualna pozycja geograficzna. / Current geographical position.
-            current_heading (float): Aktualny kurs w stopniach. / Current heading in degrees.
-            target_pos (GPSPoint): Docelowa pozycja geograficzna. / Target geographical position.
-            dt (float): Czas od ostatniej aktualizacji w sekundach. / Time since last update in seconds.
-
-        Returns:
-            float: Wartość sterowania w zakresie [-1.0, 1.0]. / Steering value in the range [-1.0, 1.0].
+        """PL: Wyznacza skręt regulatorem PID na podstawie błędu kursu.
+        EN: Computes steering with a PID controller from the heading error.
         """
         target_bearing = calculate_bearing(
             current_pos.lat, current_pos.lon, target_pos.lat, target_pos.lon
@@ -133,22 +109,8 @@ class NavigationManager:
         current_heading: float,
         dt: float,
     ) -> tuple[float, float, bool]:
-        """
-        Aktualizuje logikę RTH (Return To Home).
-        Updates the RTH (Return To Home) logic.
-
-        Args:
-            is_rth_active (bool): Czy tryb RTH jest aktywny. / Whether RTH mode is active.
-            home_position (dict[str, float] | None): Słownik z pozycją 'lat' i 'lon' domu.
-                                                        Dictionary with 'lat' and 'lon' of the home position.
-            current_lat (float): Aktualna szerokość geograficzna. / Current latitude.
-            current_lon (float): Aktualna długość geograficzna. / Current longitude.
-            current_heading (float): Aktualny kurs w stopniach. / Current heading in degrees.
-            dt (float): Czas od ostatniej aktualizacji w sekundach. / Time since last update in seconds.
-
-        Returns:
-            tuple[float, float, bool]: Krotka (sterowanie, gaz, czy dotarł do domu).
-                                       Tuple (steering, throttle, has_reached_home).
+        """PL: Oblicza sterowanie i niski gaz do punktu domu w trybie RTH.
+        EN: Computes steering and low throttle toward home in RTH mode.
         """
         if not is_rth_active or not home_position:
             return 0.0, 0.0, False
@@ -176,9 +138,8 @@ class NavigationManager:
     def plan_global_path(
         self, grid: np.ndarray, start: tuple[float, float], goal: tuple[float, float]
     ) -> bool:
-        """
-        Planuje ścieżkę globalną (A*).
-        Plans a global path (A*).
+        """PL: Planuje trasę A* i zapisuje ją jako bieżącą ścieżkę.
+        EN: Plans an A* route and stores it as the current path.
         """
         path = self.global_planner.plan_path(grid, start, goal)
         if path:
@@ -190,9 +151,8 @@ class NavigationManager:
     def update_auto_explore(
         self, grid: np.ndarray, current_pose: tuple[float, float]
     ) -> bool:
-        """
-        Wyszukuje nowe granice za pomocą FrontierExplorer i aktualizuje
-        ścieżkę do najlepszego znalezionego punktu.
+        """PL: Wyszukuje granicę eksploracji i planuje do niej trasę.
+        EN: Finds an exploration frontier and plans a route to it.
         """
         current_time = time.time()
 
@@ -214,7 +174,9 @@ class NavigationManager:
         return True
 
     def update_config(self, config: dict[str, Any]) -> None:
-        """Aktualizuje parametry nawigacji z pliku konfiguracyjnego."""
+        """PL: Aktualizuje parametry prowadzenia ścieżki z konfiguracji.
+        EN: Updates path-following parameters from the configuration.
+        """
         if not config:
             return
         self.config = config
@@ -227,9 +189,8 @@ class NavigationManager:
         self.max_lookahead = pp_cfg.get("max_lookahead_m", 3.0)
 
     def clear_path(self):
-        """
-        Czyści aktualną ścieżkę.
-        Clears the current path.
+        """PL: Usuwa aktywną ścieżkę i resetuje indeks punktu trasy.
+        EN: Clears the active path and resets its waypoint index.
         """
         self.current_path = None
         self.current_waypoint_idx = 0
@@ -237,9 +198,8 @@ class NavigationManager:
     def get_next_waypoint(
         self, current_pose: tuple[float, float]
     ) -> tuple[float, float] | None:
-        """
-        Zwraca następny punkt nawigacyjny ("carrot") z aktualnej ścieżki.
-        Returns the next waypoint ("carrot") from the current path.
+        """PL: Zwraca kolejny punkt ścieżki i pomija osiągnięty cel.
+        EN: Returns the next path waypoint and advances past a reached target.
         """
         if not self.current_path or self.current_waypoint_idx >= len(self.current_path):
             return None
@@ -259,12 +219,8 @@ class NavigationManager:
     def get_lookahead_point(
         self, current_pose: tuple[float, float], current_speed: float
     ) -> tuple[float, float, float] | None:
-        """
-        Oblicza dynamiczny punkt lookahead ("carrot") na ścieżce. [PLAN-002]
-        Calculates dynamic lookahead point on path.
-
-        Returns:
-            tuple (x, y, L) lub None jeśli brak ścieżki.
+        """PL: Wybiera punkt prowadzący w odległości zależnej od prędkości.
+        EN: Selects a path lookahead point at a speed-dependent distance.
         """
         if not self.current_path or len(self.current_path) < 2:
             return None
@@ -299,9 +255,13 @@ class NavigationManager:
         return (best_point[0], best_point[1], L)
 
     def _calculate_bearing(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        """Helper for backwards compatibility in tests."""
+        """PL: Udostępnia obliczanie kursu dla zgodności ze starszym kodem.
+        EN: Exposes bearing calculation for compatibility with older code.
+        """
         return calculate_bearing(lat1, lon1, lat2, lon2)
 
     def _haversine_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        """Helper for backwards compatibility in tests."""
+        """PL: Udostępnia odległość Haversine dla zgodności ze starszym kodem.
+        EN: Exposes Haversine distance for compatibility with older code.
+        """
         return haversine_distance(lat1, lon1, lat2, lon2)

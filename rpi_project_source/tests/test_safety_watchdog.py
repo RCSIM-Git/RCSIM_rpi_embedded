@@ -1,3 +1,8 @@
+"""PL: Ręczny scenariusz sprawdzający watchdog nadzorcy bezpieczeństwa.
+
+EN: Manual scenario for checking the safety supervisor watchdog.
+"""
+
 import logging
 import os
 import sys
@@ -11,19 +16,40 @@ from core.safety_supervisor import SafetyState, SafetySupervisor
 
 # Mock HardwareManager
 class MockHardwareManager:
+    """PL: Minimalny mock wyjść sprzętowych do próby watchdogu.
+
+    EN: Minimal hardware-output mock for the watchdog scenario.
+    """
+
     def __init__(self):
+        """PL: Inicjalizuje mock z neutralnymi wartościami sterowania.
+
+        EN: Initialize the mock with neutral control values.
+        """
         self.throttle = 0.0
         self.steering = 0.0
 
     def set_throttle(self, val):
+        """PL: Zapisuje i wypisuje zadaną wartość gazu.
+
+        EN: Record and print the requested throttle value.
+        """
         print(f"[MOCK HW] set_throttle({val})")
         self.throttle = val
 
     def set_steering(self, val):
+        """PL: Zapisuje zadaną wartość skrętu.
+
+        EN: Record the requested steering value.
+        """
         self.steering = val
 
 
 def test_watchdog():
+    """PL: Sprawdza prawidłowy watchdog i reakcję po utracie odświeżania.
+
+    EN: Verify normal watchdog operation and response after feeding stops.
+    """
     logging.basicConfig(level=logging.INFO)
 
     mock_hw = MockHardwareManager()

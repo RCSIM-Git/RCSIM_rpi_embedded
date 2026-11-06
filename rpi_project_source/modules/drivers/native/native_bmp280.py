@@ -19,9 +19,9 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""
-Native BMP280 Barometric Pressure and Temperature Sensor Driver.
-Natywny sterownik czujnika ciśnienia i temperatury BMP280.
+"""PL: Natywny sterownik czujnika ciśnienia i temperatury BMP280.
+
+EN: Native driver for the BMP280 pressure and temperature sensor.
 """
 
 import logging
@@ -31,11 +31,9 @@ from .native_i2c import I2CWrapper
 
 
 class NativeBMP280:
-    """
-    A lightweight driver for the BMP280 barometer, implementing datasheet
-    calculations.
-    Lekki sterownik dla barometru BMP280, implementujący obliczenia z noty
-    katalogowej.
+    """PL: Odczytuje pomiary BMP280 i oblicza wartości według noty katalogowej.
+
+    EN: Reads BMP280 measurements and calculates values using the datasheet formulas.
     """
 
     _DEFAULT_ADDRESS = 0x77
@@ -48,6 +46,10 @@ class NativeBMP280:
     _CTRL_MEAS_SETUP = 0x27
 
     def __init__(self, i2c_wrapper: I2CWrapper, address: int = _DEFAULT_ADDRESS):
+        """PL: Sprawdza identyfikator układu i inicjalizuje pomiary oraz kalibrację.
+
+        EN: Checks the chip identifier and initializes measurements and calibration.
+        """
         self.i2c = i2c_wrapper
         self.address = address
         chip_id = self.i2c.read_byte_data(self.address, self._REG_ID)
@@ -67,9 +69,9 @@ class NativeBMP280:
         self.t_fine = 0.0
 
     def _load_calibration_data(self) -> None:
-        """
-        Loads calibration data from the sensor.
-        Ładuje dane kalibracyjne z czujnika.
+        """PL: Wczytuje współczynniki kalibracyjne BMP280 z magistrali I2C.
+
+        EN: Loads BMP280 calibration coefficients from the I2C bus.
         """
         calib_data = self.i2c.read_i2c_block_data(
             self.address, self._REG_CALIB_START, 24
@@ -81,12 +83,15 @@ class NativeBMP280:
         }
 
     def read_scaled(self) -> tuple[float, float]:
-        """
-        Reads scaled temperature and pressure.
-        Odczytuje przeskalowaną temperaturę i ciśnienie.
+        """PL: Zwraca skompensowaną temperaturę w °C i ciśnienie w paskalach.
 
         Returns:
-            tuple[float, float]: Temperature (deg C) and Pressure (Pa).
+            Krotkę zawierającą temperaturę i ciśnienie.
+
+        EN: Returns compensated temperature in °C and pressure in pascals.
+
+        Returns:
+            A tuple containing temperature and pressure.
         """
         data = self.i2c.read_i2c_block_data(self.address, self._REG_DATA_START, 6)
         raw_pressure = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
@@ -122,9 +127,9 @@ class NativeBMP280:
         return temp, pressure
 
     def read_data(self) -> dict[str, float]:
-        """
-        Returns data in a dictionary format for HardwareManager compatibility.
-        Zwraca dane w formacie słownika dla kompatybilności z HardwareManager.
+        """PL: Zwraca temperaturę i ciśnienie jako słownik zgodny z HardwareManager.
+
+        EN: Returns temperature and pressure in a HardwareManager-compatible dictionary.
         """
         temp, pressure = self.read_scaled()
         return {"temperature": temp, "pressure": pressure}

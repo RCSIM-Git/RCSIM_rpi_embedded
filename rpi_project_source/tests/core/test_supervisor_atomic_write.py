@@ -1,10 +1,11 @@
-# --- Supervisor Tests ---
+"""PL: Testuje atomowy zapis konfiguracji przez usługę supervisor.
+EN: Tests atomic configuration writes by the supervisor service.
+"""
 
 
 def test_supervisor_set_config_atomic_write(fs):
-    """
-    Tests if the Supervisor's _set_config method performs an atomic write
-    (write to .tmp file, then rename).
+    """PL: Sprawdza zapis do pliku tymczasowego i atomową podmianę konfiguracji.
+    EN: Checks writing to a temporary file and atomically replacing the configuration.
     """
     # Arrange
     from core.supervisor import SupervisorService
@@ -35,9 +36,8 @@ def test_supervisor_set_config_atomic_write(fs):
 
 
 def test_supervisor_set_config_io_error_during_write(fs):
-    """
-    Tests if the Supervisor correctly handles an I/O error during the
-    initial write to the .tmp file and cleans up the partial file.
+    """PL: Sprawdza obsługę błędu I/O i zachowanie oryginalnego pliku.
+    EN: Checks I/O error handling and preservation of the original file.
     """
     # Arrange
     from core.supervisor import SupervisorService

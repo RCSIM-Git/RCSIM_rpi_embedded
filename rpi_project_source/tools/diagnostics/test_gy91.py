@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-"""
-Skrypt testowy dla modułu GY-91 (MPU-9250/MPU-9255 + BMP280).
-Test script for GY-91 module (MPU-9250/MPU-9255 + BMP280).
+"""PL: Diagnostyczny odczyt i kalibracja modułu czujników GY-91.
 
-Weryfikuje poprawkę factory adjustments dla magnetometru.
-Verifies the factory adjustments fix for magnetometer.
+EN: Diagnostic readout and calibration for the GY-91 sensor module.
 """
 
 import os
@@ -19,6 +16,10 @@ from modules.drivers.native.native_i2c import I2CWrapper
 
 
 def main():
+    """PL: Inicjalizuje GY-91, wyświetla pomiary i uruchamia kalibrację.
+
+    EN: Initialize the GY-91, display measurements, and run calibration.
+    """
     print("=" * 60)
     print("Test GY-91 - Weryfikacja ulepszeń z GitHub ricardozago")
     print("=" * 60)

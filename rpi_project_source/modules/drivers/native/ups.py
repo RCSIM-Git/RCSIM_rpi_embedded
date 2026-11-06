@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""
-Moduł do obsługi zasilacza UPS (INA219) na Raspberry Pi.
-Dedykowany dla Waveshare UPS HAT (B) lub podobnych konstrukcji.
+"""PL: Odczytuje napięcie, prąd i moc zasilania przez INA219 na Raspberry Pi.
 
-Module for handling the UPS (INA219) on Raspberry Pi.
-Dedicated for Waveshare UPS HAT (B) or similar designs.
+Moduł jest przeznaczony dla Waveshare UPS HAT (B) i podobnych konstrukcji.
+
+EN: Reads supply voltage, current, and power through an INA219 on Raspberry Pi.
+
+The module is intended for the Waveshare UPS HAT (B) and similar designs.
 """
 
 import logging
@@ -22,10 +23,9 @@ except ImportError:
 
 
 class UPS:
-    """
-    Klasa do monitorowania zasilania za pomocą układu INA219.
+    """PL: Monitoruje parametry zasilania mierzone przez układ INA219.
 
-    Class for monitoring power using the INA219 chip.
+    EN: Monitors power measurements provided by the INA219 chip.
     """
 
     _REG_CONFIG = 0x00
@@ -46,17 +46,23 @@ class UPS:
         shunt_ohms: float = 0.1,
         max_expected_amps: float = 2.0,
     ) -> None:
-        """
-        Inicjalizuje moduł UPS z układem INA219.
-
-        Initializes the UPS module with the INA219 chip.
+        """PL: Konfiguruje wrapper I2C i kalibruje INA219.
 
         Args:
-            logger (logging.Logger): Logger do rejestrowania zdarzeń. / Logger for event logging.
-            i2c_wrapper (I2CWrapper): Wrapper magistrali I2C (dzielony). / Shared I2C bus wrapper.
-            address (int): Adres I2C układu INA219. / I2C address of the INA219 chip.
-            shunt_ohms (float): Wartość rezystora bocznikowego (shunt) w omach. / Value of the shunt resistor in ohms.
-            max_expected_amps (float): Maksymalny spodziewany prąd w amperach. / Maximum expected current in amperes.
+            logger: Logger do rejestrowania zdarzeń.
+            i2c_wrapper: Współdzielony wrapper magistrali I2C.
+            address: Adres I2C układu INA219.
+            shunt_ohms: Rezystancja bocznika w omach.
+            max_expected_amps: Maksymalny spodziewany prąd w amperach.
+
+        EN: Configures the I2C wrapper and calibrates the INA219.
+
+        Args:
+            logger: Logger for recording events.
+            i2c_wrapper: Shared I2C bus wrapper.
+            address: INA219 I2C address.
+            shunt_ohms: Shunt resistance in ohms.
+            max_expected_amps: Maximum expected current in amperes.
         """
         self.logger: logging.Logger = logger
         self.address: int = address
@@ -81,28 +87,25 @@ class UPS:
             self.i2c = None
 
     def _write_register(self, register: int, value: int) -> None:
-        """
-        Zapisuje 16-bitową wartość do rejestru.
+        """PL: Zapisuje 16-bitową wartość do rejestru INA219.
 
-        Writes a 16-bit value to a register.
+        EN: Writes a 16-bit value to an INA219 register.
         """
         data = [(value >> 8) & 0xFF, value & 0xFF]
         self.i2c.write_i2c_block_data(self.address, register, data)
 
     def _read_register(self, register: int) -> int:
-        """
-        Odczytuje 16-bitową wartość z rejestru.
+        """PL: Odczytuje 16-bitową wartość z rejestru INA219.
 
-        Reads a 16-bit value from a register.
+        EN: Reads a 16-bit value from an INA219 register.
         """
         data = self.i2c.read_i2c_block_data(self.address, register, 2)
         return (data[0] << 8) | data[1]
 
     def _calibrate(self) -> None:
-        """
-        Konfiguruje i kalibruje INA219.
+        """PL: Ustawia rejestry kalibracji i konfiguracji INA219.
 
-        Configures and calibrates the INA219.
+        EN: Sets the INA219 calibration and configuration registers.
         """
         # Określenie najmniej znaczącego bitu (LSB) dla prądu.
         # Determine the Current LSB (Least Significant Bit).
@@ -152,13 +155,15 @@ class UPS:
         )
 
     def read_data(self) -> dict[str, float]:
-        """
-        Odczytuje wszystkie dane z INA219 (napięcie, prąd, moc, procent baterii).
-        Reads all data from the INA219 (voltage, current, power, battery percent).
+        """PL: Odczytuje napięcie, prąd, moc i szacowany procent baterii.
 
         Returns:
-            dict[str, float]: Słownik z danymi (voltage [V], current [mA], power [W], percent [%]).
-                              A dictionary with data (voltage [V], current [mA], power [W], percent [%]).
+            Słownik: voltage w V, current w mA, power w W i percent w %.
+
+        EN: Reads voltage, current, power, and estimated battery percentage.
+
+        Returns:
+            Dictionary with voltage in V, current in mA, power in W, and percent.
         """
         data = {"voltage": 0.0, "current": 0.0, "power": 0.0, "percent": 0.0}
         if not self.i2c:
@@ -188,10 +193,9 @@ class UPS:
         return data
 
     def cleanup(self) -> None:
-        """
-        Zwalnia zasoby (nic do zrobienia, I2C jest współdzielone).
+        """PL: Udostępnia metodę cleanup; magistrala I2C jest współdzielona.
 
-        Releases resources (nothing to do, I2C is shared).
+        EN: Provides a cleanup method; the I2C bus is shared.
         """
 
 

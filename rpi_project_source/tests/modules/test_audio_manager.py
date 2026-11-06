@@ -1,3 +1,7 @@
+"""PL: Testuje kolejkę zdarzeń i detekcję głośnego dźwięku w AudioManager.
+EN: Tests event queuing and loud sound detection in AudioManager.
+"""
+
 import unittest
 from queue import Queue
 from unittest.mock import MagicMock, patch
@@ -7,7 +11,14 @@ from modules.audio_manager import AudioManager
 
 
 class TestAudioManager(unittest.TestCase):
+    """PL: Testy audio z atrapą biblioteki PyAudio.
+    EN: Audio tests using a PyAudio mock.
+    """
+
     def setUp(self):
+        """PL: Przygotowuje strumień audio i menedżera z progiem RMS.
+        EN: Prepares an audio stream and a manager with an RMS threshold.
+        """
         # Mock PyAudio before initializing AudioManager
         self.patcher = patch("pyaudio.PyAudio")
         self.mock_pyaudio = self.patcher.start()
@@ -19,18 +30,30 @@ class TestAudioManager(unittest.TestCase):
         self.manager = AudioManager(threshold_rms=500)
 
     def tearDown(self):
+        """PL: Zatrzymuje atrapę PyAudio po teście.
+        EN: Stops the PyAudio mock after the test.
+        """
         self.patcher.stop()
 
     def test_initialization(self):
+        """PL: Sprawdza stan, próg i kolejkę po inicjalizacji.
+        EN: Checks enabled state, threshold, and queue after initialization.
+        """
         self.assertTrue(self.manager.is_enabled)
         self.assertEqual(self.manager.threshold, 500)
         self.assertIsInstance(self.manager.event_queue, Queue)
 
     def test_get_latest_event_empty(self):
+        """PL: Sprawdza wynik odczytu pustej kolejki zdarzeń.
+        EN: Checks the result when reading an empty event queue.
+        """
         event = self.manager.get_latest_event()
         self.assertIsNone(event)
 
     def test_get_latest_event_with_data(self):
+        """PL: Sprawdza pobranie zdarzenia i usunięcie go z kolejki.
+        EN: Checks that an event is retrieved and removed from the queue.
+        """
         # Manually put an event into the queue
         test_event = {"type": "LOUD_NOISE", "rms": 600.0, "timestamp": 123.456}
         self.manager.event_queue.put(test_event)
@@ -42,6 +65,9 @@ class TestAudioManager(unittest.TestCase):
         self.assertIsNone(self.manager.get_latest_event())
 
     def test_rms_calculation_and_event_trigger(self):
+        """PL: Sprawdza, że próbka o RMS ponad progiem wywołuje zdarzenie.
+        EN: Checks that a sample above the RMS threshold triggers an event.
+        """
         # Create silent and loud audio buffers (paInt16)
         # CHUNK = 1024
         silent_data = np.zeros(1024, dtype=np.int16).tobytes()

@@ -1,12 +1,13 @@
-"""
+"""PL: Obsługuje wyjścia PWM układu PCA9685 w osobnym, taktowanym wątku.
+
+Wątek utrzymuje cykliczne wysyłanie sterowania niezależnie od obciążenia SLAM/AI.
+
+EN: Handles PCA9685 PWM outputs in a separate, periodically scheduled thread.
+
+The thread maintains regular control updates independently of SLAM/AI load.
+
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
-Wątek dedykowany do obsługi wyjść PWM (PCA9685).
-Dedicated thread for handling PWM outputs (PCA9685).
-
-Zapewnia stabilne taktowanie sygnału wyjściowego niezależnie od obciążeń SLAM/AI.
-Ensures stable output timing regardless of SLAM/AI load.
 """
 
 import logging
@@ -14,22 +15,23 @@ import threading
 import time
 from typing import Dict
 class ActuatorWorker(threading.Thread):
-    """
-    Wątek dedykowany do obsługi wyjść PWM (PCA9685).
-    Dedicated thread for handling PWM outputs (PCA9685).
+    """PL: Wątek wysyłający sterowanie do wyjść PWM układu PCA9685.
 
-    Zapewnia stabilne taktowanie sygnału wyjściowego niezależnie od obciążeń SLAM/AI.
-    Ensures stable output timing regardless of SLAM/AI load.
+    EN: Thread that sends control commands to the PCA9685 PWM outputs.
     """
 
     def __init__(self, hw_manager: "HardwareManager", freq: int = 50) -> None:
-        """
-        Inicjalizuje wątek roboczy układu wykonawczego.
-        Initializes the actuator worker thread.
+        """PL: Inicjalizuje wątek i bufor ostatnich poleceń sterujących.
 
         Args:
-            hw_manager (HardwareManager): Menadżer sprzętu. / Hardware manager.
-            freq (int): Częstotliwość sterowania (Hz). / Control frequency (Hz).
+            hw_manager: Menedżer sprzętu używany do zapisu wyjść.
+            freq: Częstotliwość wysyłania sterowania w hercach.
+
+        EN: Initializes the thread and the buffer for the latest control commands.
+
+        Args:
+            hw_manager: Hardware manager used to write the outputs.
+            freq: Control output frequency in hertz.
         """
         super().__init__(daemon=True)
         self.hw = hw_manager
@@ -47,15 +49,21 @@ class ActuatorWorker(threading.Thread):
     def set_commands(
         self, steering: float, throttle: float, extra: Dict[int, int], armed: bool
     ) -> None:
-        """
-        Zapisuje nowe komendy do bufora wątku.
-        Writes new commands to the thread buffer.
+        """PL: Zastępuje bufor najnowszymi poleceniami sterowania.
 
         Args:
-            steering (float): Skręt. / Steering.
-            throttle (float): Przepustnica. / Throttle.
-            extra (Dict[int, int]): Dodatkowe kanały. / Extra channels.
-            armed (bool): Czy system uzbrojony. / Is system armed.
+            steering: Wartość sterowania skrętem.
+            throttle: Wartość sterowania przepustnicą.
+            extra: Wartości dodatkowych kanałów PWM.
+            armed: Informacja, czy wolno wysyłać sterowanie.
+
+        EN: Replaces the buffer with the latest control commands.
+
+        Args:
+            steering: Steering control value.
+            throttle: Throttle control value.
+            extra: Values for additional PWM channels.
+            armed: Whether control output is enabled.
         """
         with self.lock:
             self.steering = steering
@@ -65,9 +73,14 @@ class ActuatorWorker(threading.Thread):
             self.last_update_time = time.time()
 
     def run(self) -> None:
-        """
-        Główna pętla wątku z precyzyjnym wymuszeniem taktowania.
-        Main thread loop with precise timing enforcement.
+        """PL: Wysyła uzbrojone sterowanie w pętli o zadanej częstotliwości.
+
+        Przy braku aktualizacji poleceń wysyła neutralne wartości dla
+        bezpieczeństwa.
+
+        EN: Sends armed control commands in a loop at the configured frequency.
+
+        If command updates become stale, sends neutral values for safety.
         """
         self.running = True
         logging.info(f"ActuatorWorker started at {1.0/self.interval} Hz")
@@ -109,8 +122,8 @@ class ActuatorWorker(threading.Thread):
                 time.sleep(0.02)
 
     def stop(self) -> None:
-        """
-        Zatrzymuje wątek.
-        Stops the thread.
+        """PL: Ustawia flagę kończącą pętlę roboczą wątku.
+
+        EN: Sets the flag that terminates the worker thread loop.
         """
         self.running = False

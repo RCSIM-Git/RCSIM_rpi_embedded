@@ -1,2 +1,5 @@
 # -*- coding: utf-8 -*-
-# RCSIM RPi Core Package
+"""PL: Pakiet podstawowych usług aplikacji RCSIM dla Raspberry Pi.
+
+EN: Package containing core services for the RCSIM Raspberry Pi application.
+"""

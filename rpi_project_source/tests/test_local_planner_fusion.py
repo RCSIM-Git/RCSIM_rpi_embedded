@@ -1,3 +1,8 @@
+"""PL: Testy fuzji danych przeszkód i lokalnych strategii planowania.
+
+EN: Tests for obstacle-data fusion and local planning strategies.
+"""
+
 import logging
 import os
 import sys
@@ -15,11 +20,24 @@ logging.basicConfig(level=logging.INFO)
 
 
 class TestLocalPlannerFusion(unittest.TestCase):
+    """PL: Sprawdza mapę kosztów i reaktywne planowanie lokalne.
+
+    EN: Verify the cost map and reactive local planning.
+    """
+
     def setUp(self):
+        """PL: Tworzy planner i parametry kamery dla testów.
+
+        EN: Create the planner and camera parameters for tests.
+        """
         self.planner = LocalPlanner(grid_size=200, resolution=0.05)
         self.camera_extrinsics = {"x": 0.1, "y": 0.0, "z": 0.15, "pitch": 0.0}
 
     def test_lidar_update(self):
+        """PL: Sprawdza nanoszenie przeszkody z pomiaru LiDAR.
+
+        EN: Verify that a LiDAR measurement marks an obstacle.
+        """
         pose = (0.0, 0.0, 0.0)
         lidar_points = [(0.0, 1000.0)]
         self.planner.update_occupancy_from_lidar_and_yolo(pose, lidar_points)
@@ -28,6 +46,10 @@ class TestLocalPlannerFusion(unittest.TestCase):
         self.assertGreaterEqual(val, self.planner.OBSTACLE_COST)
 
     def test_yolo_update(self):
+        """PL: Sprawdza rzutowanie detekcji YOLO na mapę kosztów.
+
+        EN: Verify projection of a YOLO detection onto the cost map.
+        """
         pose = (0.0, 0.0, 0.0)
         lidar_points = []
         detections = [
@@ -49,6 +71,10 @@ class TestLocalPlannerFusion(unittest.TestCase):
         self.assertTrue(found, "YOLO detection not projected correctly on costmap")
 
     def test_fusion_inflate(self):
+        """PL: Sprawdza powiększanie obszaru przeszkody w mapie.
+
+        EN: Verify obstacle inflation in the map.
+        """
         pose = (0.0, 0.0, 0.0)
         lidar_points = [(0.0, 2000.0)]
         self.planner.update_occupancy_from_lidar_and_yolo(pose, lidar_points)
@@ -59,6 +85,10 @@ class TestLocalPlannerFusion(unittest.TestCase):
         )
 
     def test_reactive_planning(self):
+        """PL: Sprawdza dobór sterowania reaktywnego przy przeszkodach.
+
+        EN: Verify reactive control selection around obstacles.
+        """
         # 1. No obstacles -> Go straight (0 steering)
         self.planner.clear_map()
         steering, throttle, safety = self.planner.plan_reactive()
@@ -106,11 +136,24 @@ class TestLocalPlannerFusion(unittest.TestCase):
 
 
 class TestPurePursuitIntegration(unittest.TestCase):
+    """PL: Sprawdza sterowanie Pure Pursuit i reakcję na przeszkody.
+
+    EN: Verify Pure Pursuit control and obstacle response.
+    """
+
     def setUp(self) -> None:
+        """PL: Przygotowuje planner i pozycję początkową pojazdu.
+
+        EN: Prepare the planner and the vehicle's initial pose.
+        """
         self.planner = LocalPlanner()
         self.pose = (0.0, 0.0, 0.0)
 
     def test_straight_path_returns_forward_controls(self) -> None:
+        """PL: Sprawdza sterowanie jazdą do przodu po prostej.
+
+        EN: Verify forward controls for a straight target path.
+        """
         steering, throttle, safety = self.planner.plan_pure_pursuit(
             self.pose, (2.0, 0.0, 0.8)
         )
@@ -119,6 +162,10 @@ class TestPurePursuitIntegration(unittest.TestCase):
         self.assertAlmostEqual(safety, 1.0)
 
     def test_mirrored_targets_return_opposite_bounded_turns(self) -> None:
+        """PL: Sprawdza symetryczne i ograniczone skręty dla celów lustrzanych.
+
+        EN: Verify bounded, mirrored turns for symmetric target points.
+        """
         left = self.planner.plan_pure_pursuit(self.pose, (2.0, 1.0, 0.8))
         right = self.planner.plan_pure_pursuit(self.pose, (2.0, -1.0, 0.8))
         self.assertGreater(left[0], 0.0)
@@ -133,6 +180,10 @@ class TestPurePursuitIntegration(unittest.TestCase):
             self.assertEqual(safety, 1.0)
 
     def test_nearby_lidar_obstacle_stops_throttle(self) -> None:
+        """PL: Sprawdza zatrzymanie przepustnicy przed bliską przeszkodą.
+
+        EN: Verify throttle is stopped before a nearby obstacle.
+        """
         self.planner.update_occupancy(self.pose, [(0.0, 200.0)])
         self.assertLess(
             self.planner.cm.get_closest_obstacle_dist(self.pose),

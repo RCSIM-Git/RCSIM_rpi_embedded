@@ -1,6 +1,5 @@
-"""
-Sensor Aggregator - Menedżer Odczytów (RPi).
-Zbiera, chłonie błędy i filtruje surowe dane ze wszystkich szyn I2C, SPI oraz UART przed ich wejściem do systemu.
+"""PL: Zbiera, normalizuje i udostępnia dane czujników Raspberry Pi.
+EN: Collects, normalizes, and provides Raspberry Pi sensor data.
 """
 
 import logging
@@ -18,12 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 class SensorAggregator:
-    """
-    Sub-moduł (SRP) przejęty z dawnego `HardwareManager`.
-    Agreguje stan modułów pobocznych takich jak GPS, Lidar, IMU, UPS chłonąc wszelkie ich wyjątki I2C (m.in. EAGAIN).
+    """PL: Inicjalizuje czujniki i scala ich odczyty oraz obsługę błędów.
+    EN: Initializes sensors and combines their readings and error handling.
     """
 
     def __init__(self, hardware_config: dict[str, Any], i2c_bus: Any):
+        """PL: Konfiguruje i uruchamia dostępne urządzenia pomiarowe.
+        EN: Configures and starts the available sensor devices.
+        """
         self.config = hardware_config
         self.i2c = i2c_bus
         self.imu: IMUBase | None = None
@@ -42,6 +43,9 @@ class SensorAggregator:
         self._init_ups()
 
     def _init_imu(self) -> None:
+        """PL: Wykrywa lub wybiera skonfigurowany sterownik IMU i kalibruje go.
+        EN: Detects or selects the configured IMU driver and calibrates it.
+        """
         if not self.i2c:
             return
 
@@ -79,6 +83,9 @@ class SensorAggregator:
                 logger.warning("Startup IMU calibration failed.")
 
     def _init_gps(self) -> None:
+        """PL: Tworzy i uruchamia odbiornik GPS, jeśli jest włączony.
+        EN: Creates and starts the GPS receiver when it is enabled.
+        """
         gps_config = self.config.get("gps", {})
         ntrip_config = self.config.get("ntrip", {})
         if not gps_config.get("enabled", False):
@@ -98,6 +105,9 @@ class SensorAggregator:
             logger.error(f"Failed to initialize GPS: {e}")
 
     def _init_lidar(self) -> None:
+        """PL: Tworzy i uruchamia LiDAR LD08, jeśli jest włączony.
+        EN: Creates and starts the LD08 LiDAR when it is enabled.
+        """
         lidar_config = self.config.get("lidar", {})
         if not lidar_config.get("enabled", False):
             logger.info("LiDAR is disabled in the configuration.")
@@ -114,6 +124,9 @@ class SensorAggregator:
             logger.error(f"Failed to initialize LiDAR: {e}")
 
     def _init_ups(self) -> None:
+        """PL: Inicjalizuje monitor zasilania UPS na magistrali I2C.
+        EN: Initializes the UPS power monitor on the I2C bus.
+        """
         try:
             from modules.drivers.native.ups import UPS
 
@@ -128,7 +141,9 @@ class SensorAggregator:
             self.ups = None
 
     def read_sensors(self) -> dict[str, Any]:
-        """Agregacja i pollowanie słownika statusowego ze wszystkich instrumentów."""
+        """PL: Odczytuje i scala aktualne dane IMU, GPS, LiDAR i UPS.
+        EN: Reads and combines current IMU, GPS, LiDAR, and UPS data.
+        """
         sensor_data: dict[str, Any] = {
             "imu": None,
             "gps": None,
@@ -211,7 +226,9 @@ class SensorAggregator:
         return sensor_data
 
     def _normalize_imu(self, readings: dict[str, Any]) -> dict[str, Any] | None:
-        """Normalize measured samples; a failed read never becomes a fake 1 g sample."""
+        """PL: Waliduje próbkę IMU, przelicza jednostki i dodaje metadane.
+        EN: Validates an IMU sample, converts units, and adds metadata.
+        """
         driver = getattr(self.imu, "DRIVER_NAME", "")
         units = {
             "native_mpu6050": ("g", "deg/s"),
@@ -257,9 +274,8 @@ class SensorAggregator:
         return data
 
     def _apply_imu_calibration(self, imu_data: dict[str, Any]) -> None:
-        """
-        Aplikuje pokładowo parametry kalibracji IMU (zsynchronizowane z GCS i zapisane w config.json).
-        Applies onboard IMU calibration parameters (synced from GCS and saved in config.json).
+        """PL: Stosuje zapisane przesunięcia i skale kalibracji IMU.
+        EN: Applies the stored IMU calibration offsets and scales.
         """
         calib = self.config.get("imu_calibration", {})
         if not calib:
@@ -305,11 +321,8 @@ class SensorAggregator:
         imu_data["calibrated"] = True
 
     def _update_imu_orientation(self, imu_data: dict[str, Any]) -> None:
-        """
-        Oblicza szacowaną orientację (pitch, roll)
-        przy użyciu szybkiego filtra komplementarnego.
-        Calculates estimated orientation (pitch, roll)
-        using a fast complementary filter.
+        """PL: Szacuje kąty pochylenia i przechyłu filtrem komplementarnym.
+        EN: Estimates pitch and roll angles with a complementary filter.
         """
         import math
         import time
@@ -368,19 +381,22 @@ class SensorAggregator:
         imu_data["roll"] = self._roll_est
 
     def calibrate_imu(self) -> bool:
-        """Przekazanie instrukcji włączenia re-kalibracji żyroskopu na osi poziomej."""
+        """PL: Uruchamia ponowną kalibrację IMU, jeśli czujnik jest dostępny.
+        EN: Starts IMU recalibration when the sensor is available.
+        """
         if self.imu:
             return self.imu.calibrate()
         return False
 
     def notify_throttle_change(self, throttle: float) -> None:
-        """Logowanie gazu do wywołań wibracji sprzężnej dla IMU."""
+        """PL: Zapisuje ostatnią wartość gazu do kompensacji IMU.
+        EN: Stores the latest throttle value for IMU compensation.
+        """
         self.last_throttle = throttle
 
     def check_reconnect_needed(self) -> None:
-        """
-        Próbuje przywrócić połączenie z brakującymi sensorami (Hot-plug support).
-        Attempts to reconnect missing sensors.
+        """PL: Okresowo ponawia inicjalizację niedostępnych czujników.
+        EN: Periodically retries initialization of unavailable sensors.
         """
         import time
 
@@ -415,7 +431,9 @@ class SensorAggregator:
             self._init_ups()
 
     def cleanup(self) -> None:
-        """Pętla dezaktywująca UARTY i porty COM"""
+        """PL: Zatrzymuje urządzenia GPS i LiDAR przed zamknięciem.
+        EN: Stops the GPS and LiDAR devices during shutdown.
+        """
         if self.gps:
             self.gps.stop()
         if self.lidar:

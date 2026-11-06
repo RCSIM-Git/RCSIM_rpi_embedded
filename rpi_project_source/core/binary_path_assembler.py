@@ -1,6 +1,6 @@
-"""
-Moduł składania binarnych pakietów ścieżki (PT - Path Transmission) na RPi.
-Reassembles binary path packets (PT) into waypoint lists.
+"""PL: Składa binarne pakiety ścieżki (PT) odbierane przez RPi.
+
+EN: Reassembles binary path packets (PT) received by the RPi.
 """
 
 import logging
@@ -10,22 +10,32 @@ from typing import Any
 
 
 class BinaryPathAssembler:
-    """
-    Składa fragmenty ścieżki przesyłane binarnie z GCS.
-    Assembles path fragments sent in binary format from GCS.
+    """PL: Buforuje i składa fragmenty ścieżki przesyłane binarnie z GCS.
+
+    EN: Buffers and reassembles path fragments sent in binary format from the GCS.
     """
 
     def __init__(self):
+        """PL: Inicjalizuje bufory transmisji i znacznik czyszczenia.
+
+        EN: Initializes transmission buffers and the cleanup timestamp.
+        """
         self.logger = logging.getLogger("BinaryPathAssembler")
         self._buffers: dict[int, dict] = {}
         self._last_cleanup = time.time()
 
     def add_chunk(self, data: bytes) -> list[dict[str, Any]] | None:
-        """
-        Dodaje fragment PT i zwraca kompletną ścieżkę jeśli zmontowana.
-        Format (10B Header): PT + ID(2) + Index(2) + Total(2) + Len(2)
-        Data: [lat:f32, lon:f32, alt:f32, type:u8] * N
-        Trailer (1B): CRC
+        """PL: Dodaje fragment PT i zwraca ścieżkę po zebraniu wszystkich części.
+
+        Nagłówek ma 10 bajtów: PT, ID, indeks, liczba fragmentów i długość danych.
+        Dane zawierają rekordy waypointów ``lat:f32, lon:f32, alt:f32, type:u8``;
+        ostatni bajt ramki zawiera CRC XOR.
+
+        EN: Adds a PT fragment and returns the path after all parts are received.
+
+        The 10-byte header contains PT, ID, chunk index, chunk count, and payload
+        length. Payload records contain ``lat:f32, lon:f32, alt:f32, type:u8``;
+        the final frame byte contains the XOR CRC.
         """
         if len(data) < 11 or not data.startswith(b"PT"):
             return None
@@ -87,7 +97,10 @@ class BinaryPathAssembler:
         return None
 
     def _parse_path_bytes(self, data: bytes) -> list[dict[str, Any]]:
-        """Konwertuje surowe bajty na listę waypointów (format MissionManager)."""
+        """PL: Dekoduje rekordy waypointów z surowych bajtów do formatu MissionManager.
+
+        EN: Decodes waypoint records from raw bytes into the MissionManager format.
+        """
         waypoints = []
         point_size = 13  # 3*f32(4B) + 1*u8(1B)
         num_points = len(data) // point_size
@@ -108,7 +121,10 @@ class BinaryPathAssembler:
         return waypoints
 
     def cleanup(self, timeout: float = 10.0):
-        """Usuwa niekompletne, przedawnione transmisje."""
+        """PL: Usuwa niekompletne transmisje starsze niż podany limit czasu.
+
+        EN: Removes incomplete transmissions older than the given timeout.
+        """
         now = time.time()
         expired = [
             mid for mid, b in self._buffers.items() if now - b["last_seen"] > timeout

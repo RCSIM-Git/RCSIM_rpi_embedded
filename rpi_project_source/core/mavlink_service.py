@@ -1,4 +1,7 @@
-"""
+"""PL: Obsługuje komunikację MAVLink, telemetrię, misje i sterowanie RC.
+
+EN: Handles MAVLink communication, telemetry, missions, and RC control.
+
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 """
@@ -19,9 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class MAVLinkService:
-    """
-    Zaawansowany serwis MAVLink dla RPi.
-    Obsługuje telemetrię, sterowanie RC_OVERRIDE oraz MISSION_PROTOCOL.
+    """PL: Odbiera polecenia GCS i przesyła telemetrię MAVLink z RPi.
+
+    EN: Receives GCS commands and transmits MAVLink telemetry from the RPi.
     """
 
     def __init__(
@@ -32,6 +35,10 @@ class MAVLinkService:
         on_mission_updated: Callable[[List[Any]], None] = None,
         on_arm_disarm: Callable[[bool], None] = None,
     ):
+        """PL: Konfiguruje połączenie MAVLink i callbacki zdarzeń.
+
+        EN: Configures the MAVLink connection and event callbacks.
+        """
         self.connection_str = connection_str
         self.system_id = system_id
         self.component_id = mavutil.mavlink.MAV_COMP_ID_AUTOPILOT1
@@ -62,7 +69,10 @@ class MAVLinkService:
         self._gcs_heartbeat_seen: bool = False
 
     def start(self):
-        """Uruchamia serwis MAVLink."""
+        """PL: Otwiera połączenie MAVLink i uruchamia pętlę obsługi wiadomości.
+
+        EN: Opens the MAVLink connection and starts the message loop.
+        """
         try:
             logger.info(f"Starting MAVLink Service on {self.connection_str}...")
 
@@ -90,6 +100,10 @@ class MAVLinkService:
             logger.error(f"❌ Failed to start MAVLink Service: {e}")
 
     def stop(self):
+        """PL: Zatrzymuje pętlę i zamyka połączenie MAVLink.
+
+        EN: Stops the loop and closes the MAVLink connection.
+        """
         self.running = False
         if self.thread:
             self.thread.join(timeout=1.0)
@@ -97,7 +111,10 @@ class MAVLinkService:
             self.master.close()
 
     def _update_loop(self):
-        """Pętla główna: Heartbeat i nasłuch wiadomości."""
+        """PL: Wysyła heartbeat, odbiera wiadomości i zapisuje diagnostykę.
+
+        EN: Sends heartbeats, receives messages, and logs diagnostics.
+        """
         last_heartbeat = 0
         while self.running:
             now = time.time()
@@ -149,7 +166,10 @@ class MAVLinkService:
             time.sleep(0.0 if received else 0.01)
 
     def _handle_message(self, msg):
-        """Obsługa przychodzących wiadomości MAVLink."""
+        """PL: Obsługuje heartbeat, kanały RC, transfer misji i komendy arm/disarm.
+
+        EN: Handles heartbeats, RC channels, mission transfer, and arm/disarm commands.
+        """
         msg_type = msg.get_type()
 
         if msg_type == "BAD_DATA":
@@ -268,6 +288,10 @@ class MAVLinkService:
             )
 
     def send_heartbeat(self):
+        """PL: Wysyła heartbeat pojazdu i deklaruje możliwości IMU.
+
+        EN: Sends the vehicle heartbeat and advertises IMU capabilities.
+        """
         if not self.master:
             return
         self.master.mav.heartbeat_send(
@@ -284,6 +308,10 @@ class MAVLinkService:
         self._send_imu_capability()
 
     def _send_imu_capability(self):
+        """PL: Okresowo wysyła stan kalibracji IMU w wiadomości NAMED_VALUE_INT.
+
+        EN: Periodically sends IMU calibration state in a NAMED_VALUE_INT message.
+        """
         # Version 1 companion IMU convention; bit 1 means onboard calibration.
         now = time.monotonic()
         value = 3 if getattr(self, "_imu_calibrated", False) else 1
@@ -294,7 +322,10 @@ class MAVLinkService:
             self._imu_capability_time, self._imu_capability_value = now, value
 
     def send_status(self, voltage: float, current: float, cpu_load: int):
-        """Wysyła SYS_STATUS."""
+        """PL: Wysyła SYS_STATUS z napięciem, prądem i obciążeniem CPU.
+
+        EN: Sends SYS_STATUS with battery voltage, current, and CPU load.
+        """
         if not self.master:
             return
         # Clamp battery current to int16 (10mA units)
@@ -319,7 +350,10 @@ class MAVLinkService:
     def send_attitude(
         self, roll: float, pitch: float, yaw: float, imu_data: dict = None
     ):
-        """Send orientation in radians and measured IMU in SI HIGHRES_IMU fields."""
+        """PL: Wysyła orientację w radianach i opcjonalne pomiary HIGHRES_IMU.
+
+        EN: Sends orientation in radians and optional HIGHRES_IMU measurements.
+        """
         if not self.master:
             return
         self._tx_telem_count += 1
@@ -359,7 +393,10 @@ class MAVLinkService:
     def send_position(
         self, lat: float, lon: float, alt: float, speed_kmh: float, hdg: float
     ):
-        """Wysyła GLOBAL_POSITION_INT."""
+        """PL: Wysyła GLOBAL_POSITION_INT z pozycją, prędkością i kursem.
+
+        EN: Sends GLOBAL_POSITION_INT with position, speed, and heading.
+        """
         if not self.master:
             return
         time_boot_ms = int((time.time() - self.boot_time) * 1000)
@@ -369,6 +406,10 @@ class MAVLinkService:
         hdg_rad = math.radians(hdg)
 
         def clamp16(v: float) -> int:
+            """PL: Ogranicza wartość do zakresu liczby ze znakiem 16-bit.
+
+            EN: Clamps a value to the signed 16-bit integer range.
+            """
             return max(-32768, min(32767, int(v)))
 
         vx = clamp16(speed_cms * math.cos(hdg_rad))
@@ -388,7 +429,10 @@ class MAVLinkService:
         )
 
     def send_obstacle_distance(self, distances_cm: List[int], increment: float = 1.0):
-        """Wysyła OBSTACLE_DISTANCE (zoptymalizowany LiDAR)."""
+        """PL: Wysyła pomiary LiDAR jako OBSTACLE_DISTANCE w 72 sektorach.
+
+        EN: Sends LiDAR measurements as OBSTACLE_DISTANCE in 72 sectors.
+        """
         if not self.master:
             return
         # MAVLink OBSTACLE_DISTANCE przyjmuje 72 sektory (co 5 stopni)
@@ -413,11 +457,18 @@ class MAVLinkService:
     def send_statustext(
         self, text: str, severity: int = mavutil.mavlink.MAV_SEVERITY_INFO
     ):
+        """PL: Wysyła tekstowy komunikat statusu MAVLink.
+
+        EN: Sends a MAVLink status text message.
+        """
         if not self.master:
             return
         self.master.mav.statustext_send(severity, text.encode("utf-8"))
 
     @property
     def link_active(self) -> bool:
-        """Zwraca True, jeśli otrzymano Heartbeat w ciągu ostatnich 5 sekund."""
+        """PL: Informuje, czy heartbeat zdalnego systemu mieści się w limicie czasu.
+
+        EN: Indicates whether a remote heartbeat is within the timeout.
+        """
         return (time.time() - self.last_remote_heartbeat) < self.HEARTBEAT_TIMEOUT

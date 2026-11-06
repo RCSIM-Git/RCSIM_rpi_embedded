@@ -1,3 +1,8 @@
+"""PL: Testy planowania ścieżki z omijaniem przeszkód.
+
+EN: Tests for path planning with obstacle avoidance.
+"""
+
 import os
 import sys
 import unittest
@@ -9,13 +14,26 @@ from modules.planners.global_planner import GlobalPlanner
 
 
 class TestGlobalPlanner(unittest.TestCase):
+    """PL: Sprawdza wyniki planowania globalnego na siatce zajętości.
+
+    EN: Verify global planning results on an occupancy grid.
+    """
+
     def setUp(self):
+        """PL: Tworzy planner i pustą mapę testową.
+
+        EN: Create the planner and an empty test map.
+        """
         self.planner = GlobalPlanner(resolution=0.1, inflation_radius=0.0)
         # Create a 10x10 map (100x100 pixels @ 0.1m/px = 10x10m area?)
         # Wait, resolution is m/px. So 100px * 0.1 = 10m.
         self.grid = np.zeros((100, 100), dtype=np.uint8)
 
     def test_straight_path(self):
+        """PL: Sprawdza ścieżkę między punktami bez przeszkód.
+
+        EN: Verify the path between two points without obstacles.
+        """
         # Start (1.0, 1.0) -> Goal (1.0, 5.0) - movement along Y
         # Center is (50, 50) corresponding to (0,0)m
         # Wait, my GlobalPlanner assumes center-based coordinates?
@@ -34,6 +52,10 @@ class TestGlobalPlanner(unittest.TestCase):
         self.assertTrue(np.allclose(path[-1], goal, atol=0.1))
 
     def test_obstacle_avoidance(self):
+        """PL: Sprawdza, że wyznaczona ścieżka omija przeszkodę.
+
+        EN: Verify that the planned path avoids an obstacle.
+        """
         # Place obstacle in the middle
         # Start (0,0), Goal (0, 4.0)
         # Obstacle at (0, 2.0)

@@ -1,9 +1,6 @@
-"""
-Mockowy sterownik dla wielosensorowego modułu GY-87.
-Mock driver for the GY-87 multi-sensor module.
+"""PL: Udostępnia mockowe dane modułu wielosensorowego GY-87.
 
-Ten moduł dostarcza symulowane dane dla modułu GY-87 (MPU6050 + HMC5883L + BMP180).
-This module provides simulated data for the GY-87 module (MPU6050 + HMC5883L + BMP180).
+EN: Provides mock data for the GY-87 multi-sensor module.
 """
 
 import logging
@@ -13,18 +10,15 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class GY87:
-    """
-    Mockowy sterownik dla sensora GY-87.
-    Mock driver for the GY-87 sensor.
+    """PL: Zwraca symulowane pomiary modułu GY-87.
+
+    EN: Returns simulated readings from the GY-87 module.
     """
 
     def __init__(self, i2c_bus: Any) -> None:
-        """
-        Inicjalizuje mockowy sterownik GY87.
-        Initializes the GY87 mock driver.
+        """PL: Zapisuje magistralę I2C przekazaną do mockowego sterownika.
 
-        Args:
-            i2c_bus (Any): Magistrala I2C. / I2C bus.
+        EN: Stores the I2C bus passed to the mock driver.
         """
         self.i2c: Any = i2c_bus
         logger.info(
@@ -32,12 +26,9 @@ class GY87:
         )
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Zwraca słownik z symulowanymi danymi sensora 10-DoF w ustandaryzowanym formacie.
-        Returns a dictionary with simulated 10-DoF sensor data in a standardized format.
+        """PL: Zwraca symulowane dane IMU w ustandaryzowanym słowniku.
 
-        Returns:
-            dict[str, Any]: Słownik zawierający 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'temp'.
+        EN: Returns simulated IMU data in a standardized dictionary.
         """
         return {
             "ax": 9.7,
@@ -53,9 +44,9 @@ class GY87:
         }
 
     def calibrate(self) -> bool:
-        """
-        Mockowa kalibracja.
-        Mock calibration.
+        """PL: Zapisuje informację o mockowej kalibracji i zwraca sukces.
+
+        EN: Logs the mock calibration and returns success.
         """
         logger.info("GY87 (mock): Calibration successful.")
         return True

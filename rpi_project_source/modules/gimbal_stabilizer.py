@@ -1,28 +1,21 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+PL: Oblicza sygnały serw kompensujące przechył dwuosiowego gimbala.
+EN: Computes servo signals that compensate roll and pitch for a two-axis gimbal.
 """
 import logging
 from typing import Any
 
 
 class GimbalStabilizer:
-    """
-    Klasa do stabilizacji 2-osiowego gimbala na podstawie danych z IMU.
-    Używa prostego kontrolera proporcjonalnego do kompensacji przechyłu i pochylenia.
-
-    Class for stabilizing a 2-axis gimbal based on IMU data.
-    Uses a simple proportional controller to compensate for roll and pitch.
+    """PL: Stabilizuje gimbal na podstawie kątów odczytanych z IMU.
+    EN: Stabilizes a gimbal using angles read from the IMU.
     """
 
     def __init__(self, config: dict[str, Any], logger: logging.Logger) -> None:
-        """
-        Inicjalizuje stabilizator gimbala.
-        Initializes the gimbal stabilizer.
-
-        Args:
-            config (dict[str, Any]): Słownik konfiguracyjny. / Configuration dictionary.
-            logger (logging.Logger): Instancja loggera. / Logger instance.
+        """PL: Zapisuje konfigurację i sprawdza wymagane ustawienia osi.
+        EN: Stores configuration and checks the required axis settings.
         """
         self.logger: logging.Logger = logger
         self.config: dict[str, Any] = config
@@ -54,9 +47,8 @@ class GimbalStabilizer:
         to_min: float,
         to_max: float,
     ) -> float:
-        """
-        Mapuje wartość z jednego zakresu na drugi.
-        Maps a value from one range to another.
+        """PL: Ogranicza wartość wejściową i mapuje ją do zakresu wyjściowego.
+        EN: Clamps an input value and maps it to the output range.
         """
         if from_max == from_min:
             return to_min
@@ -68,15 +60,8 @@ class GimbalStabilizer:
         return to_min + (scaled_value * to_span)
 
     def update(self, imu_data: dict[str, float]) -> dict[str, int] | None:
-        """
-        Oblicza nowe pozycje dla serw gimbala na podstawie danych z IMU.
-        Calculates new positions for the gimbal servos based on IMU data.
-
-        Args:
-            imu_data (dict[str, float]): Słownik z danymi z IMU. / Dictionary with IMU data.
-
-        Returns:
-            dict[str, int] | None: Słownik z obliczonymi wartościami impulsów dla serw. / A dictionary with the calculated pulse values for the servos.
+        """PL: Oblicza impulsy serw kompensujące kąty pitch i roll z IMU.
+        EN: Computes servo pulses that compensate the IMU pitch and roll angles.
         """
         pitch = imu_data.get("pitch")
         roll = imu_data.get("roll")
@@ -107,9 +92,8 @@ class GimbalStabilizer:
         return {"pitch_pulse": int(pitch_pulse), "roll_pulse": int(roll_pulse)}
 
     def get_channels(self) -> dict[str, int]:
-        """
-        Zwraca kanały PCA9685 używane przez gimbal.
-        Returns the PCA9685 channels used by the gimbal.
+        """PL: Zwraca numery kanałów PCA9685 przypisane do osi gimbala.
+        EN: Returns the PCA9685 channel numbers assigned to the gimbal axes.
         """
         return {
             "pitch": self.config["pitch_channel"],

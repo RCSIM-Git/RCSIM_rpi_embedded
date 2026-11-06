@@ -1,12 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Module for handling the GPS receiver (LC2H) with RTK support.
-Moduł do obsługi odbiornika GPS (LC2H) z obsługą RTK.
-
-(Version 5.0 "Modular" - accepts external configuration)
-(Wersja 5.0 "Modularna" - przyjmuje konfigurację z zewnątrz)
+PL: Obsługuje odbiornik GPS, komunikaty NMEA i opcjonalne poprawki NTRIP.
+EN: Handles the GPS receiver, NMEA messages, and optional NTRIP corrections.
 """
 
 import base64
@@ -28,13 +24,16 @@ except ImportError:
 
     # Create a dummy serial class for type hinting to work
     class serial:
+        """PL: Udostępnia zastępczy typ portu szeregowego bez pyserial.
+        EN: Provides a fallback serial type when pyserial is unavailable.
+        """
+
         Serial = object
 
 
 class GPS_UART:
-    """
-    Klasa do zarządzania modułem GPS LC29H, w tym konfiguracją NTRIP.
-    Class for managing the LC29H GPS module, including NTRIP configuration.
+    """PL: Odczytuje pozycję GPS i obsługuje opcjonalne połączenie RTK/NTRIP.
+    EN: Reads GPS position and supports an optional RTK/NTRIP connection.
     """
 
     RTK_QUALITY_MAP = {
@@ -46,17 +45,8 @@ class GPS_UART:
     }
 
     def __init__(self, port: str, baudrate: int, ntrip_cfg: dict | None = None) -> None:
-        """
-        Inicjalizuje moduł GPS.
-        Initializes the GPS module.
-
-        Args:
-            port (str): Port szeregowy, do którego podłączony jest GPS.
-                        The serial port the GPS is connected to.
-            baudrate (int): Prędkość transmisji portu szeregowego.
-                            The baud rate of the serial connection.
-            ntrip_cfg (Dict | None): Konfiguracja dla klienta NTRIP. Jeśli None, NTRIP jest wyłączony.
-                                        Configuration for the NTRIP client. If None, NTRIP is disabled.
+        """PL: Zapisuje parametry portu, konfigurację NTRIP i stan odczytów.
+        EN: Stores port parameters, NTRIP configuration, and reading state.
         """
         self.logger = logging.getLogger(__name__)
         self.port = port
@@ -79,9 +69,8 @@ class GPS_UART:
         self.parsed_queue = queue.Queue()
 
     def start(self) -> None:
-        """
-        Uruchamia wątek czytnika GPS i inicjalizuje klienta NTRIP (jeśli włączony).
-        Starts the GPS reader thread and initializes the NTRIP client (if enabled).
+        """PL: Uruchamia czytnik GPS albo klienta NTRIP w osobnym wątku.
+        EN: Starts the GPS reader or NTRIP client in a separate thread.
         """
         if not HW_AVAILABLE:
             self.logger.error(
@@ -116,9 +105,8 @@ class GPS_UART:
         self.logger.info("GPS thread started.")
 
     def _simple_reader(self) -> None:
-        """
-        Prosta pętla odczytu NMEA, gdy NTRIP jest wyłączony.
-        A simple NMEA reader loop for when NTRIP is disabled.
+        """PL: Czyta komunikaty NMEA z portu szeregowego bez NTRIP.
+        EN: Reads NMEA messages from the serial port without NTRIP.
         """
         while True:
             try:
@@ -135,13 +123,8 @@ class GPS_UART:
                 time.sleep(5)
 
     def get_latest_data(self) -> dict[str, Any]:
-        """
-        Odczytuje i przetwarza najnowsze dane GPS z kolejki komunikatów NMEA.
-        Reads and processes the latest GPS data from the NMEA message queue.
-
-        Returns:
-            dict[str, Any]: Słownik z aktualnymi danymi pozycji i statusu RTK.
-                            Dictionary with current position and RTK status data.
+        """PL: Przetwarza zakolejkowane komunikaty i zwraca bieżący stan GPS.
+        EN: Processes queued messages and returns the current GPS state.
         """
         while not self.parsed_queue.empty():
             try:
@@ -193,9 +176,8 @@ class GPS_UART:
         return self.last_data
 
     def stop(self) -> None:
-        """
-        Zamyka wątek klienta NTRIP i zwalnia zasoby.
-        Closes the NTRIP client thread and releases resources.
+        """PL: Zatrzymuje klienta NTRIP i kończy pracę modułu GPS.
+        EN: Stops the NTRIP client and shuts down the GPS module.
         """
         if self.ntrip_client:
             self.ntrip_client.stop()
@@ -206,9 +188,8 @@ class GPS_UART:
         self.logger.info("GPS module stopped.")
 
     class AdaptedNtripClient:
-        """
-        Wewnętrzna klasa do zarządzania połączeniem NTRIP i komunikacją z GPS.
-        Internal class for managing the NTRIP connection and communication with the GPS.
+        """PL: Łączy strumień poprawek NTRIP z portem szeregowym GPS.
+        EN: Connects the NTRIP correction stream to the GPS serial port.
         """
 
         def __init__(
@@ -218,9 +199,8 @@ class GPS_UART:
             baudrate: int,
             parsed_queue: queue.Queue,
         ) -> None:
-            """
-            Inicjalizuje klienta NTRIP.
-            Initializes the NTRIP client.
+            """PL: Zapisuje ustawienia serwera i przygotowuje stan połączenia.
+            EN: Stores server settings and prepares the connection state.
             """
             self.logger = logging.getLogger("NtripClient")
             self.user_b64 = base64.b64encode(
@@ -239,16 +219,14 @@ class GPS_UART:
             self.threads: list[threading.Thread] = []
 
         def stop(self) -> None:
-            """
-            Zatrzymuje klienta NTRIP.
-            Stops NTRIP client.
+            """PL: Sygnalizuje pętli klienta NTRIP zakończenie pracy.
+            EN: Signals the NTRIP client loop to stop running.
             """
             self._running = False
 
         def run(self) -> None:
-            """
-            Główna pętla klienta NTRIP, zarządzająca połączeniami.
-            Main loop of the NTRIP client, managing connections.
+            """PL: Utrzymuje połączenia NTRIP i szeregowe oraz obsługuje ponowienia.
+            EN: Maintains NTRIP and serial connections and handles retries.
             """
             while self._running:
                 stream: serial.Serial | None = None
@@ -275,13 +253,8 @@ class GPS_UART:
             self.logger.info("NTRIP client thread stopped.")
 
         def _check_hardware_available(self) -> bool:
-            """
-            Sprawdza dostępność bibliotek sprzętowych.
-            Checks hardware library availability.
-
-            Returns:
-                bool: True jeśli sprzęt dostępny, False w przeciwnym wypadku.
-                      True if hardware available, False otherwise.
+            """PL: Sprawdza, czy biblioteki portu szeregowego są dostępne.
+            EN: Checks whether the serial communication libraries are available.
             """
             if not HW_AVAILABLE:
                 self.logger.warning(
@@ -292,36 +265,16 @@ class GPS_UART:
             return True
 
         def _connect_serial(self) -> serial.Serial:
-            """
-            Ustanawia połączenie szeregowe i konfiguruje moduł GPS.
-            Establishes serial connection and configures GPS module.
-
-            Returns:
-                serial.Serial: Skonfigurowane połączenie szeregowe.
-                               Configured serial connection.
-
-            Raises:
-                serial.SerialException: Jeśli połączenie nie może być ustanowione.
-                                       If connection cannot be established.
+            """PL: Otwiera port szeregowy i wysyła konfigurację do GPS.
+            EN: Opens the serial port and sends configuration to the GPS.
             """
             stream = serial.Serial(self.serial_port_path, self.baudrate, timeout=1)
             self._configure_gps_module(stream)
             return stream
 
         def _connect_ntrip_socket(self) -> socket.socket:
-            """
-            Ustanawia połączenie socket z serwerem NTRIP i wykonuje handshake HTTP.
-            Establishes socket connection to NTRIP server and performs HTTP handshake.
-
-            Returns:
-                socket.socket: Połączony socket NTRIP.
-                               Connected NTRIP socket.
-
-            Raises:
-                socket.error: Jeśli połączenie nie może być ustanowione.
-                              If connection cannot be established.
-                ConnectionRefusedError: Jeśli serwer odrzuci połączenie.
-                                        If server rejects connection.
+            """PL: Otwiera gniazdo TCP i wykonuje handshake z casterem NTRIP.
+            EN: Opens a TCP socket and performs a handshake with the NTRIP caster.
             """
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(10)
@@ -340,9 +293,8 @@ class GPS_UART:
             return sock
 
         def _start_io_threads(self, sock: socket.socket, stream: serial.Serial) -> None:
-            """
-            Uruchamia wątki I/O dla RTCM i NMEA i czeka na ich zakończenie.
-            Starts I/O threads for RTCM and NMEA and waits for their completion.
+            """PL: Uruchamia równoległy odczyt NMEA i przekazywanie danych RTCM.
+            EN: Starts concurrent NMEA reading and RTCM forwarding.
             """
             self.logger.info("Starting I/O threads.")
             # Upewnij się, że _running jest True przed startem / Ensure _running is True before starting
@@ -383,14 +335,8 @@ class GPS_UART:
         def _cleanup_connections(
             self, sock: socket.socket | None, stream: serial.Serial | None
         ) -> None:
-            """
-            Zamyka połączenia socket i szeregowe oraz czyści wątki.
-            Closes socket and serial connections and cleans up threads.
-
-            Args:
-                sock (socket.socket | None): Socket do zamknięcia. / Socket to close.
-                stream (serial.Serial | None): Połączenie szeregowe do zamknięcia.
-                                                  Serial connection to close.
+            """PL: Zamyka gniazdo i port szeregowy oraz czyści listę wątków.
+            EN: Closes the socket and serial port and clears the thread list.
             """
             if sock:
                 sock.close()
@@ -401,9 +347,8 @@ class GPS_UART:
                 time.sleep(5)
 
         def _configure_gps_module(self, stream: serial.Serial) -> None:
-            """
-            Wysyła sekwencję komend konfiguracyjnych do modułu GPS.
-            Sends a sequence of configuration commands to the GPS module.
+            """PL: Wysyła wymagane polecenia konfiguracyjne do odbiornika GPS.
+            EN: Sends the required configuration commands to the GPS receiver.
             """
             if not HW_AVAILABLE:
                 return
@@ -426,9 +371,8 @@ class GPS_UART:
             self.logger.info("GPS module configuration finished.")
 
         def _rtcm_writer(self, sock: socket.socket, stream: serial.Serial) -> None:
-            """
-            Wątek odbierający dane RTCM i wysyłający je do GPS.
-            Thread that receives RTCM data and sends it to the GPS.
+            """PL: Przekazuje poprawki RTCM z serwera NTRIP do odbiornika GPS.
+            EN: Forwards RTCM corrections from the NTRIP server to the GPS receiver.
             """
             self.logger.info("RTCM writer thread started.")
             while self._running:
@@ -457,9 +401,8 @@ class GPS_UART:
             self.logger.info("RTCM writer thread exiting.")
 
         def _nmea_reader(self, sock: socket.socket, stream: serial.Serial) -> None:
-            """
-            Wątek odczytujący dane NMEA z GPS i wysyłający GGA do NTRIP.
-            Thread that reads NMEA data from the GPS and sends GGA to NTRIP.
+            """PL: Odczytuje NMEA z GPS i wysyła komunikaty GGA do NTRIP.
+            EN: Reads NMEA from the GPS and sends GGA messages to NTRIP.
             """
             nmr = NMEAReader(stream)
             while self._running:

@@ -1,12 +1,6 @@
-"""
-Native MPU-9250 9-DoF IMU Driver using a shared I2C wrapper.
-Natywny sterownik 9-osiowego IMU MPU-9250 używający współdzielonego wrappera I2C.
+"""PL: Obsługuje MPU-9250 i zgodne układy przez współdzielony wrapper I2C.
 
-This driver provides a low-level interface to the MPU-9250, which combines an
-MPU-6050 (accelerometer/gyroscope) with an AK8963 (magnetometer) in a single package.
-
-Ten sterownik dostarcza niskopoziomowy interfejs do MPU-9250, który łączy w sobie
-MPU-6050 (akcelerometr/żyroskop) z AK8963 (magnetometr) w jednej obudowie.
+EN: Operates the MPU-9250 and compatible chips through a shared I2C wrapper.
 """
 
 import logging
@@ -21,10 +15,9 @@ from .native_i2c import I2CWrapper
 
 @SensorRegistry.register
 class NativeMPU9250(IMUBase):
-    """
-    A lightweight, direct-register-access driver for the MPU-9250 9-DoF IMU.
-    Lekki sterownik z bezpośrednim dostępem do rejestrów dla 9-osiowego IMU
-    MPU-9250.
+    """PL: Odczytuje dane IMU i opcjonalnego magnetometru AK8963.
+
+    EN: Reads IMU data and readings from an optional AK8963 magnetometer.
     """
 
     DRIVER_NAME = "native_mpu9250"
@@ -33,9 +26,9 @@ class NativeMPU9250(IMUBase):
 
     @classmethod
     def scan(cls, i2c) -> bool:
-        """
-        Sprawdza WHO_AM_I dla MPU-9250 / 9255 / 6500 / 6050 / 6000.
-        WHO_AM_I check for MPU-9250 / 9255 / 6500 / 6050 / 6000.
+        """PL: Sprawdza, czy WHO_AM_I wskazuje obsługiwany wariant układu.
+
+        EN: Checks whether WHO_AM_I matches a supported chip variant.
         """
         try:
             who = i2c.read_byte_data(0x68, 0x75)
@@ -101,13 +94,9 @@ class NativeMPU9250(IMUBase):
         accel_range: int = 2,
         gyro_range: int = 250,
     ):
-        """
-        Initializes the MPU-9250 driver.
-        Inicjalizuje sterownik MPU-9250.
+        """PL: Weryfikuje chip, ustawia zakresy i inicjalizuje dostępne sensory.
 
-        Args:
-            i2c_wrapper (I2CWrapper): The shared I2C wrapper instance.
-            address (int): The I2C address of the MPU-9250.
+        EN: Verifies the chip, sets measurement ranges, and initializes available sensors.
         """
         self.i2c = i2c_wrapper
         self.address = address
@@ -187,9 +176,9 @@ class NativeMPU9250(IMUBase):
             )
 
     def reset(self) -> None:
-        """
-        Performs a soft reset of the device.
-        Wykonuje miękki reset urządzenia.
+        """PL: Wykonuje programowy reset układu MPU.
+
+        EN: Performs a software reset of the MPU.
         """
         logging.info("Resetting MPU device...")
         # Write 0x80 to PWR_MGMT_1 to trigger reset
@@ -197,20 +186,18 @@ class NativeMPU9250(IMUBase):
         time.sleep(0.1)  # Wait for reset to complete
 
     def wake_up(self) -> None:
-        """
-        Wakes the device from sleep mode.
-        Wybudza urządzenie z trybu uśpienia.
+        """PL: Wybudza układ z trybu uśpienia i wybiera źródło zegara.
+
+        EN: Wakes the device from sleep mode and selects its clock source.
         """
         # 0x01 = Auto select best clock source (PLL if ready, else internal oscillator)
         self.i2c.write_byte_data(self.address, self._REG_PWR_MGMT_1, 0x01)
         time.sleep(0.1)
 
     def activate_all_sensors(self) -> None:
-        """
-        Aktywuje wszystkie sensory (akcelerometr i żyroskop).
-        Activates all sensors (accelerometer and gyroscope).
+        """PL: Włącza wszystkie osie akcelerometru i żyroskopu.
 
-        🔧 Zgodność z kodem ricardozago: PWR_MGMT_2 = 0x00 włącza wszystkie osie.
+        EN: Enables all accelerometer and gyroscope axes.
         """
         # 0x00 = Enable all axes (accel + gyro)
         self.i2c.write_byte_data(self.address, self._REG_PWR_MGMT_2, 0x00)
@@ -218,15 +205,9 @@ class NativeMPU9250(IMUBase):
         logging.info("✓ All MPU sensors activated")
 
     def enable_bypass_mode(self) -> None:
-        """
-        Enables I2C bypass mode. This is crucial for allowing the host
-        (e.g., Raspberry Pi) to directly access the AK8963 magnetometer,
-        which is on an auxiliary I2C bus internal to the MPU-9250.
+        """PL: Włącza bypass I2C, aby host mógł odczytywać AK8963.
 
-        Włącza tryb I2C bypass. Jest to kluczowe, aby umożliwić hostowi
-        (np. Raspberry Pi) bezpośredni dostęp do magnetometru AK8963,
-        który znajduje się na pomocniczej magistrali I2C wewnętrznej
-        dla MPU-9250.
+        EN: Enables I2C bypass so the host can access the AK8963 magnetometer.
         """
         # 1. Disable I2C Master Mode (Bit 5 of USER_CTRL)
         # Some chip states or previous drivers might have enabled it.
@@ -255,12 +236,9 @@ class NativeMPU9250(IMUBase):
             logging.warning(f"Failed to enable I2C Bypass! INT_PIN_CFG: {bin(val)}")
 
     def set_accel_range(self, range_g: int) -> None:
-        """
-        Sets the accelerometer full-scale range.
-        Ustawia pełny zakres skali akcelerometru.
+        """PL: Ustawia obsługiwany pełny zakres akcelerometru w g.
 
-        Args:
-            range_g (int): Range in g (2, 4, 8, 16).
+        EN: Sets a supported accelerometer full-scale range in g.
         """
         if range_g not in self._ACCEL_SCALES:
             supported = list(self._ACCEL_SCALES.keys())
@@ -277,12 +255,9 @@ class NativeMPU9250(IMUBase):
         self.accel_scale = self._ACCEL_SCALES[range_g]
 
     def set_gyro_range(self, range_dps: int) -> None:
-        """
-        Sets the gyroscope full-scale range.
-        Ustawia pełny zakres skali żyroskopu.
+        """PL: Ustawia obsługiwany pełny zakres żyroskopu w stopniach na sekundę.
 
-        Args:
-            range_dps (int): Range in degrees per second (250, 500, 1000, 2000).
+        EN: Sets a supported gyroscope full-scale range in degrees per second.
         """
         if range_dps not in self._GYRO_SCALES:
             supported = list(self._GYRO_SCALES.keys())
@@ -299,28 +274,21 @@ class NativeMPU9250(IMUBase):
         self.gyro_scale = self._GYRO_SCALES[range_dps]
 
     def _bytes_to_int(self, high: int, low: int) -> int:
-        """
-        Converts two bytes (high and low) to a signed 16-bit integer.
-        Konwertuje dwa bajty (górny i dolny) na 16-bitową liczbę całkowitą ze
-        znakiem.
+        """PL: Dekoduje dwa bajty big-endian jako liczbę 16-bit ze znakiem.
+
+        EN: Decodes two big-endian bytes as a signed 16-bit integer.
         """
         value = (high << 8) | low
         return value if value < 32768 else value - 65536
 
     def read_scaled(self, throttle: float = 0.0) -> dict[str, float | None]:
-        """
-        Reads and scales all 9-DoF data to physical units.
-        Odczytuje i skaluje wszystkie dane 9-DoF do jednostek fizycznych.
+        """PL: Zwraca przeskalowane przyspieszenie, żyroskop i pole magnetyczne.
 
-        - Accelerometer: g's
-        - Gyroscope: degrees per second (°/s)
-        - Magnetometer: microteslas (µT)
+        Przyspieszenie jest w g, żyroskop w °/s, a magnetometr w µT.
 
-        Returns:
-            dict[str, float | None]: A dictionary with standardized keys
-                                        (ax, ay, az, gx, gy, gz, mx, my, mz).
-                                        Magnetometer values will be None if
-                                        initialization failed.
+        EN: Returns scaled acceleration, gyroscope, and magnetic field readings.
+
+        Acceleration is in g, gyroscope in °/s, and magnetometer in µT.
         """
         # Read accelerometer and gyroscope data in one block
         # Odczytaj dane akcelerometru i żyroskopu w jednym bloku
@@ -387,24 +355,17 @@ class NativeMPU9250(IMUBase):
         return scaled_data
 
     def read_data(self, throttle: float = 0.0) -> dict[str, float | None]:
-        """
-        Alias dla read_scaled() - zapewnia kompatybilność z interfejsem IMUBase.
-        Alias for read_scaled() - provides compatibility with IMUBase interface.
+        """PL: Zwraca standardowy słownik danych IMU zgodny z IMUBase.
 
-        Args:
-            throttle: Current throttle value for magnetic compensation.
-
-        Returns:
-            dict[str, float | None]: Dane IMU w formacie standardowym.
-                                        / IMU data in standard format.
+        EN: Returns the standard IMUBase-compatible data dictionary.
         """
         data = self.read_scaled(throttle=throttle)
         return data
 
     def calibrate(self) -> bool:
-        """
-        Zbiera 500 próbek i oblicza średni bias dla akcelerometru i żyroskopu.
-        Collects 500 samples and calculates mean bias for accel and gyro.
+        """PL: Oblicza bias akcelerometru i żyroskopu ze 500 próbek.
+
+        EN: Calculates accelerometer and gyroscope bias from 500 samples.
         """
         logging.info("MPU9250: Starting bias calibration (500 samples)...")
         num_samples = 500

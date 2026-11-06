@@ -1,9 +1,9 @@
-"""
+"""PL: Obsługuje odbieranie i wysyłanie datagramów UDP w trybie legacy.
+
+EN: Handles UDP datagram reception and transmission in legacy mode.
+
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
-Moduł obsługi komunikacji UDP.
-UDP Communication Handler Module.
 """
 
 import logging
@@ -13,16 +13,15 @@ from typing import Callable
 
 
 class UDPService:
-    """
-    Serwis komunikacji UDP dla RPi (Legacy Mode).
-    UDP Communication Service for RPi (Legacy Mode).
+    """PL: Odbiera datagramy sterujące i wysyła dane UDP do klienta.
 
-    Wymienia pakiety JSON:
-    - Odbiera: Kontrolę (sterowanie + komendy)
-    - Wysyła: Telemetrię
-    Exchanges JSON packets:
-    - Receives: Control (steering + commands)
-    - Sends: Telemetry
+    Usługa zapamiętuje adres nadawcy ostatniego odebranego datagramu jako cel
+    wysyłania, chyba że podano cel początkowy.
+
+    EN: Receives control datagrams and sends UDP data to a client.
+
+    The service remembers the sender address of the latest datagram as the
+    destination for outgoing data, unless an initial destination was provided.
     """
 
     def __init__(
@@ -32,16 +31,21 @@ class UDPService:
         target_ip: str | None = None,
         target_port: int | None = None,
     ):
-        """
-        Inicjalizuje serwis UDP.
-        Initializes the UDP service.
+        """PL: Tworzy i wiąże gniazdo UDP oraz ustawia callback odbioru.
 
         Args:
-            port (int): Port nasłuchujący. / Listening port.
-            on_data_received (Callable[[str], None]): Callback dla danych przychodzących.
-                                                      Callback for incoming data.
-            target_ip (str | None): IP docelowe. / Target IP.
-            target_port (int | None): Port docelowy. / Target port.
+            port: Port lokalny, na którym usługa będzie nasłuchiwać.
+            on_data_received: Funkcja wywoływana po odebraniu datagramu.
+            target_ip: Opcjonalny początkowy adres docelowy.
+            target_port: Opcjonalny początkowy port docelowy.
+
+        EN: Creates and binds a UDP socket and configures the receive callback.
+
+        Args:
+            port: Local port on which the service listens.
+            on_data_received: Function called when a datagram is received.
+            target_ip: Optional initial destination address.
+            target_port: Optional initial destination port.
         """
         self.port = port
         self.callback = on_data_received
@@ -64,9 +68,9 @@ class UDPService:
         self._thread: threading.Thread | None = None
 
     def start(self):
-        """
-        Uruchamia wątek nasłuchujący.
-        Starts the listening thread.
+        """PL: Uruchamia wątek odbierający datagramy, jeśli nie działa.
+
+        EN: Starts the datagram-receiving thread if it is not already running.
         """
         if self.running:
             return
@@ -76,9 +80,9 @@ class UDPService:
         self.logger.info(f"UDP Service started on port {self.port}")
 
     def stop(self):
-        """
-        Zatrzymuje serwis.
-        Stops the service.
+        """PL: Zamyka gniazdo i czeka krótko na zakończenie wątku odbiorczego.
+
+        EN: Closes the socket and briefly waits for the receive thread to stop.
         """
         self.running = False
         if self.sock:
@@ -92,12 +96,15 @@ class UDPService:
         self.logger.info("UDP Service stopped")
 
     def send_data(self, data: str):
-        """
-        Wysyła dane do ostatniego znanego klienta.
-        Sends data to the last known client.
+        """PL: Wysyła dane do ustawionego lub ostatnio zapamiętanego adresu.
 
         Args:
-            data (str): Dane do wysłania. / Data to send.
+            data: Tekst lub bajty datagramu do wysłania.
+
+        EN: Sends data to the configured or most recently remembered address.
+
+        Args:
+            data: Text or bytes to send as a datagram.
         """
         if self.last_client_addr and self.sock:
             try:
@@ -110,9 +117,9 @@ class UDPService:
                 self.logger.error(f"UDP Send Error: {e}")
 
     def _loop(self):
-        """
-        Pętla odbiorcza UDP.
-        UDP receive loop.
+        """PL: Odbiera datagramy, zapamiętuje adres nadawcy i wywołuje callback.
+
+        EN: Receives datagrams, remembers the sender address, and calls the callback.
         """
         while self.running:
             try:

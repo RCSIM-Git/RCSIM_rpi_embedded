@@ -1,3 +1,8 @@
+"""PL: Testy sterownika PCA9685 z zamockowanymi zależnościami sprzętowymi.
+
+EN: Tests for the PCA9685 driver with mocked hardware dependencies.
+"""
+
 import os
 import sys
 import unittest
@@ -16,13 +21,25 @@ from modules.pca9685 import PCA9685
 
 
 class TestPCA9685(unittest.TestCase):
+    """PL: Sprawdza wybór sterownika i operacje kanałów PCA9685.
+
+    EN: Verify PCA9685 driver selection and channel operations.
+    """
+
     def setUp(self):
+        """PL: Resetuje mocki przed każdym testem.
+
+        EN: Reset mocks before each test.
+        """
         # Reset mocks
         sys.modules["modules.drivers.native.native_pca9685"].NativePCA9685.reset_mock()
         sys.modules["modules.drivers.native.native_i2c"].I2CWrapper.reset_mock()
 
     def test_init_native(self):
-        """Test initialization with Native driver."""
+        """PL: Sprawdza inicjalizację natywnego sterownika.
+
+        EN: Verify initialization with the native driver.
+        """
         # Ensure NATIVE_AVAILABLE is True in the module (it might be False if imports failed in the module script itself)
         # But since we mocked imports in sys.modules *before* importing pca9685, they should be available.
         # However, the module checks for ImportError on import level.
@@ -37,7 +54,10 @@ class TestPCA9685(unittest.TestCase):
             self.assertIsNotNone(pca.pca)
 
     def test_set_servo_pulse_native(self):
-        """Test setting servo pulse with Native driver."""
+        """PL: Sprawdza ustawianie impulsu serwa w sterowniku natywnym.
+
+        EN: Verify servo pulse setting with the native driver.
+        """
         with patch("modules.pca9685.NATIVE_AVAILABLE", True):
             pca = PCA9685(init_neutral=False)
             pca.pca.set_us = MagicMock()  # Mock set_us method
@@ -58,7 +78,10 @@ class TestPCA9685(unittest.TestCase):
             pca.pca.set_us.assert_called_with(0, 2100)
 
     def test_set_all_channels_neutral(self):
-        """Test setting all channels to neutral."""
+        """PL: Sprawdza ustawienie wszystkich kanałów w pozycji neutralnej.
+
+        EN: Verify that all channels are set to their neutral position.
+        """
         with patch("modules.pca9685.NATIVE_AVAILABLE", True):
             pca = PCA9685(init_neutral=False)
             pca.pca.set_us = MagicMock()
@@ -69,7 +92,10 @@ class TestPCA9685(unittest.TestCase):
             pca.pca.set_us.assert_any_call(15, 1500)
 
     def test_disable_all_channels(self):
-        """Test disabling all channels."""
+        """PL: Sprawdza wyłączenie wszystkich kanałów.
+
+        EN: Verify that all channels are disabled.
+        """
         with patch("modules.pca9685.NATIVE_AVAILABLE", True):
             pca = PCA9685(init_neutral=False)
             pca.pca.set_pwm = MagicMock()  # Native uses set_pwm(i, 0, 0) for disable

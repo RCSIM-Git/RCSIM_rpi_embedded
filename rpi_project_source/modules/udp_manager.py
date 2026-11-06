@@ -1,6 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+PL: Obsługuje odbiór pakietów sterujących i wysyłanie telemetrii UDP.
+EN: Handles receiving control packets and sending UDP telemetry.
 """
 import logging
 import socket
@@ -10,12 +12,8 @@ from typing import Callable, Optional
 
 
 class UDPManager:
-    """
-    Zarządza komunikacją UDP dla RPi.
-    Manages UDP communication for the RPi.
-
-    Nasłuchuje pakietów kontrolnych i wysyła telemetrię z powrotem do nadawcy.
-    Listens for control packets and sends telemetry back to the sender.
+    """PL: Nasłuchuje klientów UDP i wysyła dane do ostatniego nadawcy.
+    EN: Listens for UDP clients and sends data to the latest sender.
     """
 
     def __init__(
@@ -24,14 +22,8 @@ class UDPManager:
         on_data_received: Callable[[str], None],
         on_timeout: Optional[Callable[[], None]] = None,
     ):
-        """
-        Inicjalizuje UDPManager.
-        Initializes the UDP Manager.
-
-        Args:
-            port (int): Port nasłuchiwania. / Listening port.
-            on_data_received (Callable[[str], None]): Funkcja wywoływana po otrzymaniu danych.
-            on_timeout (Callable[[], None]): Funkcja wywoływana przy utracie łączności.
+        """PL: Tworzy gniazdo nasłuchujące i zapisuje procedury zwrotne.
+        EN: Creates the listening socket and stores the callback functions.
         """
         self.port = port
         self.callback = on_data_received
@@ -51,9 +43,8 @@ class UDPManager:
         self.is_connected = False
 
     def start(self):
-        """
-        Uruchamia wątek nasłuchujący UDP.
-        Starts the UDP listening thread.
+        """PL: Uruchamia wątek odbierający pakiety UDP.
+        EN: Starts the thread that receives UDP packets.
         """
         self.running = True
         self.thread = threading.Thread(target=self._loop, daemon=True)
@@ -61,9 +52,8 @@ class UDPManager:
         self.logger.info(f"UDP Listener started on port {self.port}")
 
     def _loop(self):
-        """
-        Główna pętla wątku nasłuchującego.
-        Main listener thread loop.
+        """PL: Odbiera pakiety, aktualizuje stan łącza i wywołuje callback.
+        EN: Receives packets, updates link state, and invokes the callback.
         """
         while self.running:
             try:
@@ -106,9 +96,8 @@ class UDPManager:
                     self.logger.error(f"UDP Loop Error: {e}")
 
     def send_data(self, data: str, force: bool = False):
-        """
-        Wysyła dane (ciąg JSON) z powrotem do ostatnio znanego klienta.
-        Sends data (JSON string) back to the last known client.
+        """PL: Wysyła dane do ostatniego klienta z ograniczeniem częstotliwości.
+        EN: Sends data to the latest client with rate limiting.
         """
         if not self.last_addr:
             return
@@ -130,9 +119,8 @@ class UDPManager:
             self.logger.error(f"Send Error: {e}")
 
     def stop(self):
-        """
-        Zatrzymuje menedżera UDP i zamyka gniazdo.
-        Stops the UDP manager and closes the socket.
+        """PL: Zatrzymuje pętlę odbioru i zamyka gniazdo UDP.
+        EN: Stops the receive loop and closes the UDP socket.
         """
         self.running = False
         if self.sock:

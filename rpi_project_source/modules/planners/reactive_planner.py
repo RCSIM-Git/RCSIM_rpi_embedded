@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Reaktywny Planer Dynamic Window Approach (DWA) Gap Follower.
-Znajduje wolne luki i omija przeszkody lokalnie korzystając z Mapy Kosztów.
+"""PL: Planuje lokalne sterowanie przez wyszukiwanie bezpiecznych luk.
+EN: Plans local controls by searching for safe gaps.
 """
 
 import logging
@@ -16,14 +15,16 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class ReactivePlanner:
-    """
-    Znajduje wolne strefy przestrzeni (Gap Finding) skanując komórki mapy
-    zajętości. Oblicza bezpieczną prędkość redukując gaz przy ścianach.
+    """PL: Wybiera wolny kierunek i ogranicza prędkość przy przeszkodach.
+    EN: Selects a clear direction and reduces speed near obstacles.
     """
 
     def __init__(
         self, costmap_manager: CostmapManager, config: dict[str, Any] = None
     ) -> None:
+        """PL: Ustawia mapę kosztów i parametry planowania reaktywnego.
+        EN: Sets the cost map and reactive planning parameters.
+        """
         self.cm = costmap_manager
 
         self.wheelbase: float = 0.25
@@ -38,6 +39,9 @@ class ReactivePlanner:
         self.update_config(config)
 
     def update_config(self, config: dict[str, Any]) -> None:
+        """PL: Aktualizuje prędkość i odległości bezpieczeństwa z konfiguracji.
+        EN: Updates speed and safety distances from configuration.
+        """
         if not config or "autonomous_navigation" not in config:
             return
 
@@ -61,9 +65,8 @@ class ReactivePlanner:
         robot_pose: tuple[float, float, float] = (0, 0, 0),
         goal_pose: tuple[float, float] = None,
     ) -> tuple[float, float, float]:
-        """
-        Zwraca tuple (Steering Angle, Throttle, Safety Score <0-1>).
-        Skanuje łuk od -60 do +60 stopni szukając szerokich przerw w LiDARowych chmurach.
+        """PL: Zwraca skręt, gaz i ocenę bezpieczeństwa dla wybranej wolnej luki.
+        EN: Returns steering, throttle, and safety score for the selected clear gap.
         """
         height, width = self.cm.costmap.shape
         rx, ry, ryaw_deg = robot_pose
@@ -155,9 +158,8 @@ class ReactivePlanner:
     def calculate_velocity_scaling(
         self, closest_obs_dist: float, base_throttle: float, gap_width_ratio: float
     ) -> float:
-        """
-        Adaptacyjne zwalnianie predkości wobec wąskich przesmyków (Tunnel Effect).
-        Oblicza krzywą przyrostową hamowania do Distance Transformu mapy.
+        """PL: Ogranicza gaz według odległości od przeszkody i szerokości luki.
+        EN: Scales throttle based on obstacle distance and gap width.
         """
         if closest_obs_dist <= self.emergency_stop_dist:
             return 0.0

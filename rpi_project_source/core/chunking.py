@@ -1,7 +1,12 @@
-"""
-Narzędzie do minifikowanej fragmentacji i składania pakietów komunikacyjnych.
-Utility for minified fragmentation and assembly of communication packets.
-Zgodne z limitem MTU=1100. (Industrial grade protocol).
+"""PL: Dzieli duże komunikaty na fragmenty i składa je ponownie.
+
+Moduł obsługuje pakiety JSON z metadanymi fragmentacji i domyślnym limitem
+rozmiaru 1100 znaków.
+
+EN: Splits large messages into chunks and reassembles them.
+
+The module handles JSON packets with chunk metadata and a default size limit
+of 1100 characters.
 """
 
 import json
@@ -10,16 +15,24 @@ import time
 
 
 class MessageChunker:
-    """Rozbija duże payloady na ramki o rozmiarze <= max_size."""
+    """PL: Dzieli duże ładunki JSON na ramki nieprzekraczające limitu.
+
+    EN: Splits large JSON payloads into frames that do not exceed the size limit.
+    """
 
     @staticmethod
     def chunk_message(
         payload: dict, max_size: int = 1100, msg_id: int | None = None
     ) -> list[str]:
-        """
-        Zwraca listę "gotowych do wysłania" ciągów znaków (JSON string).
-        Jeśli payload jest mały, zwróci po prostu zawartość (1-elementowa lista).
-        Wpp dodaje metadane chunkingu (__c, id, i, n, d).
+        """PL: Serializuje ładunek do JSON i dzieli go na ramki, gdy przekracza limit.
+
+        Dla małego ładunku zwraca jedną ramkę bez metadanych. Dla większego
+        dodaje metadane ``__c``, ``id``, ``i``, ``n`` i ``d`` do każdej części.
+
+        EN: Serializes the payload to JSON and chunks it when it exceeds the limit.
+
+        A small payload is returned as one frame without metadata. Larger payloads
+        receive ``__c``, ``id``, ``i``, ``n``, and ``d`` metadata on each chunk.
         """
         try:
             encoded = json.dumps(payload)
@@ -52,17 +65,27 @@ class MessageChunker:
 
 
 class MessageAssembler:
-    """Skleja przesyłane fragmenty, udostępnia interfejs nasłuchowy."""
+    """PL: Buforuje i składa fragmenty komunikatów JSON.
+
+    EN: Buffers and reassembles chunks of JSON messages.
+    """
 
     def __init__(self, logger: logging.Logger | None = None):
+        """PL: Tworzy pusty bufor fragmentów z opcjonalnym loggerem.
+
+        EN: Creates an empty chunk buffer with an optional logger.
+        """
         self._buffers: dict[int, dict] = {}
         self.logger = logger or logging.getLogger(__name__)
 
     def add_chunk(self, packet: dict) -> dict | None:
-        """
-        Dodaje mniejszy fragment do bufora. Jeśli zmontuje cały pakiet, przesyła oryginalny słownik.
-        Wymaga, aby wejściowy słownik był formacie {"__c": 1, ...}
-        Zwraca skompletowany dictionary lub None.
+        """PL: Buforuje fragment i zwraca oryginalny obiekt po jego złożeniu.
+
+        Pakiet musi mieć format fragmentu z polem ``__c`` równym ``1``.
+
+        EN: Buffers a chunk and returns the original object once it is reassembled.
+
+        The packet must use the chunk format with ``__c`` set to ``1``.
         """
         if packet.get("__c") != 1:
             return None
@@ -99,8 +122,9 @@ class MessageAssembler:
         return None
 
     def cleanup(self, timeout: float = 5.0) -> None:
-        """
-        Zwalnia martwe bufory. Należy wywoływać to asynchronicznie.
+        """PL: Usuwa bufory fragmentów nieaktualizowane dłużej niż podany limit.
+
+        EN: Removes chunk buffers that have not been updated within the timeout.
         """
         now = time.time()
         expired = [

@@ -1,6 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+PL: Zarządza sekwencjami punktów misji autonomicznej.
+EN: Manages waypoint sequences for autonomous missions.
 """
 import logging
 import time
@@ -8,15 +10,13 @@ from typing import Any
 
 
 class MissionManager:
-    """
-    Zarządza misjami autonomicznymi (np. patrol, sekwencja punktów).
-    Manages autonomous missions (e.g. patrol, waypoint sequence).
+    """PL: Uruchamia, aktualizuje i zatrzymuje misje nawigacyjne.
+    EN: Starts, updates, and stops navigation missions.
     """
 
     def __init__(self, nav_manager: Any) -> None:
-        """
-        Inicjalizuje menedżera misji.
-        Initializes the mission manager.
+        """PL: Łączy menedżera misji z komponentem nawigacji.
+        EN: Connects the mission manager to the navigation component.
         """
         self.logger = logging.getLogger("MissionManager")
         self.nav_manager = nav_manager
@@ -35,9 +35,8 @@ class MissionManager:
     def start_mission(
         self, waypoints: list[tuple[float, float]], loop: bool = False
     ) -> None:
-        """
-        Rozpoczyna misję z listą punktów.
-        Starts a mission with a list of waypoints.
+        """PL: Tworzy kolejkę punktów i rozpoczyna misję.
+        EN: Builds a waypoint queue and starts the mission.
         """
         self.mission_queue = []
         for wp in waypoints:
@@ -52,9 +51,8 @@ class MissionManager:
         self._next_item()
 
     def stop_mission(self) -> None:
-        """
-        Zatrzymuje misję.
-        Stops the mission.
+        """PL: Zatrzymuje misję, czyści cel i bieżącą ścieżkę.
+        EN: Stops the mission and clears its target and current path.
         """
         self.is_running = False
         self.current_mission_item = None
@@ -62,9 +60,8 @@ class MissionManager:
         self.logger.info("Mission stopped.")
 
     def update(self, current_pose: tuple[float, float, float], grid_map: Any) -> None:
-        """
-        Aktualizuje stan misji. Wywoływane w pętli głównej.
-        Updates mission state. Called in main loop.
+        """PL: Sprawdza postęp celu i planuje ponowne podejście w razie potrzeby.
+        EN: Checks target progress and replans when needed.
         """
         if not self.is_running:
             return
@@ -120,9 +117,8 @@ class MissionManager:
                             self.last_retry_time = current_time
 
     def _next_item(self) -> bool:
-        """
-        Przechodzi do następnego elementu w kolejce misji.
-        Advances to the next item in the mission queue.
+        """PL: Przesuwa kolejkę do następnego celu i czyści starą ścieżkę.
+        EN: Advances to the next mission target and clears the previous path.
         """
         self.retry_count = 0
         self.last_retry_time = 0.0
@@ -135,8 +131,7 @@ class MissionManager:
         return False
 
     def _restart_queue(self) -> None:
-        """
-        Przewija licznik waypointów na początek w trybie pętli (loop).
-        Rewinds waypoint counter to start in loop mode.
+        """PL: Ustawia licznik kolejki na początek misji zapętlonej.
+        EN: Resets the queue index to the start of a looping mission.
         """
         self.current_waypoint_index = 0

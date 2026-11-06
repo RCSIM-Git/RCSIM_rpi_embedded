@@ -1,14 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Moduł selektora sterowania (Control Selector) dla RPi.
-Control Selector Module for RPi.
-
-Ten moduł jest odpowiedzialny za arbitraż pomiędzy różnymi źródłami sterowania pojazdem
-na Raspberry Pi (Manual, AI, Autopilot, Failsafe).
-This module is responsible for arbitration between different vehicle control sources
-on the Raspberry Pi (Manual, AI, Autopilot, Failsafe).
+PL: Wybiera źródło sterowania pojazdem dla trybów manualnych i autonomicznych.
+EN: Selects the vehicle control source for manual and autonomous modes.
 """
 
 from __future__ import annotations
@@ -34,9 +28,8 @@ CONTROL_MODE_FAILSAFE = "FAILSAFE"
 
 
 class ControlSelector:
-    """
-    Zarządza arbitrażem sterowania, wybierając odpowiednie źródło.
-    Manages control arbitration by selecting the appropriate source.
+    """PL: Arbitruje polecenia sterujące i stosuje ograniczenia bezpieczeństwa.
+    EN: Arbitrates control commands and applies safety constraints.
     """
 
     def __init__(
@@ -45,9 +38,8 @@ class ControlSelector:
         ai_manager: "AIManager" | None = None,
         config: dict[str, Any] | None = None,
     ) -> None:
-        """
-        Inicjalizuje selektor sterowania.
-        Initializes the control selector.
+        """PL: Ustawia menedżery nawigacji i AI oraz stan selektora.
+        EN: Sets the navigation and AI managers and selector state.
         """
         self.nav_manager = nav_manager
         self.ai_manager = ai_manager
@@ -75,16 +67,8 @@ class ControlSelector:
     def reactive_override(
         self, planner_cmd: tuple[float, float], safety_score: float
     ) -> tuple[float, float]:
-        """
-        Modyfikuje komendy planera w oparciu o ocenę bezpieczeństwa (Reactive Control).
-        Modifies planner commands based on safety score (Reactive Control).
-
-        Args:
-            planner_cmd: (steering, throttle) proponowane przez planer.
-            safety_score: Ocena bezpieczeństwa 0.0 (kolizja) - 1.0 (bezpiecznie).
-
-        Returns:
-            tuple[float, float]: Zmodyfikowane sterowanie.
+        """PL: Redukuje gaz lub zatrzymuje pojazd według oceny bezpieczeństwa.
+        EN: Reduces throttle or stops the vehicle based on the safety score.
         """
         steering, throttle = planner_cmd
 
@@ -106,9 +90,8 @@ class ControlSelector:
     def _apply_acc(
         self, lidar_scan: list[tuple[float, float]] | None, throttle_input: float
     ) -> float:
-        """
-        Implementuje logikę Adaptacyjnego Tempomatu (ACC).
-        Implements Adaptive Cruise Control (ACC) logic.
+        """PL: Zwraca mnożnik gazu wynikający z odległości przeszkód z LiDAR.
+        EN: Returns a throttle multiplier based on LiDAR obstacle distance.
         """
         acc_enabled = True
         acc_min_dist = 0.5
@@ -159,9 +142,8 @@ class ControlSelector:
             return 0.0
 
     def _get_current_speed(self, frame_data: dict[str, Any]) -> float:
-        """
-        Pobiera aktualną prędkość pojazdu z danych GPS.
-        Gets the current vehicle speed from GPS data.
+        """PL: Pobiera prędkość GPS z ramki danych lub zwraca zero.
+        EN: Reads GPS speed from frame data or returns zero.
         """
         gps_data = frame_data.get("gps")  # Changed from gps_data
         if gps_data and "speed" in gps_data:
@@ -171,9 +153,8 @@ class ControlSelector:
     def get_reliable_pose(
         self, frame_data: dict[str, Any]
     ) -> tuple[float, float, float]:
-        """
-        Wybiera najbardziej wiarygodne źródło pozycji (GPS RTK vs SLAM).
-        Selects the most reliable pose source.
+        """PL: Wybiera pozycję GPS RTK albo zapasową pozycję SLAM.
+        EN: Selects the GPS RTK position or the fallback SLAM pose.
         """
         gps = frame_data.get("gps")
         slam_pose = frame_data.get("pose", (0.0, 0.0, 0.0))
@@ -191,9 +172,8 @@ class ControlSelector:
     def process_frame(
         self, mode: str, frame_data: dict[str, Any]
     ) -> tuple[float, float]:
-        """
-        Główna metoda decyzyjna wybierająca sterowanie na podstawie trybu i danych.
-        The main decision-making method selecting control based on mode and data.
+        """PL: Wyznacza sterowanie dla wybranego trybu na podstawie ramki danych.
+        EN: Computes controls for the selected mode from the input frame.
         """
         lidar_scan_raw = frame_data.get("lidar")
         is_mm = True
@@ -341,5 +321,8 @@ class ControlSelector:
         return steering, throttle
 
     def reset_ai_failure_counter(self) -> None:
+        """PL: Zeruje licznik błędów AI i ponownie włącza predykcje.
+        EN: Resets the AI failure counter and re-enables predictions.
+        """
         self._consecutive_ai_failures = 0
         self._ai_disabled = False

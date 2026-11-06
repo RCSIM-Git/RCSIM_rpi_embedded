@@ -1,6 +1,6 @@
-"""
-Natywny sterownik dla barometru BMP388 używający biblioteki Adafruit CircuitPython.
-Native driver for BMP388 Barometer using Adafruit CircuitPython library.
+"""PL: Udostępnia natywny odczyt ciśnienia i temperatury z BMP388.
+
+EN: Provides native pressure and temperature readings from a BMP388 sensor.
 """
 
 import logging
@@ -20,20 +20,25 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class NativeBMP388:
-    """
-    Sterownik dla sensora ciśnienia i temperatury BMP388.
-    Driver for the BMP388 pressure and temperature sensor.
+    """PL: Obsługuje BMP388 przez bibliotekę Adafruit i magistralę I2C.
+
+    EN: Operates a BMP388 through the Adafruit library and I2C bus.
     """
 
     def __init__(self, i2c_wrapper: Any | None = None, address: int = 0x77) -> None:
-        """
-        Inicjalizuje sensor BMP388 przez magistralę I2C.
-        Initializes the BMP388 sensor via I2C.
+        """PL: Inicjalizuje BMP388 pod wskazanym adresem I2C.
 
         Args:
-            i2c_wrapper (Any | None): Wrapper I2C (opcjonalny, używa busio).
-                                         I2C wrapper (optional, uses busio).
-            address (int): Adres I2C urządzenia (0x77 lub 0x76). / I2C address.
+            i2c_wrapper: Opcjonalny argument zachowany dla zgodności; magistrala
+                jest tworzona lokalnie przez busio.
+            address: Adres I2C urządzenia, zwykle 0x77 lub 0x76.
+
+        EN: Initializes the BMP388 at the specified I2C address.
+
+        Args:
+            i2c_wrapper: Optional compatibility argument; the bus is created
+                locally through busio.
+            address: I2C device address, usually 0x77 or 0x76.
         """
         if not AVAILABLE:
             raise ImportError("adafruit-circuitpython-bmp3xx library not found")
@@ -60,13 +65,15 @@ class NativeBMP388:
             self.bmp = None
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Odczytuje dane z sensora i zwraca je w formacie słownika.
-        Reads data from the sensor and returns it in dictionary format.
+        """PL: Odczytuje ciśnienie w paskalach i temperaturę w stopniach Celsjusza.
 
         Returns:
-            dict[str, Any]: Słownik zawierający 'pressure' i 'temperature'.
-                            Dictionary containing 'pressure' and 'temperature'.
+            Słownik z polami pressure i temperature albo pusty słownik przy błędzie.
+
+        EN: Reads pressure in pascals and temperature in degrees Celsius.
+
+        Returns:
+            A dictionary with pressure and temperature, or an empty dictionary on error.
         """
         if self.bmp is None:
             return {}

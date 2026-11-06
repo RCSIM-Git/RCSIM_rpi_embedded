@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
-"""
-ESC Calibration and Test Tool for RCSIM
-Warstwa testowa i kalibracyjna dla ESC (Electronic Speed Controllers).
+"""PL: Interaktywne narzędzie do testowania i kalibracji ESC przez PCA9685.
 
-Ten skrypt pozwala na:
-1. Sprawdzenie działania sterownika PCA9685 (Native lub Adafruit).
-2. Ustawienie częstotliwości PWM (domyślnie 50Hz).
-3. Ręczne sterowanie szerokością impulsu (1000-2000us) dla wybranego kanału.
-4. Przeprowadzenie procedury kalibracji ESC (Max -> Min -> Neutral).
+EN: Interactive tool for testing and calibrating ESCs through the PCA9685.
 """
 
 import logging
@@ -28,13 +22,26 @@ logger = logging.getLogger("ESC_TEST")
 
 
 class ESCTester:
+    """PL: Udostępnia interaktywne sterowanie kanałami PWM i kalibrację ESC.
+
+    EN: Provide interactive PWM channel control and ESC calibration.
+    """
+
     def __init__(self):
+        """PL: Inicjalizuje ustawienia sterownika i uruchamia jego konfigurację.
+
+        EN: Initialize driver settings and configure the driver.
+        """
         self.pca_wrapper = None
         self.address = 0x40
         self.frequency = 50
         self.init_driver()
 
     def init_driver(self):
+        """PL: Inicjalizuje sterownik PCA9685 lub kończy pracę przy błędzie.
+
+        EN: Initialize the PCA9685 driver or exit if initialization fails.
+        """
         logger.info("Inicjalizacja sterownika PCA9685 via Wrapper...")
         if not WRAPPER_AVAILABLE:
             logger.critical(
@@ -60,6 +67,10 @@ class ESCTester:
             sys.exit(1)
 
     def set_freq(self, freq):
+        """PL: Ustawia częstotliwość PWM i przywraca neutralne kanały.
+
+        EN: Set the PWM frequency and return channels to neutral.
+        """
         self.frequency = freq
         if self.pca_wrapper:
             # Wrapper nie ma metody set_frequency (robi to przy init),
@@ -75,16 +86,28 @@ class ESCTester:
         self.set_all_neutral()
 
     def set_pulse(self, channel, pulse_us, force=False):
+        """PL: Ustawia szerokość impulsu na wskazanym kanale PWM.
+
+        EN: Set the pulse width on the selected PWM channel.
+        """
         if self.pca_wrapper:
             self.pca_wrapper.set_servo_pulse(channel, pulse_us, force=force)
         logger.debug(f"Ch {channel} -> {pulse_us} us (force={force})")
 
     def set_all_neutral(self):
+        """PL: Ustawia wszystkie kanały sterownika na neutralne impulsy.
+
+        EN: Set all driver channels to neutral pulse widths.
+        """
         logger.info("Ustawianie wszystkich kanałów na Neutral (1500us)...")
         if self.pca_wrapper:
             self.pca_wrapper.set_all_channels_neutral()
 
     def calibrate_esc(self, channel):
+        """PL: Prowadzi operatora przez sekwencję kalibracji ESC.
+
+        EN: Guide the operator through the ESC calibration sequence.
+        """
         print(f"\n--- INTERAKTYWNA KALIBRACJA ESC (Kanał {channel}) ---")
         print("UWAGA: Zdejmij śmigła lub unieś koła pojazdu!")
         print(
@@ -112,6 +135,10 @@ class ESCTester:
         print("Procedura zakończona. Sprawdź, czy silnik reaguje.")
 
     def manual_control(self, channel):
+        """PL: Przyjmuje ręczne wartości impulsu dla wybranego kanału.
+
+        EN: Accept manual pulse-width values for the selected channel.
+        """
         print(f"\n--- RĘCZNA KONTROLA (Kanał {channel}) ---")
         print("Wpisuj wartości impulsów w us (800-2200). 'q' aby wyjść.")
         while True:
@@ -127,6 +154,10 @@ class ESCTester:
                 print("Błędna wartość.")
 
     def run(self):
+        """PL: Uruchamia menu narzędzia testowego ESC.
+
+        EN: Run the ESC test tool menu.
+        """
         print("--- RCSIM ESC TOOL ---")
         # Domyślnie ustaw 50Hz i Neutral na wszystkie kanały
         try:

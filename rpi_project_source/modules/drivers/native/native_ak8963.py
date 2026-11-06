@@ -1,12 +1,6 @@
-"""
-Native AK8963 Magnetometer Driver using a shared I2C wrapper.
-Natywny sterownik magnetometru AK8963 używający współdzielonego wrappera I2C.
+"""PL: Odczytuje trójosiowy magnetometr AK8963 przez wspólny wrapper I2C.
 
-This driver provides a low-level interface to the AK8963 3-axis magnetometer,
-which is commonly found integrated into the MPU-9250 IMU.
-
-Ten sterownik dostarcza niskopoziomowy interfejs do 3-osiowego magnetometru
-AK8963, który jest często zintegrowany w IMU MPU-9250.
+EN: Reads the three-axis AK8963 magnetometer through a shared I2C wrapper.
 """
 
 import logging
@@ -16,9 +10,9 @@ from .native_i2c import I2CWrapper
 
 
 class NativeAK8963:
-    """
-    A lightweight driver for the AK8963 magnetometer.
-    Lekki sterownik dla magnetometru AK8963.
+    """PL: Konfiguruje AK8963 i udostępnia skorygowane pomiary pola.
+
+    EN: Configures the AK8963 and provides corrected magnetic field readings.
     """
 
     _DEFAULT_ADDRESS = 0x0C
@@ -42,13 +36,17 @@ class NativeAK8963:
     def __init__(
         self, i2c_wrapper: I2CWrapper, address: int = _DEFAULT_ADDRESS
     ) -> None:
-        """
-        Initializes the AK8963 driver.
-        Inicjalizuje sterownik AK8963.
+        """PL: Weryfikuje identyfikator układu, kalibrację i tryb pomiaru.
 
         Args:
-            i2c_wrapper (I2CWrapper): The shared I2C wrapper instance.
-            address (int): The I2C address of the AK8963. Defaults to 0x0C.
+            i2c_wrapper: Współdzielony wrapper magistrali I2C.
+            address: Adres AK8963, domyślnie 0x0C.
+
+        EN: Verifies the chip identifier, loads sensitivity data, and sets the mode.
+
+        Args:
+            i2c_wrapper: Shared I2C bus wrapper.
+            address: AK8963 address, defaulting to 0x0C.
         """
         self.i2c: I2CWrapper = i2c_wrapper
         self.address: int = address
@@ -65,15 +63,15 @@ class NativeAK8963:
         logging.info("✓ Detected AK8963 magnetometer")
 
     def _read_sensitivity_adjustments(self) -> dict[str, float]:
-        """
-        Reads the factory-programmed sensitivity adjustment values from Fuse ROM.
-        Odczytuje fabrycznie zaprogramowane wartości korekcji czułości z Fuse ROM.
-
-        These values are used to correct the raw magnetometer data.
-        Te wartości są używane do korekcji surowych danych magnetometru.
+        """PL: Odczytuje fabryczne współczynniki czułości z Fuse ROM.
 
         Returns:
-            dict[str, float]: A dictionary with the adjustment values for each axis.
+            Słownik współczynników korekcyjnych osi x, y i z.
+
+        EN: Reads factory sensitivity adjustment values from Fuse ROM.
+
+        Returns:
+            A dictionary of adjustment coefficients for the x, y, and z axes.
         """
         # To read the Fuse ROM, we must first enter Fuse ROM access mode
         # Aby odczytać Fuse ROM, musimy najpierw wejść w tryb dostępu do Fuse ROM
@@ -98,14 +96,17 @@ class NativeAK8963:
         }
 
     def set_mode(self, mode: int = _MODE_CONTINUOUS_2, bit_output: int = 1) -> None:
-        """
-        Sets the measurement mode of the magnetometer.
-        Ustawia tryb pomiaru magnetometru.
+        """PL: Ustawia tryb pomiaru i rozdzielczość wyjścia magnetometru.
 
         Args:
-            mode (int): The desired mode (e.g., `_MODE_CONTINUOUS_2` for 100Hz).
-            bit_output (int): Output bit setting: 0 for 14-bit, 1 for 16-bit (default).
-                             Ustawienie bitów wyjściowych: 0 dla 14-bit, 1 dla 16-bit.
+            mode: Wartość trybu pracy układu.
+            bit_output: 0 wybiera wyjście 14-bitowe, 1 — 16-bitowe.
+
+        EN: Sets the magnetometer measurement mode and output resolution.
+
+        Args:
+            mode: Sensor operating mode value.
+            bit_output: 0 selects 14-bit output; 1 selects 16-bit output.
         """
         # 🔧 FIX: Zgodność z kodem ricardozago - dodaj bit_output
         # GitHub: 0b00010110 = continuous mode 2 (100Hz) + 16-bit output
@@ -116,18 +117,23 @@ class NativeAK8963:
         time.sleep(0.01)
 
     def _bytes_to_int(self, low: int, high: int) -> int:
-        """Converts two bytes to a signed 16-bit integer (little-endian)."""
+        """PL: Dekoduje dwa bajty little-endian jako liczbę 16-bit ze znakiem.
+
+        EN: Decodes two little-endian bytes as a signed 16-bit integer.
+        """
         value = (high << 8) | low
         return value if value < 32768 else value - 65536
 
     def read_scaled(self) -> tuple[float, float, float]:
-        """
-        Reads, scales, and adjusts the magnetometer data.
-        Odczytuje, skaluje i koryguje dane magnetometru.
+        """PL: Odczytuje, skaluje i koryguje wektor pola magnetycznego w µT.
 
         Returns:
-            tuple[float, float, float]: Corrected x, y, z magnetic field data in µT.
-                                        Krotka ze skorygowanymi danymi x, y, z w µT.
+            Wartości osi x, y i z albo NaN przy przepełnieniu pomiaru.
+
+        EN: Reads, scales, and corrects the magnetic field vector in µT.
+
+        Returns:
+            x, y, and z values, or NaN values when the measurement overflows.
         """
         # Read the 7-byte block containing data and the status register
         # Odczytaj 7-bajtowy blok zawierający dane i rejestr statusu
@@ -160,9 +166,9 @@ class NativeAK8963:
         return scaled_x, scaled_y, scaled_z
 
     def read_data(self) -> dict[str, float]:
-        """
-        Returns data in a dictionary format for HardwareManager compatibility.
-        Zwraca dane w formacie słownika dla kompatybilności z HardwareManager.
+        """PL: Zwraca pomiary osi magnetometru jako słownik dla HardwareManager.
+
+        EN: Returns magnetometer axis readings as a HardwareManager-compatible dictionary.
         """
         mx, my, mz = self.read_scaled()
         return {"mx": mx, "my": my, "mz": mz}

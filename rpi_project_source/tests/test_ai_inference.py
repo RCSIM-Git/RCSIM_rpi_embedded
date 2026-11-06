@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""PL: Testy wnioskowania AI i postprocessingu wyników detekcji.
+
+EN: Tests for AI inference and detection result postprocessing.
+"""
+
 import logging
 import time
 import unittest
@@ -9,7 +14,16 @@ from modules.postprocess_yolo import postprocess_yolo
 
 
 class TestAIInference(unittest.TestCase):
+    """PL: Sprawdza zachowanie AIManager w trybie testowym.
+
+    EN: Verify AIManager behavior in test mode.
+    """
+
     def setUp(self):
+        """PL: Przygotowuje konfigurację i instancję AIManager.
+
+        EN: Prepare the configuration and AIManager instance.
+        """
         self.config = {
             "autonomous_navigation": {
                 "hef_path": "models/rcsimai.hef",
@@ -21,7 +35,10 @@ class TestAIInference(unittest.TestCase):
         self.ai = AIManager(self.logger, self.config)
 
     def test_mock_inference(self):
-        """Testuje czy tryb mock zwraca detekcje i czy tracker działa."""
+        """PL: Sprawdza detekcje i stabilność identyfikatora trackera.
+
+        EN: Verify detections and tracker identifier stability.
+        """
         img = np.zeros((480, 640, 3), dtype=np.uint8)
 
         # Pierwsza ramka / First frame
@@ -40,7 +57,10 @@ class TestAIInference(unittest.TestCase):
         self.assertEqual(id1, id2, "Tracker should maintain ID for moving mock objects")
 
     def test_nms_logic(self):
-        """Testuje logikę NMS na syntetycznym wyjściu."""
+        """PL: Sprawdza tłumienie nakładających się ramek detekcji.
+
+        EN: Verify suppression of overlapping detection boxes.
+        """
         # [x, y, w, h, conf, c1, c2...]
         # Tworzymy dwa niemal identyczne bboxy
         fake_output = np.zeros((1, 10, 6))

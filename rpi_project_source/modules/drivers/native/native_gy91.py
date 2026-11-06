@@ -1,6 +1,6 @@
-"""
-Połączony sterownik dla modułu GY-91 (MPU-9250/MPU-9255 + BMP280).
-Combined driver for GY-91 module (MPU-9250/MPU-9255 + BMP280).
+"""PL: Łączy sensory IMU MPU-9250/9255 i barometr BMP280 modułu GY-91.
+
+EN: Combines the MPU-9250/9255 IMU and BMP280 barometer on a GY-91 module.
 
 WAŻNE / IMPORTANT:
 - Chipy sprzedawane jako MPU-9250 to często MPU-9255 (ID: 0x73 zamiast 0x71)
@@ -33,9 +33,9 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 @SensorRegistry.register
 class NativeGY91(IMUBase):
-    """
-    Sterownik dla modułu GY-91 łączący MPU-9250 (IMU) i BMP280 (Barometr).
-    GY-91 Driver combining MPU-9250 (IMU) and BMP280 (Barometer).
+    """PL: Udostępnia wspólny interfejs do IMU i barometru GY-91.
+
+    EN: Provides a combined interface to the GY-91 IMU and barometer.
     """
 
     DRIVER_NAME = "native_gy91"
@@ -44,7 +44,10 @@ class NativeGY91(IMUBase):
 
     @classmethod
     def scan(cls, i2c) -> bool:
-        """Check for MPU-9250/9255 + BMP280 combo."""
+        """PL: Wykrywa identyfikatory MPU-9250/9255 i BMP280 na magistrali I2C.
+
+        EN: Detects MPU-9250/9255 and BMP280 identifiers on the I2C bus.
+        """
         try:
             who = i2c.read_byte_data(0x68, 0x75)
             if who not in [0x71, 0x73]:
@@ -62,12 +65,15 @@ class NativeGY91(IMUBase):
             return False
 
     def __init__(self, i2c_wrapper: I2CWrapper) -> None:
-        """
-        Inicjalizuje moduł GY-91 poprzez skanowanie typowych adresów sensorów.
-        Initializes the GY-91 module by scanning typical sensor addresses.
+        """PL: Inicjalizuje IMU i barometr, próbując typowych adresów I2C.
 
         Args:
-            i2c_wrapper (I2CWrapper): Wrapper magistrali I2C. / I2C bus wrapper.
+            i2c_wrapper: Wrapper współdzielonej magistrali I2C.
+
+        EN: Initializes the IMU and barometer, trying their common I2C addresses.
+
+        Args:
+            i2c_wrapper: Wrapper for the shared I2C bus.
         """
         # Adresy GY-91:
         # MPU9250: zazwyczaj 0x68 (domyślny) lub 0x69
@@ -110,13 +116,15 @@ class NativeGY91(IMUBase):
             logger.critical("GY-91: Neither sensor could be initialized!")
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Odczytuje dane z obu sensorów i scala je w jeden słownik.
-        Reads data from both sensors and merges them.
+        """PL: Odczytuje dostępne sensory i scala ich dane w jeden słownik.
 
         Returns:
-            dict[str, Any]: Scalone dane (acc, gyro, mag, pressure, temp).
-                            Merged data (acc, gyro, mag, pressure, temp).
+            Pomiary IMU i barometru, o ile są dostępne.
+
+        EN: Reads available sensors and merges their data into one dictionary.
+
+        Returns:
+            IMU and barometer readings when available.
         """
         data: dict[str, Any] = {}
 
@@ -141,21 +149,24 @@ class NativeGY91(IMUBase):
         return data
 
     def calibrate(self) -> bool:
-        """
-        Przeprowadza kalibrację IMU (MPU9250/9255).
-        Performs calibration of the IMU (MPU9250/9255).
+        """PL: Deleguje kalibrację do MPU-9250/9255, jeśli IMU jest dostępne.
+
+        EN: Delegates calibration to the MPU-9250/9255 when the IMU is available.
         """
         if self.mpu:
             return self.mpu.calibrate()
         return False
 
     def get_chip_info(self) -> dict[str, Any]:
-        """
-        Zwraca informacje o wykrytych chipach w module GY-91.
-        Returns information about detected chips in the GY-91 module.
+        """PL: Zwraca obecność sensorów i dostępne identyfikatory układów.
 
         Returns:
-            dict[str, Any]: Informacje o chipach / Chip information
+            Słownik informacji o module, IMU, magnetometrze i barometrze.
+
+        EN: Returns sensor presence and any readable chip identifiers.
+
+        Returns:
+            A dictionary describing the module, IMU, magnetometer, and barometer.
         """
         info: dict[str, Any] = {
             "module": "GY-91 (10-DoF)",

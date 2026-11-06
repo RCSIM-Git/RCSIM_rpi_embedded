@@ -1,4 +1,7 @@
-"""Measured-only IMU acquisition and MAVLink SI telemetry regressions."""
+"""PL: Testy pomiarów IMU i przekazywania telemetrii w jednostkach SI.
+
+EN: Tests for IMU measurements and SI-unit telemetry forwarding.
+"""
 import math
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -10,6 +13,10 @@ from modules.hardware.sensor_aggregator import SensorAggregator
 
 
 def aggregator(driver, result=None, failure=None):
+    """PL: Tworzy agregator czujników z kontrolowanym wynikiem IMU.
+
+    EN: Create a sensor aggregator with a controlled IMU result.
+    """
     reader = Mock(return_value=result, side_effect=failure)
     obj = SensorAggregator.__new__(SensorAggregator)
     obj.config = {}
@@ -22,6 +29,10 @@ def aggregator(driver, result=None, failure=None):
 
 @pytest.mark.parametrize("driver,az", [("native_mpu9250", 1), ("native_bmx160", 9.81)])
 def test_measured_units_and_acquisition_clock(driver, az):
+    """PL: Sprawdza jednostki pomiarów i monotoniczne metadane próbek.
+
+    EN: Verify measurement units and monotonic sample metadata.
+    """
     obj = aggregator(driver, dict(ax=0, ay=0, az=az, gx=180, gy=0, gz=0))
     first = obj.read_sensors()["imu"]
     second = obj.read_sensors()["imu"]
@@ -37,11 +48,19 @@ def test_measured_units_and_acquisition_clock(driver, az):
 @pytest.mark.parametrize("result,failure", [(None, None), ({}, None), (None, OSError("bus failed")),
                                           (dict(ax=float("nan"), ay=0, az=1), None)])
 def test_read_failure_has_no_synthetic_imu(result, failure):
+    """PL: Sprawdza, że błędny odczyt nie tworzy syntetycznych danych IMU.
+
+    EN: Verify that a failed read does not create synthetic IMU data.
+    """
     obj = aggregator("native_mpu9250", result, failure)
     assert obj.read_sensors()["imu"] is None
 
 
 def test_absent_gyro_not_invented():
+    """PL: Sprawdza, że brakujące dane żyroskopu pozostają nieobecne.
+
+    EN: Verify that missing gyroscope measurements remain absent.
+    """
     obj = aggregator("native_bno08x", dict(ax=0, ay=0, az=1))
     imu = obj.read_sensors()["imu"]
     assert "gx" not in imu
@@ -49,6 +68,10 @@ def test_absent_gyro_not_invented():
 
 
 def test_calibration_applied_in_canonical_units():
+    """PL: Sprawdza kalibrację IMU w jednostkach kanonicznych.
+
+    EN: Verify IMU calibration in canonical units.
+    """
     obj = aggregator("native_mpu9250", dict(ax=0, ay=0, az=1, gx=180, gy=0, gz=0))
     obj.config["imu_calibration"] = {"gyro_bias_x": math.pi, "accel_offset_z": 0.81,
                                      "accel_unit": "m/s2", "gyro_unit": "rad/s"}
@@ -58,6 +81,10 @@ def test_calibration_applied_in_canonical_units():
 
 
 def test_legacy_calibration_keeps_native_driver_units():
+    """PL: Sprawdza konwersję starszej konfiguracji kalibracji.
+
+    EN: Verify conversion of legacy calibration settings.
+    """
     obj = aggregator("native_mpu9250", dict(ax=1, ay=0, az=1, gx=10, gy=0, gz=0))
     obj.config["imu_calibration"] = {"gyro_bias_x": 5, "accel_offset_x": 0.1}
     imu = obj.read_sensors()["imu"]
@@ -66,6 +93,10 @@ def test_legacy_calibration_keeps_native_driver_units():
 
 
 def test_highres_si_and_missing_magnetometer_flags():
+    """PL: Sprawdza wiadomość HIGHRES_IMU i flagi dostępnych pomiarów.
+
+    EN: Verify HIGHRES_IMU output and flags for available measurements.
+    """
     service = MAVLinkService()
     service.master = SimpleNamespace(mav=Mock())
     service.send_attitude(0, 0, 0, dict(ax=0, ay=0, az=9.81, gx=math.pi, gy=0, gz=0,

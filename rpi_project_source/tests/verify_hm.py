@@ -1,3 +1,8 @@
+"""PL: Skrypt weryfikujący import HardwareManager.
+
+EN: Script that verifies the HardwareManager import.
+"""
+
 import os
 import sys
 

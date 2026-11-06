@@ -1,3 +1,8 @@
+"""PL: Udostępnia most MAVLink do przesyłania telemetrii do QGroundControl.
+
+EN: Provides a MAVLink bridge for sending telemetry to QGroundControl.
+"""
+
 import logging
 import threading
 import time
@@ -9,14 +14,26 @@ logger = logging.getLogger(__name__)
 
 
 class MAVLinkBridge:
-    """
-    Most MAVLink umożliwiający integrację z QGroundControl.
-    MAVLink bridge for QGroundControl integration.
+    """PL: Wysyła heartbeat i telemetrię pojazdu przez połączenie MAVLink.
+
+    EN: Sends vehicle heartbeats and telemetry over a MAVLink connection.
     """
 
     def __init__(
         self, connection_str: str = "udpout:127.0.0.1:14550", system_id: int = 1
     ):
+        """PL: Konfiguruje połączenie i identyfikator systemu MAVLink.
+
+        Args:
+            connection_str: Parametr połączenia przekazywany do pymavlink.
+            system_id: Identyfikator systemu źródłowego MAVLink.
+
+        EN: Configures the MAVLink connection and system identifier.
+
+        Args:
+            connection_str: Connection string passed to pymavlink.
+            system_id: MAVLink source system identifier.
+        """
         self.connection_str = connection_str
         self.system_id = system_id
         self.component_id = mavutil.mavlink.MAV_COMP_ID_AUTOPILOT1
@@ -26,7 +43,10 @@ class MAVLinkBridge:
         self.boot_time = time.time()
 
     def start(self):
-        """Uruchamia most MAVLink."""
+        """PL: Otwiera połączenie MAVLink i uruchamia wątek heartbeat.
+
+        EN: Opens the MAVLink connection and starts the heartbeat thread.
+        """
         try:
             self.master = mavutil.mavlink_connection(
                 self.connection_str, source_system=self.system_id
@@ -39,12 +59,19 @@ class MAVLinkBridge:
             logger.error(f"❌ Failed to start MAVLink Bridge: {e}")
 
     def stop(self):
+        """PL: Zatrzymuje pętlę i czeka krótko na zakończenie wątku.
+
+        EN: Stops the loop and waits briefly for the thread to finish.
+        """
         self.running = False
         if self.thread:
             self.thread.join(timeout=1.0)
 
     def _update_loop(self):
-        """Pętla wysyłająca Heartbeat (1Hz)."""
+        """PL: Wysyła heartbeat co sekundę, dopóki most jest uruchomiony.
+
+        EN: Sends a heartbeat once per second while the bridge is running.
+        """
         last_heartbeat = 0
         while self.running:
             now = time.time()
@@ -54,7 +81,10 @@ class MAVLinkBridge:
             time.sleep(0.1)
 
     def send_heartbeat(self):
-        """Wysyła pakiet HEARTBEAT (wymagane przez QGC)."""
+        """PL: Wysyła pakiet MAVLink HEARTBEAT, jeśli połączenie jest dostępne.
+
+        EN: Sends a MAVLink HEARTBEAT packet when a connection is available.
+        """
         if not self.master:
             return
         self.master.mav.heartbeat_send(
@@ -66,7 +96,21 @@ class MAVLinkBridge:
         )
 
     def send_telemetry(self, sensor_data: dict[str, Any]):
-        """Wysyła pakiety telemetryczne (GLOBAL_POSITION_INT, ATTITUDE)."""
+        """PL: Wysyła pakiety ATTITUDE i GLOBAL_POSITION_INT z danych czujników.
+
+        Przy braku danych EKF orientacja i prędkość przyjmują wartości domyślne;
+        przy braku połączenia metoda niczego nie wysyła.
+
+        Args:
+            sensor_data: Słownik zawierający dane IMU, GPS i opcjonalnie EKF.
+
+        EN: Sends ATTITUDE and GLOBAL_POSITION_INT packets from sensor data.
+
+        Missing EKF values use defaults; no packets are sent when disconnected.
+
+        Args:
+            sensor_data: Dictionary containing IMU, GPS, and optional EKF data.
+        """
         if not self.master:
             return
 

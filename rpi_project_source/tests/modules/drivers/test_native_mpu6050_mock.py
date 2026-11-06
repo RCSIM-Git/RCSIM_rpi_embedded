@@ -1,3 +1,7 @@
+"""PL: Testuje inicjalizację i przeliczenie odczytów sterownika MPU6050.
+EN: Tests MPU6050 driver initialization and sensor reading conversion.
+"""
+
 import os
 import sys
 import unittest
@@ -11,11 +15,20 @@ from modules.drivers.native.native_mpu6050 import NativeMPU6050
 
 
 class TestNativeMPU6050(unittest.TestCase):
+    """PL: Testy natywnego sterownika MPU6050 z atrapą magistrali I2C.
+    EN: Native MPU6050 driver tests using an I2C bus mock.
+    """
+
     def setUp(self):
+        """PL: Tworzy atrapę magistrali I2C.
+        EN: Creates an I2C bus mock.
+        """
         self.mock_i2c = MagicMock()
 
     def test_init_success(self):
-        """Test successful initialization with correct chip ID."""
+        """PL: Sprawdza inicjalizację po odczycie prawidłowego identyfikatora.
+        EN: Checks initialization after reading the expected chip identifier.
+        """
         # Mock MPU6050 chip ID (0x68)
         self.mock_i2c.read_byte_data.return_value = 0x68
 
@@ -26,14 +39,18 @@ class TestNativeMPU6050(unittest.TestCase):
         self.mock_i2c.write_byte_data.assert_called_with(0x68, 0x6B, 0x00)  # Wake up
 
     def test_init_fail_chip_id(self):
-        """Test initialization failure with incorrect chip ID."""
+        """PL: Sprawdza błąd inicjalizacji przy nieprawidłowym identyfikatorze.
+        EN: Checks initialization failure for an unexpected chip identifier.
+        """
         self.mock_i2c.read_byte_data.return_value = 0x00  # Wrong ID
 
         with self.assertRaises(RuntimeError):
             NativeMPU6050(self.mock_i2c)
 
     def test_read_raw_and_scaled(self):
-        """Test reading raw and scaled data."""
+        """PL: Sprawdza skalowanie surowych próbek przyspieszenia i temperatury.
+        EN: Checks scaling of raw acceleration and temperature samples.
+        """
         self.mock_i2c.read_byte_data.return_value = 0x68
         mpu = NativeMPU6050(self.mock_i2c)
 

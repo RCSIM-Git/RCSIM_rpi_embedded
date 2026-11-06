@@ -1,11 +1,6 @@
-"""
-Mockowy sterownik dla sensora MPU9250.
-Mock driver for the MPU9250 sensor.
+"""PL: Udostępnia mockowe dane MPU9250 do testów bez sprzętu.
 
-Ten moduł dostarcza symulowane dane dla sensora MPU9250, używane do testów
-systemu bez fizycznego podłączenia sprzętu.
-This module provides simulated data for the MPU9250 sensor, used for testing
-the system without physical hardware connected.
+EN: Provides mock MPU9250 data for testing without physical hardware.
 """
 
 import logging
@@ -15,18 +10,15 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class MPU9250:
-    """
-    Mockowy sterownik dla sensora MPU9250.
-    Mock driver for the MPU9250 sensor.
+    """PL: Zwraca symulowane pomiary sensora MPU9250.
+
+    EN: Returns simulated readings from the MPU9250 sensor.
     """
 
     def __init__(self, i2c_bus: Any) -> None:
-        """
-        Inicjalizuje mockowy sterownik MPU9250.
-        Initializes the MPU9250 mock driver.
+        """PL: Zapisuje magistralę I2C przekazaną do mockowego sterownika.
 
-        Args:
-            i2c_bus (Any): Magistrala I2C (mockowana lub rzeczywista). / I2C bus.
+        EN: Stores the I2C bus passed to the mock driver.
         """
         self.i2c: Any = i2c_bus
         logger.info(
@@ -34,12 +26,9 @@ class MPU9250:
         )
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Zwraca słownik z symulowanymi danymi sensora w ustandaryzowanym formacie.
-        Returns a dictionary with simulated sensor data in a standardized format.
+        """PL: Zwraca symulowane dane IMU w ustandaryzowanym słowniku.
 
-        Returns:
-            dict[str, Any]: Słownik zawierający 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'temp'.
+        EN: Returns simulated IMU data in a standardized dictionary.
         """
         return {
             "ax": 9.6,
@@ -55,9 +44,9 @@ class MPU9250:
         }
 
     def calibrate(self) -> bool:
-        """
-        Mockowa kalibracja.
-        Mock calibration.
+        """PL: Zapisuje informację o mockowej kalibracji i zwraca sukces.
+
+        EN: Logs the mock calibration and returns success.
         """
         logger.info("MPU9250 (mock): Calibration successful.")
         return True

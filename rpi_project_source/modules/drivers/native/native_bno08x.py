@@ -1,6 +1,6 @@
-"""
-Natywny sterownik dla IMU BNO08x używający biblioteki Adafruit CircuitPython.
-Native driver for BNO08x IMU using Adafruit CircuitPython library.
+"""PL: Natywny sterownik IMU BNO08x oparty na bibliotece Adafruit CircuitPython.
+
+EN: Native BNO08x IMU driver based on the Adafruit CircuitPython library.
 """
 
 import logging
@@ -27,9 +27,9 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 @SensorRegistry.register
 class NativeBNO08x(IMUBase):
-    """
-    Sterownik dla zaawansowanego sensora orientacji (IMU) BNO08x.
-    Driver for the advanced BNO08x orientation sensor (IMU).
+    """PL: Odczytuje przyspieszenie, kwaternion, żyroskop i magnetometr BNO08x.
+
+    EN: Reads acceleration, quaternion, gyroscope, and magnetometer data from BNO08x.
     """
 
     DRIVER_NAME = "native_bno08x"
@@ -37,13 +37,15 @@ class NativeBNO08x(IMUBase):
     PRIORITY = 10  # Najwyższy — sprzętowa fuzja / Highest — HW fusion
 
     def __init__(self, i2c_wrapper: Any | None = None) -> None:
-        """
-        Inicjalizuje sensor BNO08x i włącza raportowanie danych.
-        Initializes the BNO08x sensor and enables data reporting.
+        """PL: Inicjalizuje BNO08x i włącza raporty sensorów.
 
         Args:
-            i2c_wrapper (Any | None): Ignorowane, używa busio bezpośrednio.
-                                         Ignored, uses busio directly.
+            i2c_wrapper: Argument zachowany dla zgodności; nie jest używany.
+
+        EN: Initializes the BNO08x and enables sensor reports.
+
+        Args:
+            i2c_wrapper: Compatibility argument; it is not used.
         """
         if not AVAILABLE:
             raise ImportError("adafruit-circuitpython-bno08x library not found")
@@ -71,12 +73,16 @@ class NativeBNO08x(IMUBase):
             self.bno = None
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Odczytuje dane (akceleracja, kwaternion) z sensora.
-        Reads data (acceleration, quaternion) from the sensor.
+        """PL: Odczytuje dane IMU i zwraca je jako pola słownika.
 
         Returns:
-            dict[str, Any]: Słownik z danymi sensora. / Dictionary with sensor data.
+            Dane akcelerometru w g, żyroskopu w rad/s, magnetometru w µT i kwaternion.
+
+        EN: Reads IMU data and returns it as dictionary fields.
+
+        Returns:
+            Accelerometer values in g, gyroscope in rad/s, magnetometer in µT,
+            and quaternion fields.
         """
         if self.bno is None:
             return {}
@@ -130,9 +136,9 @@ class NativeBNO08x(IMUBase):
             return {}
 
     def calibrate(self) -> bool:
-        """
-        BNO08x has internal auto-calibration.
-        We just log that it's active.
+        """PL: Zapisuje w logu informację o wewnętrznej autokalibracji BNO08x.
+
+        EN: Logs that the BNO08x internal automatic calibration is active.
         """
         logger.info("BNO08x: Using internal auto-calibration.")
         return True

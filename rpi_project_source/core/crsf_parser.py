@@ -1,9 +1,14 @@
-"""
-DEPRECATED: Moduł zachowany dla kompatybilności wstecznej.
-Protokół CRSF/FBW został zarchiwizowany na rzecz MAVLink.
+"""PL: Archiwalny parser ramek CRSF zachowany dla kompatybilności wstecznej.
 
-CRSF Protocol Parser
-Parsuje binarne ramki wideo z Crossfire/ExpressLRS z portu szeregowego.
+Odbiera kanały RC i statystyki łącza z UART oraz może nadawać wybrane dane
+telemetryczne. Protokół CRSF/FBW został zastąpiony przez MAVLink.
+
+EN: Archived CRSF frame parser retained for backward compatibility.
+
+It receives RC channels and link statistics over UART and can transmit selected
+telemetry data. The CRSF/FBW protocol has been superseded by MAVLink.
+
+Parsuje binarne ramki CRSF z urządzeń Crossfire/ExpressLRS przez port szeregowy.
 Specyfikacja RC_CHANNELS_PACKED:
 Sync(0xC8) | Length(24) | Type(0x16) | Payload(22 bytes: 16 przyległych 11-bitówek) | CRC8(1 byte)
 Wymaga `pyserial`.
@@ -20,9 +25,13 @@ import serial
 
 
 class CRSFParser:
-    """
-    DEPRECATED: Zachowany dla kompatybilności wstecznej.
-    Odczytuje port UART i na bieżąco dekoduje ramki CRSF (RC/Telemetria).
+    """PL: Odczytuje i dekoduje ramki CRSF z portu UART.
+
+    Klasa jest przestarzała i zachowana wyłącznie dla kompatybilności.
+
+    EN: Reads and decodes CRSF frames from a UART port.
+
+    This class is deprecated and retained for compatibility only.
     """
 
     SYNC_BYTE = 0xC8
@@ -37,6 +46,20 @@ class CRSFParser:
         baudrate: int = BAUDRATE,
         logger: Optional[logging.Logger] = None,
     ):
+        """PL: Przygotowuje parser i bufory dla wskazanego portu szeregowego.
+
+        Args:
+            port: Nazwa portu UART.
+            baudrate: Szybkość transmisji portu.
+            logger: Opcjonalny logger; domyślnie używany jest logger modułu.
+
+        EN: Prepares the parser and buffers for the specified serial port.
+
+        Args:
+            port: UART device name.
+            baudrate: Serial port baud rate.
+            logger: Optional logger; the module logger is used by default.
+        """
         self.port = port
         self.baudrate = baudrate
         self.logger = logger or logging.getLogger(__name__)
@@ -67,7 +90,16 @@ class CRSFParser:
         self._crc8_table = self._init_crc8_table()
 
     def _init_crc8_table(self) -> List[int]:
-        """Inicjuje tablicę wielomianu 0xD5 dla szybkiego liczenia CRC (DVB-S2)."""
+        """PL: Buduje tablicę CRC-8 z wielomianem 0xD5.
+
+        Returns:
+            256-elementową tablicę wartości CRC.
+
+        EN: Builds a CRC-8 lookup table using polynomial 0xD5.
+
+        Returns:
+            A 256-entry table of CRC values.
+        """
         poly = 0xD5
         table = [0] * 256
         for i in range(256):
@@ -81,13 +113,32 @@ class CRSFParser:
         return table
 
     def _calc_crc8(self, data: bytes) -> int:
+        """PL: Oblicza CRC-8 dla bajtów przy użyciu tablicy parsera.
+
+        Args:
+            data: Bajty objęte kontrolą CRC.
+
+        Returns:
+            Jednobajtową wartość CRC.
+
+        EN: Calculates CRC-8 for the bytes using the parser lookup table.
+
+        Args:
+            data: Bytes covered by the CRC calculation.
+
+        Returns:
+            The one-byte CRC value.
+        """
         crc = 0
         for byte in data:
             crc = self._crc8_table[crc ^ byte]
         return crc
 
     def start(self) -> None:
-        """Uruchamia asynchroniczny wątek czytający z UART."""
+        """PL: Otwiera UART i uruchamia wątki odbioru oraz nadawania.
+
+        EN: Opens the UART and starts the reader and writer threads.
+        """
         if self._running:
             return
 
@@ -109,7 +160,10 @@ class CRSFParser:
             self.logger.error(f"Nie udało się otworzyć portu {self.port}: {e}")
 
     def stop(self) -> None:
-        """Zatrzymuje nasłuchiwanie."""
+        """PL: Zatrzymuje wątki parsera i zamyka otwarty port szeregowy.
+
+        EN: Stops the parser threads and closes the serial port if it is open.
+        """
         self._running = False
         if self._thread:
             self._thread.join(timeout=1.0)
@@ -120,6 +174,10 @@ class CRSFParser:
         self.logger.info("CRSFParser zatrzymany.")
 
     def _read_loop(self) -> None:
+        """PL: Odbiera bajty UART, sprawdza ramki i przekazuje je do parsera.
+
+        EN: Receives UART bytes, validates frames, and passes them to the parser.
+        """
         buffer = bytearray()
 
         # Oczekujemy na Sync Byte
@@ -197,7 +255,16 @@ class CRSFParser:
                 time.sleep(1)
 
     def _parse_packet(self, packet: bytes) -> None:
-        """Rozdziela obsługę danych binarnych wg typu."""
+        """PL: Przekazuje payload do dekodera właściwego typu ramki CRSF.
+
+        Args:
+            packet: Kompletna ramka CRSF z poprawnym CRC.
+
+        EN: Dispatches the payload to the decoder for its CRSF frame type.
+
+        Args:
+            packet: Complete CRSF frame with a valid CRC.
+        """
         packet_type = packet[2]
         payload = packet[3:-1]
 
@@ -215,11 +282,19 @@ class CRSFParser:
                     self.on_link_updated(self.link_statistics.copy())
 
     def _decode_rc_channels(self, payload: bytes) -> None:
-        """
-        Rozkodowuje payload CRSF (22 bajty / 176 bitów) na 16 x 11-bitowe kanały.
-        Siatka przemieszeń jest ścisła.
-        Wartości CRSF kanałów wynoszą od 172 do 1811 (1500 to środek).
-        Zwracam wartości od-zmapowane do czystego PWM: ~ 988-2012 us.
+        """PL: Dekoduje 16 kanałów 11-bitowych z 22-bajtowego payloadu CRSF.
+
+        Przelicza wartości kanałów na mikrosekundy PWM i ogranicza ich zakres.
+
+        Args:
+            payload: Payload ramki RC_CHANNELS_PACKED.
+
+        EN: Decodes 16 11-bit channels from a 22-byte CRSF payload.
+
+        Converts channel values to PWM microseconds and clamps their range.
+
+        Args:
+            payload: Payload of an RC_CHANNELS_PACKED frame.
         """
         # Dla wygody zamieniam bajty na 1 potężny 176-bitowy integer
         # (little-endian z racji na specyfikację, ale po ułożeniu trzeba ciąć prawidłowo).
@@ -246,9 +321,15 @@ class CRSFParser:
             self.channels[idx] = pwm
 
     def _decode_link_statistics(self, payload: bytes) -> None:
-        """
-        Odczyt statystyk (np: z odbiornika Telemetry RX /LQ)
-        [Uplink_RSSI_1][Uplink_RSSI_2][Uplink_LQ][Uplink_SNR][Active_Antenna][RF_Mode][TPower][Downlink_...][..][..]
+        """PL: Odczytuje RSSI, jakość łącza, SNR i aktywną antenę z payloadu.
+
+        Args:
+            payload: Payload ramki statystyk łącza CRSF.
+
+        EN: Reads RSSI, link quality, SNR, and active antenna from the payload.
+
+        Args:
+            payload: Payload of a CRSF link statistics frame.
         """
         r1 = payload[0]
         r2 = payload[1]
@@ -263,11 +344,25 @@ class CRSFParser:
     # --- NADAWANIE TELEMETRII ---
 
     def queue_telemetry(self, t_type: str, data: Dict[str, Any]) -> None:
-        """Kolejkuje surowy słownik danych do spakowania i wysłania przez port szeregowy."""
+        """PL: Dodaje obsługiwane dane telemetryczne do kolejki nadawczej.
+
+        Args:
+            t_type: Typ telemetrii: battery, gps lub attitude.
+            data: Wartości, które pętla nadawcza zakoduje do ramki.
+
+        EN: Adds supported telemetry data to the transmit queue.
+
+        Args:
+            t_type: Telemetry type: battery, gps, or attitude.
+            data: Values for the writer loop to encode into a frame.
+        """
         self.tx_queue.put((t_type, data))
 
     def _write_loop(self) -> None:
-        """Pętla kompresująca parametry i wstrzykująca je gniazdem UART do modułu RX."""
+        """PL: Koduje obsługiwane dane telemetrii i zapisuje ramki do UART.
+
+        EN: Encodes supported telemetry data and writes frames to the UART.
+        """
         while self._running:
             try:
                 if not self._serial or not self._serial.is_open:

@@ -1,3 +1,8 @@
+"""PL: Tworzy archiwum aktualizacji zawierające wdrożenie i workspace ROS 2.
+
+EN: Build an update archive containing the deployment files and ROS 2 workspace.
+"""
+
 import os
 import zipfile
 
@@ -25,6 +30,10 @@ EXCLUDES = {
 
 
 def zip_directory(source_dir, zipf, arcname_prefix=""):
+    """PL: Dodaje pliki katalogu do archiwum z pominięciem wykluczeń.
+
+    EN: Add directory files to an archive while skipping excluded entries.
+    """
     for root, dirs, files in os.walk(source_dir):
         # Exclude directories
         dirs[:] = [d for d in dirs if d not in EXCLUDES]

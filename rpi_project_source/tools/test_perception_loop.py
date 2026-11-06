@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
-"""
-Test Perception Loop
---------------------
-Verifies the end-to-end perception pipeline on the hardware:
-1. Camera Manager (RTSP/Local/Picamera2) -> Frame
-2. AI Manager (Hailo/Mock) -> Detections
-3. Debug Snapshots -> File System
+"""PL: Sprawdza ręcznie przepływ obrazu przez kamerę i detekcje AI.
 
-Usage:
-    python3 tools/test_perception_loop.py [--mock-cam] [--mock-ai]
+EN: Manually verify the camera-to-AI perception pipeline.
+
+Usage: ``python3 tools/test_perception_loop.py [--mock-cam]``
 """
 
 import argparse
@@ -34,6 +29,10 @@ logger = logging.getLogger("TestPerception")
 
 
 def main():
+    """PL: Wczytuje konfigurację i uruchamia czasową pętlę percepcji.
+
+    EN: Load configuration and run the perception loop for a fixed duration.
+    """
     parser = argparse.ArgumentParser(description="Test Perception Loop")
     parser.add_argument("--config", default="config.json", help="Path to config file")
     parser.add_argument(

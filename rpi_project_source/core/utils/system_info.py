@@ -1,7 +1,7 @@
 """
-Moduł pomocniczy do zbierania informacji o systemie i sprzęcie.
+PL: Moduł pomocniczy do zbierania informacji o systemie i sprzęcie.
 
-Utility module for gathering system and hardware information.
+EN: Utility module for gathering system and hardware information.
 """
 
 import os
@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 def get_storage_info(path: str = "/") -> dict[str, Any]:
     """
-    Monitoruje zajętość dysku i liczbę Inodów.
-    Monitors disk usage and Inode count.
+    PL: Zwraca wykorzystanie dysku i procent zajętych inodów.
+    EN: Returns disk usage and the percentage of inodes in use.
     """
     try:
         # 1. Bytes usage
@@ -49,8 +49,8 @@ def get_storage_info(path: str = "/") -> dict[str, Any]:
 
 def get_board_info() -> dict[str, Any]:
     """
-    Zbiera informacje o platformie sprzętowej Raspberry Pi.
-    Gathers information about the Raspberry Pi hardware platform.
+    PL: Zbiera informacje o sprzęcie, zasobach i temperaturze Raspberry Pi.
+    EN: Collects Raspberry Pi hardware, resource, and temperature information.
 
     Returns:
         dict[str, Any]: Słownik z info o sprzęcie i systemie. / Dictionary with hardware and system info.

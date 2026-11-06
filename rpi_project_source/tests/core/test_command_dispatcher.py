@@ -1,3 +1,7 @@
+"""PL: Testuje dekodowanie pakietów sterujących i reakcje failsafe.
+EN: Tests control packet decoding and failsafe behavior.
+"""
+
 import struct
 import unittest
 from unittest.mock import MagicMock
@@ -6,7 +10,14 @@ from core.command_dispatcher import CommandDispatcher
 
 
 class TestCommandDispatcher(unittest.TestCase):
+    """PL: Testy selekcji i dekodowania poleceń przez dyspozytor.
+    EN: Tests command selection and decoding by the dispatcher.
+    """
+
     def setUp(self):
+        """PL: Tworzy atrapę usługi i menedżera sprzętu dla testów.
+        EN: Creates service and hardware manager mocks for the tests.
+        """
         # Mock TelemetryWorker
         self.mock_worker = MagicMock()
         self.mock_worker.pca_armed = True
@@ -22,7 +33,9 @@ class TestCommandDispatcher(unittest.TestCase):
         self.dispatcher = CommandDispatcher(self.mock_worker)
 
     def _create_binary_packet(self, channels, tx_time=None):
-        """Helper to create a valid CT binary packet with checksum."""
+        """PL: Buduje binarny pakiet CT z kanałami, czasem i sumą kontrolną.
+        EN: Builds a CT binary packet with channels, timestamp, and checksum.
+        """
         header = b"CT"
         num_ch = len(channels)
 
@@ -47,6 +60,9 @@ class TestCommandDispatcher(unittest.TestCase):
         return packet
 
     def test_handle_binary_control_8ch_success(self):
+        """PL: Sprawdza dekodowanie ośmiu kanałów i znacznika czasu.
+        EN: Checks decoding of eight channels and the packet timestamp.
+        """
         # 8 channels, 1500 is center
         channels = [1500] * 8
         channels[0] = 1750  # Steering half right (0.5)
@@ -64,6 +80,9 @@ class TestCommandDispatcher(unittest.TestCase):
         self.assertTrue(self.mock_worker.link_established)
 
     def test_handle_binary_control_16ch_no_time(self):
+        """PL: Sprawdza pakiet szesnastokanałowy bez znacznika czasu.
+        EN: Checks a sixteen-channel packet without a timestamp.
+        """
         channels = [1500] * 16
         packet = self._create_binary_packet(channels)
 
@@ -75,6 +94,9 @@ class TestCommandDispatcher(unittest.TestCase):
         self.assertEqual(self.mock_worker.last_pc_timestamp, 0.0)
 
     def test_handle_binary_control_crc_error(self):
+        """PL: Odrzuca pakiet z niezgodną sumą kontrolną.
+        EN: Rejects a packet with an invalid checksum.
+        """
         channels = [1500] * 8
         packet = bytearray(self._create_binary_packet(channels))
 
@@ -87,6 +109,9 @@ class TestCommandDispatcher(unittest.TestCase):
         self.assertIsNone(self.mock_worker.last_control_input)
 
     def test_handle_binary_control_disarmed(self):
+        """PL: Nie przekazuje sterowania, gdy kontroler jest rozbrojony.
+        EN: Does not forward controls while the controller is disarmed.
+        """
         self.mock_worker.pca_armed = False
         channels = [1500] * 8
         packet = self._create_binary_packet(channels)
@@ -97,6 +122,9 @@ class TestCommandDispatcher(unittest.TestCase):
         self.assertIsNone(self.mock_worker.last_control_input)
 
     def test_failsafe_recovery(self):
+        """PL: Weryfikuje powrót do trybu manualnego po stabilnych pakietach.
+        EN: Verifies recovery to manual mode after stable packets arrive.
+        """
         self.mock_worker.current_mode = "FAILSAFE"
         channels = [1500] * 8
         packet = self._create_binary_packet(channels)

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Algorytm A* Path Planning oparty na lokalnej mapie kosztów.
-Wyszukuje optymalną bezkolizyjną ścieżkę w globalnym układzie.
+"""PL: Wyszukuje ścieżki A* na lokalnej mapie kosztów.
+EN: Searches for A* paths on the local cost map.
 """
 
 import heapq
@@ -14,14 +13,16 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class AStarPlanner:
-    """
-    Znajduje najkrótszą drogę omijającą przeszkody zebraną z radaru LDS-02/Yolov8
-    za pomocą tradycyjnego grafowego algorytmu A-Star.
+    """PL: Planuje trasę A* z uwzględnieniem kosztów i przeszkód.
+    EN: Plans an A* route while accounting for costs and obstacles.
     """
 
     A_STAR_PENALTY: float = 10.0
 
     def __init__(self, costmap_manager: CostmapManager) -> None:
+        """PL: Zapisuje menedżer mapy kosztów używany do planowania.
+        EN: Stores the cost map manager used for route planning.
+        """
         self.cm = costmap_manager
 
     def plan_path(
@@ -30,14 +31,8 @@ class AStarPlanner:
         goal_global: tuple[float, float],
         world_coordinates: bool = True,
     ) -> list[tuple[float, float]] | list[tuple[int, int]] | None:
-        """
-        Zwraca listę punktów drogi do celu.
-
-        Args:
-            start_pose: Pozycja startowa (x, y) w metrach.
-            goal_global: Cel (x, y) w metrach.
-            world_coordinates: Jeśli True, zwraca współrzędne w metrach.
-                              Jeśli False, zwraca indeksy siatki.
+        """PL: Znajduje trasę od startu do celu i wybiera format współrzędnych.
+        EN: Finds a route from start to goal and selects the coordinate format.
         """
         sx, sy = self.cm.world_to_grid(start_pose[0], start_pose[1])
         gx, gy = self.cm.world_to_grid(goal_global[0], goal_global[1])
@@ -66,6 +61,9 @@ class AStarPlanner:
         g_score = {(sx, sy): 0.0}
 
         def heuristic(a: tuple[int, int], b: tuple[int, int]) -> float:
+            """PL: Szacuje pozostały dystans między komórkami siatki.
+            EN: Estimates the remaining distance between grid cells.
+            """
             return math.hypot(a[0] - b[0], a[1] - b[1])
 
         neighbors = [

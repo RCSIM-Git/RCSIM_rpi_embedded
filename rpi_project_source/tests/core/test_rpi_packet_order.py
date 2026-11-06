@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek. All rights reserved.
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek. All rights reserved.
 
-Testy weryfikujące poprawność chronologicznego przetwarzania pakietów (monotoniczność)
-oraz odrzucanie pakietów przestarzałych (out-of-order) z sieci VPN na RPi.
+PL: Testuje kolejność pakietów sterujących i priorytet łącza ELRS.
+EN: Tests control packet ordering and ELRS link priority.
 """
 
 import struct
@@ -15,7 +14,14 @@ from core.command_dispatcher import CommandDispatcher
 
 
 class TestRPiPacketOrder(unittest.TestCase):
+    """PL: Testy porządku chronologicznego pakietów RPi.
+    EN: Tests chronological ordering of Raspberry Pi packets.
+    """
+
     def setUp(self):
+        """PL: Przygotowuje atrapę workera, sprzętu i dyspozytora.
+        EN: Prepares worker and hardware mocks and a command dispatcher.
+        """
         # Mock TelemetryWorker
         self.mock_worker = MagicMock()
         self.mock_worker.pca_armed = True
@@ -34,7 +40,9 @@ class TestRPiPacketOrder(unittest.TestCase):
         self.dispatcher = CommandDispatcher(self.mock_worker)
 
     def _create_binary_packet(self, channels, tx_time=None):
-        """Pomocnik tworzący poprawny pakiet binarny CT z sumą kontrolną."""
+        """PL: Buduje pakiet CT z kanałami, znacznikiem czasu i sumą XOR.
+        EN: Builds a CT packet with channels, timestamp, and XOR checksum.
+        """
         header = b"CT"
         num_ch = len(channels)
 
@@ -59,11 +67,8 @@ class TestRPiPacketOrder(unittest.TestCase):
         return packet
 
     def test_binary_packet_monotonicity(self):
-        """
-        Weryfikacja przetwarzania pakietów binarnych CT:
-        1. Pakiet o tx_time = 1000.0 powinien zostać przetworzony.
-        2. Pakiet o tx_time = 999.0 (opóźniony) powinien zostać zignorowany.
-        3. Pakiet o tx_time = 1001.0 powinien zostać przetworzony.
+        """PL: Sprawdza akceptację rosnących i odrzucenie opóźnionych pakietów CT.
+        EN: Checks acceptance of newer and rejection of out-of-order CT packets.
         """
         channels = [1500] * 8
 
@@ -98,11 +103,8 @@ class TestRPiPacketOrder(unittest.TestCase):
         self.assertEqual(self.mock_worker.last_pc_timestamp, 1001.0)
 
     def test_json_packet_monotonicity(self):
-        """
-        Weryfikacja przetwarzania pakietów JSON control:
-        1. Pakiet o t = 2000.0 powinien zostać przetworzony.
-        2. Pakiet o t = 1999.0 (opóźniony) powinien zostać zignorowany.
-        3. Pakiet o t = 2001.0 powinien zostać przetworzony.
+        """PL: Sprawdza kolejność znaczników czasu w pakietach JSON sterowania.
+        EN: Checks timestamp ordering in JSON control packets.
         """
         # Ustawienie początkowego czasu przetworzenia
         self.dispatcher.last_processed_tx_time = 1500.0
@@ -150,9 +152,8 @@ class TestRPiPacketOrder(unittest.TestCase):
         self.assertEqual(self.mock_worker.last_pc_timestamp, 2001.0)
 
     def test_elrs_dominance_ignores_network_packets(self):
-        """
-        Gdy elrs_link_established = True w trybie HYBRID,
-        pakiety sterujące z sieci (zarówno binarne, jak i JSON) są odrzucane.
+        """PL: Sprawdza odrzucanie pakietów sieciowych przy aktywnym ELRS.
+        EN: Checks that network packets are rejected when ELRS is active.
         """
         self.mock_worker.elrs_link_established = True
         channels = [1500] * 8

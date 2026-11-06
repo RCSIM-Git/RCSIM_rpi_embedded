@@ -1,10 +1,10 @@
-"""
+"""PL: Testy integracyjne stabilizacji gimbala w aplikacji RPI.
+
+EN: Integration tests for gimbal stabilization in the RPI application.
+
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License.
 See LICENSE file in the project root for full license information.
-
-Testy integracyjne dla zintegrowanej stabilizacji gimbala (Plan B) na RPi.
-Integration tests for integrated gimbal stabilization (Plan B) on RPi.
 """
 
 import sys
@@ -36,7 +36,10 @@ from modules.hardware.sensor_aggregator import SensorAggregator  # noqa: E402
 
 
 def test_complementary_filter_math():
-    """Weryfikacja matematyczna filtra komplementarnego w SensorAggregator."""
+    """PL: Sprawdza odpowiedź filtra komplementarnego na orientację IMU.
+
+    EN: Verify the complementary filter response to IMU orientation data.
+    """
     config = {
         "imu": {"driver": "auto"},
     }
@@ -75,7 +78,10 @@ def test_complementary_filter_math():
 
 
 def test_gimbal_absolute_mode():
-    """Weryfikacja działania gimbala w trybie bezwzględnym (Absolute Mode)."""
+    """PL: Sprawdza stabilizację gimbala w trybie bezwzględnym.
+
+    EN: Verify gimbal stabilization in absolute mode.
+    """
     config = {
         "gimbal": {
             "enabled": True,
@@ -130,7 +136,10 @@ def test_gimbal_absolute_mode():
 
 
 def test_gimbal_rate_mode():
-    """Weryfikacja działania gimbala w trybie przyrostowym (Rate Mode)."""
+    """PL: Sprawdza sterowanie gimbalem w trybie przyrostowym.
+
+    EN: Verify gimbal control in rate mode.
+    """
     config = {
         "gimbal": {
             "enabled": True,

@@ -1,29 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Moduł Zarządcy Aktywatorów (Actuator Manager) dla RPi.
-Actuator Manager Module for RPi.
-
-Ten moduł jest odpowiedzialny za sterowanie dodatkowymi aktywatorami
-i serwomechanizmami, które nie są bezpośrednio związane z napędem
-pojazdu, takimi jak chwytaki, ramiona robotyczne, itp.
-This module is responsible for controlling additional actuators
-and servos that are not directly related to the vehicle drivetrain,
-such as grippers, robotic arms, etc.
-
-Kluczowe funkcjonalności / Key features:
--   **Abstrakcja sterowania / Control Abstraction:** Udostępnia prosty interfejs (np. `set_gripper`)
-    do kontrolowania aktywatorów, ukrywając szczegóły implementacyjne związane ze sterowaniem PWM.
-    Provides a simple interface (e.g., `set_gripper`) to control actuators,
-    hiding implementation details related to PWM control.
--   **Integracja z HardwareManager / HardwareManager Integration:** Współpracuje z `HardwareManager`,
-    który jest odpowiedzialny za niskopoziomową komunikację ze sterownikami serwomechanizmów.
-    Collaborates with `HardwareManager`, which is responsible for low-level communication
-    with servo controllers.
--   **Obsługa wielu aktywatorów / Multi-actuator Support:** Zaprojektowany z myślą o łatwej rozbudowie
-    o kolejne serwa i aktywatory w przyszłości.
-    Designed for easy expansion with more servos and actuators in the future.
+PL: Udostępnia interfejs do sterowania dodatkowymi serwami przez HardwareManager.
+EN: Provides an interface for controlling additional servos through HardwareManager.
 """
 
 import logging
@@ -39,31 +18,20 @@ logger = logging.getLogger(__name__)
 
 
 class ActuatorManager:
-    """
-    Menedżer aktywatorów i serwomechanizmów (Actuator Manager).
-    Manages additional servos and actuators, e.g., gripper.
+    """PL: Zarządza dodatkowymi serwami i aktywatorami, takimi jak chwytak.
+    EN: Manages additional servos and actuators, such as a gripper.
     """
 
     def __init__(self, hw_manager: "HardwareManager"):
-        """
-        Inicjalizuje ActuatorManager.
-        Initializes the ActuatorManager.
-
-        Args:
-            hw_manager (HardwareManager): Referencja do głównego zarządcy sprzętu.
-                                          Reference to the main hardware manager.
+        """PL: Zapisuje referencję do głównego menedżera sprzętu.
+        EN: Stores a reference to the main hardware manager.
         """
         self.hw_manager = hw_manager
         logger.info("ActuatorManager zainicjalizowany.")
 
     def set_gripper(self, value: float) -> None:
-        """
-        Ustawia pozycję serwomechanizmu chwytaka.
-        Sets the position of the gripper servo.
-
-        Args:
-            value (float): Wartość w zakresie od -1.0 (otwarty) do 1.0 (zamknięty).
-                           Value ranging from -1.0 (open) to 1.0 (closed).
+        """PL: Ustawia pozycję chwytaka na podstawie wartości od -1 do 1.
+        EN: Sets the gripper position from a value in the range -1 to 1.
         """
         # Logika specyficzna dla tego menedżera
         # Logic specific to this manager
@@ -89,12 +57,8 @@ class ActuatorManager:
             )
 
     def cleanup(self) -> None:
-        """
-        Czyści zasoby i zatrzymuje aktywatory (jeśli wymagane).
-        Cleans up resources and stops actuators (if required).
-
-        Zapewnia bezpieczne wyłączenie serwomechanizmów przy zamykaniu aplikacji.
-        Ensures safe shutdown of servos when the application closes.
+        """PL: Wykonuje zamknięcie menedżera aktywatorów.
+        EN: Performs actuator manager shutdown.
         """
         logger.info("ActuatorManager wykonuje cleanup.")
         # W tym prostym przypadku nie ma zasobów do zwolnienia

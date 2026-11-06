@@ -1,7 +1,6 @@
-"""
-Sterownik dla LiDAR LD08 (LD19).
-Zoptymalizowany pod kątem wysokiej przepustowości (Zero-Lag Buffer).
-Zaimplementowano poprawioną tabelę CRC8 (256 bajtów) i stabilny parser.
+"""PL: Odbiera i dekoduje pełne skany LiDAR LD08/LD19 z portu szeregowego.
+
+EN: Receives and decodes full LD08/LD19 LiDAR scans from a serial port.
 """
 
 import collections
@@ -279,7 +278,10 @@ CRC_TABLE: list[int] = [
 
 
 def calc_crc8(data: bytes) -> int:
-    """Oblicza CRC-8 na podstawie tabeli."""
+    """PL: Oblicza CRC-8 danych przy użyciu tablicy protokołu LD08.
+
+    EN: Calculates the CRC-8 of data using the LD08 protocol table.
+    """
     crc = 0
     for byte in data:
         crc = CRC_TABLE[crc ^ byte]
@@ -287,9 +289,16 @@ def calc_crc8(data: bytes) -> int:
 
 
 class LD08Driver:
-    """Sterownik LiDAR LD08 (Producer-Consumer Workflow)."""
+    """PL: Odczytuje pakiety LD08 w jednym wątku i parsuje je w drugim.
+
+    EN: Reads LD08 packets in one thread and parses them in another.
+    """
 
     def __init__(self, port: str, baudrate: int = 230400) -> None:
+        """PL: Przygotowuje kolejkę pakietów, bufory skanów i statystyki.
+
+        EN: Prepares the packet queue, scan buffers, and statistics.
+        """
         self.port = port
         self.baudrate = baudrate
         self.ser = None
@@ -309,7 +318,10 @@ class LD08Driver:
         self.packet_queue: collections.deque[bytes] = collections.deque(maxlen=500)
 
     def start(self) -> None:
-        """Uruchamia wątki odczytu i parsowania."""
+        """PL: Otwiera port szeregowy i uruchamia wątki odczytu oraz parsowania.
+
+        EN: Opens the serial port and starts the reader and parser threads.
+        """
         try:
             logging.info(f"LiDAR: Opening {self.port} at {self.baudrate}")
             self.ser = serial.Serial(self.port, self.baudrate, timeout=0.1)
@@ -331,13 +343,19 @@ class LD08Driver:
             self.is_running = False
 
     def stop(self) -> None:
-        """Zatrzymuje pracę sterownika."""
+        """PL: Zatrzymuje pętle robocze i zamyka otwarty port szeregowy.
+
+        EN: Stops the worker loops and closes the serial port if open.
+        """
         self.is_running = False
         if self.ser and self.ser.is_open:
             self.ser.close()
 
     def _read_loop(self) -> None:
-        """Wątek Reader: pobiera surowe bajty do kolejki pakietów."""
+        """PL: Wyszukuje ramki w strumieniu UART i umieszcza je w kolejce.
+
+        EN: Finds frames in the UART stream and places them in the packet queue.
+        """
         buffer = bytearray()
         while self.is_running:
             try:
@@ -362,7 +380,10 @@ class LD08Driver:
                 time.sleep(0.1)
 
     def _parse_loop(self) -> None:
-        """Wątek Parser: dekoduje pakiety z kolejki."""
+        """PL: Pobiera ramki z kolejki i przekazuje je do dekodera skanu.
+
+        EN: Takes frames from the queue and passes them to the scan decoder.
+        """
         while self.is_running:
             try:
                 if self.packet_queue:
@@ -375,7 +396,10 @@ class LD08Driver:
                 time.sleep(0.01)
 
     def _parse_packet(self, packet: bytes) -> None:
-        """Dekoduje ramkę danych (47 bajtów)."""
+        """PL: Weryfikuje CRC ramki i dodaje próbki do bieżącego obrotu.
+
+        EN: Validates the frame CRC and adds samples to the current rotation.
+        """
         self.pkt_total += 1
 
         # CRC Check
@@ -422,7 +446,16 @@ class LD08Driver:
                     self.scan_buffer.append((angle, dist))
 
     def read_scan(self, downsample: bool = False) -> Optional[List[Tuple[float, int]]]:
-        """Pobiera skompilowany skan 360 stopni."""
+        """PL: Pobiera gotowy skan 360° i opcjonalnie zwraca co drugą próbkę.
+
+        Returns:
+            Listę par kąt i odległość albo None, jeśli skan nie jest gotowy.
+
+        EN: Retrieves a completed 360° scan and optionally returns every second sample.
+
+        Returns:
+            A list of angle and distance pairs, or None if no scan is ready.
+        """
         with self.lock:
             if not self.full_scan:
                 return None

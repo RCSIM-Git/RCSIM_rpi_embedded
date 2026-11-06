@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Pure Pursuit Planner zintegrowany ze sterowaniem odpychającym
-z projektu Kai Nakamury.
+"""PL: Steruje podążaniem za punktem celu z unikaniem przeszkód.
+EN: Controls path following toward a target point with obstacle avoidance.
 """
 
 import logging
@@ -16,14 +15,16 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class PurePursuitPlanner:
-    """
-    Poszukuje kąta zgięcia serwa, by pojazd podążał za punktem celu
-    (lookahead_point) i implementuje omijanie przeszkód.
+    """PL: Oblicza skręt Pure Pursuit i korektę omijającą przeszkody.
+    EN: Computes Pure Pursuit steering and obstacle avoidance adjustments.
     """
 
     def __init__(
         self, costmap_manager: CostmapManager, config: dict[str, Any] = None
     ) -> None:
+        """PL: Ustawia mapę kosztów i domyślne parametry prowadzenia.
+        EN: Sets the cost map and default path-following parameters.
+        """
         self.cm = costmap_manager
         self.wheelbase: float = 0.25
         self.max_steering_angle: float = np.deg2rad(30)
@@ -38,6 +39,9 @@ class PurePursuitPlanner:
         self.update_config(config)
 
     def update_config(self, config: dict[str, Any]) -> None:
+        """PL: Aktualizuje prędkość, lookahead i progi bezpieczeństwa.
+        EN: Updates speed, lookahead, and safety thresholds.
+        """
         if not config or "autonomous_navigation" not in config:
             return
 
@@ -64,12 +68,8 @@ class PurePursuitPlanner:
         current_speed: float = 0.0,
         is_reversed: bool = False,
     ) -> tuple[float, float, float]:
-        """
-        Zwraca Tuple: (Steering Angle, Throttle, Safety Score 0-1)
-
-        Args:
-            robot_pose: (x, y, yaw_deg)
-            lookahead_point: (x, y, L) [PLAN-002]
+        """PL: Zwraca skręt, gaz i ocenę bezpieczeństwa dla punktu lookahead.
+        EN: Returns steering, throttle, and a safety score for the lookahead point.
         """
         rx, ry, ryaw_deg = robot_pose
         ryaw = np.deg2rad(ryaw_deg)
@@ -140,7 +140,9 @@ class PurePursuitPlanner:
     def _calculate_kai_steering_adjustment(
         self, robot_pose: tuple[float, float, float], is_reversed: bool
     ) -> float:
-        """Korekcja wirtualnych magnesów odpychających (Nakamura Force)"""
+        """PL: Oblicza korektę skrętu odpychającą pojazd od przeszkód.
+        EN: Computes a steering correction that repels the vehicle from obstacles.
+        """
         rx, ry, ryaw_deg = robot_pose
         ryaw = np.deg2rad(ryaw_deg)
 

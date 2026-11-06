@@ -1,13 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Menedżer Kamery (Camera Manager) dla Raspberry Pi 5 - Hybrid Mode.
-Camera Manager for Raspberry Pi 5 - Hybrid Mode.
-
-This module handles video input primarily via RTSP (from Mediamtx/rpicam-vid),
-but also supports direct local camera access (Picamera2/Libcamera) as a fallback
-or for low-latency AI input if RTSP is too slow.
+PL: Pobiera klatki wideo ze strumienia RTSP lub lokalnej kamery Raspberry Pi.
+EN: Retrieves video frames from RTSP or a local Raspberry Pi camera.
 """
 
 import logging
@@ -30,22 +25,13 @@ logger = logging.getLogger(__name__)
 
 
 class CameraManager:
-    """
-    Menedżer kamery obsługujący strumień wideo.
-    Camera Manager handling video stream.
-
-    Modes:
-    1. RTSP (Default): Connects to local RTSP server (mediamtx) which streams from rpicam-vid.
-    2. Local (Fallback): Tries to open /dev/video0 or libcamerasrc directly.
+    """PL: Otwiera źródło obrazu i udostępnia najnowszą klatkę.
+    EN: Opens a video source and provides the latest frame.
     """
 
     def __init__(self, config: dict[str, Any]) -> None:
-        """
-        Inicjalizuje CameraManager.
-        Initializes the Camera Manager.
-
-        Args:
-            config (dict[str, Any]): Konfiguracja kamery.
+        """PL: Ustawia tryb, adres i parametry przechwytywania obrazu.
+        EN: Sets the mode, address, and video capture parameters.
         """
         self.config = config
         self.mode = config.get("mode", "rtsp")
@@ -71,9 +57,8 @@ class CameraManager:
         logger.info(f"✅ CameraManager initialized (Mode: {self.mode})")
 
     def start(self) -> None:
-        """
-        Uruchamia wątek pobierania klatek.
-        Starts the frame fetching thread.
+        """PL: Uruchamia wątek pobierający klatki ze źródła obrazu.
+        EN: Starts the thread that retrieves frames from the video source.
         """
         if self.is_running:
             return
@@ -84,9 +69,8 @@ class CameraManager:
         logger.info("✅ Camera Capture thread started")
 
     def _open_camera(self) -> bool:
-        """
-        Otwiera źródło wideo (RTSP lub Local).
-        Opens video source (RTSP or Local).
+        """PL: Otwiera skonfigurowane źródło RTSP, lokalne lub Picamera2.
+        EN: Opens the configured RTSP, local, or Picamera2 video source.
         """
         try:
             if self.mode == "rtsp":
@@ -176,9 +160,8 @@ class CameraManager:
             return False
 
     def _capture_loop(self) -> None:
-        """
-        Główna pętla wątku.
-        Main thread loop.
+        """PL: Odczytuje klatki i ponawia połączenie po błędzie źródła.
+        EN: Reads frames and retries the connection after source failures.
         """
         retry_delay = 1.0
         while self.is_running:
@@ -218,7 +201,9 @@ class CameraManager:
                 time.sleep(0.5)
 
     def _update_fps(self) -> None:
-        """Oblicza klatki na sekundę."""
+        """PL: Aktualizuje oszacowanie liczby klatek na sekundę.
+        EN: Updates the estimated frames-per-second value.
+        """
         self.frame_count += 1
         if time.time() - self.last_fps_time >= 5.0:
             self.current_fps = self.frame_count / 5.0
@@ -226,9 +211,8 @@ class CameraManager:
             self.last_fps_time = time.time()
 
     def get_ai_frame(self) -> np.ndarray | None:
-        """
-        Zwraca kopię ostatniej klatki dla AI.
-        Returns copy of last frame for AI.
+        """PL: Zwraca kopię najnowszej klatki, jeśli kamera działa.
+        EN: Returns a copy of the latest frame when the camera is running.
         """
         if not self.is_running:
             return None
@@ -238,6 +222,9 @@ class CameraManager:
             return self.last_frame.copy()
 
     def stop(self) -> None:
+        """PL: Zatrzymuje wątek i zwalnia uchwyty kamery.
+        EN: Stops the thread and releases camera handles.
+        """
         self.is_running = False
         if self.thread:
             self.thread.join(timeout=2.0)

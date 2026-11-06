@@ -1,3 +1,7 @@
+"""PL: Testuje wczytywanie, odczyt, wykrywanie zmian i atomowy zapis konfiguracji.
+EN: Tests configuration loading, access, change detection, and atomic saving.
+"""
+
 import json
 from unittest.mock import patch
 
@@ -7,7 +11,9 @@ from core.config_loader import ConfigManager
 
 @pytest.fixture
 def temp_config_file(tmp_path):
-    """Tworzy tymczasowy plik konfiguracyjny. / Creates a temporary config file."""
+    """PL: Tworzy przykładowy plik konfiguracji w katalogu tymczasowym.
+    EN: Creates a sample configuration file in a temporary directory.
+    """
     config_data = {
         "comm_mode": "WEBRTC",
         "hardware": {"pca_address": 0x40},
@@ -19,7 +25,9 @@ def temp_config_file(tmp_path):
 
 
 def test_config_manager_load_success(temp_config_file):
-    """Test poprawnego ładowania konfiguracji. / Test successful config loading."""
+    """PL: Sprawdza poprawne wczytanie pól konfiguracji.
+    EN: Checks that configuration fields load successfully.
+    """
     manager = ConfigManager(temp_config_file)
     assert manager.config["comm_mode"] == "WEBRTC"
     assert manager.config["hardware"]["pca_address"] == 0x40
@@ -27,32 +35,42 @@ def test_config_manager_load_success(temp_config_file):
 
 
 def test_config_manager_get_existing_key(temp_config_file):
-    """Test pobierania istniejącego klucza. / Test getting an existing key."""
+    """PL: Sprawdza odczyt istniejących kluczy konfiguracji.
+    EN: Checks retrieval of existing configuration keys.
+    """
     manager = ConfigManager(temp_config_file)
     assert manager.get("comm_mode") == "WEBRTC"
     assert manager.get("autonomous_navigation") is True
 
 
 def test_config_manager_get_missing_key_with_default(temp_config_file):
-    """Test pobierania brakującego klucza z wartością domyślną."""
+    """PL: Sprawdza zwracanie wartości domyślnej dla brakującego klucza.
+    EN: Checks the default value returned for a missing key.
+    """
     manager = ConfigManager(temp_config_file)
     assert manager.get("non_existent_key", "default_value") == "default_value"
 
 
 def test_config_manager_get_missing_key_no_default(temp_config_file):
-    """Test pobierania brakującego klucza bez wartości domyślnej."""
+    """PL: Sprawdza, że brakujący klucz bez wartości domyślnej daje None.
+    EN: Checks that a missing key without a default returns None.
+    """
     manager = ConfigManager(temp_config_file)
     assert manager.get("another_missing_key") is None
 
 
 def test_config_manager_load_file_not_found():
-    """Test zachowania przy braku pliku. / Test behavior when file is missing."""
+    """PL: Sprawdza pustą konfigurację po braku pliku wejściowego.
+    EN: Checks for an empty configuration when the input file is missing.
+    """
     manager = ConfigManager("non_existent_file.json")
     assert manager.config == {}
 
 
 def test_config_manager_load_invalid_json(tmp_path):
-    """Test zachowania przy niepoprawnym formacie JSON."""
+    """PL: Sprawdza obsługę pliku z niepoprawnym składniowo JSON-em.
+    EN: Checks handling of a file containing malformed JSON.
+    """
     invalid_file = tmp_path / "invalid_config.json"
     invalid_file.write_text("{ invalid json: [ }")
 
@@ -62,7 +80,9 @@ def test_config_manager_load_invalid_json(tmp_path):
 
 
 def test_config_manager_load_json_decode_error_preserves_old_config(temp_config_file):
-    """Weryfikacja, czy błąd dekodowania zachowuje poprzednią konfigurację."""
+    """PL: Weryfikuje zachowanie poprzedniej konfiguracji po błędzie dekodowania.
+    EN: Verifies the previous configuration is retained after a decode error.
+    """
     manager = ConfigManager(temp_config_file)
     original_config = manager.config.copy()
 
@@ -78,7 +98,9 @@ def test_config_manager_load_json_decode_error_preserves_old_config(temp_config_
 
 @patch("os.path.getmtime")
 def test_config_manager_check_for_updates(mock_mtime, temp_config_file):
-    """Test wykrywania zmian w pliku. / Test detecting file changes."""
+    """PL: Sprawdza wykrycie zmiany czasu modyfikacji pliku.
+    EN: Checks detection of a changed file modification time.
+    """
     # Ustawiamy początkową datę modyfikacji jako liczbę
     mock_mtime.return_value = 100.0
     manager = ConfigManager(temp_config_file)
@@ -94,7 +116,9 @@ def test_config_manager_check_for_updates(mock_mtime, temp_config_file):
 
 
 def test_config_manager_save_config_atomic(temp_config_file):
-    """Test atomowego zapisu konfiguracji. / Test atomic config save."""
+    """PL: Weryfikuje atomowy zapis konfiguracji na dysku.
+    EN: Verifies atomic configuration saving to disk.
+    """
     manager = ConfigManager(temp_config_file)
     new_data = {"new_key": "new_val"}
 

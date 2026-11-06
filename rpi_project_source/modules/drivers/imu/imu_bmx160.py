@@ -1,11 +1,6 @@
-"""
-Mockowy sterownik dla sensora BMX160.
-Mock driver for the BMX160 sensor.
+"""PL: Udostępnia mockowe odczyty BMX160 do testów bez sprzętu.
 
-Ten moduł dostarcza symulowane dane dla sensora BMX160, używane do testów
-systemu bez fizycznego podłączenia sprzętu.
-This module provides simulated data for the BMX160 sensor, used for testing
-the system without physical hardware connected.
+EN: Provides mock BMX160 readings for testing without physical hardware.
 """
 
 import logging
@@ -15,18 +10,15 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class BMX160:
-    """
-    Mockowy sterownik dla sensora BMX160.
-    Mock driver for the BMX160 sensor.
+    """PL: Zwraca symulowane pomiary sensora BMX160.
+
+    EN: Returns simulated BMX160 sensor readings.
     """
 
     def __init__(self, i2c_bus: Any) -> None:
-        """
-        Inicjalizuje mockowy sterownik BMX160.
-        Initializes the BMX160 mock driver.
+        """PL: Zapisuje magistralę I2C przekazaną do mockowego sterownika.
 
-        Args:
-            i2c_bus (Any): Magistrala I2C (mockowana lub rzeczywista). / I2C bus.
+        EN: Stores the I2C bus passed to the mock driver.
         """
         self.i2c: Any = i2c_bus
         logger.info(
@@ -34,12 +26,9 @@ class BMX160:
         )
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Zwraca słownik z symulowanymi danymi sensora w ustandaryzowanym formacie.
-        Returns a dictionary with simulated sensor data in a standardized format.
+        """PL: Zwraca symulowane dane IMU w ustandaryzowanym słowniku.
 
-        Returns:
-            dict[str, Any]: Słownik zawierający 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'temp'.
+        EN: Returns simulated IMU data in a standardized dictionary.
         """
         return {
             "ax": 9.8,
@@ -55,9 +44,9 @@ class BMX160:
         }
 
     def calibrate(self) -> bool:
-        """
-        Mockowa kalibracja.
-        Mock calibration.
+        """PL: Zapisuje informację o mockowej kalibracji i zwraca sukces.
+
+        EN: Logs the mock calibration and returns success.
         """
         logger.info("BMX160 (mock): Calibration successful.")
         return True

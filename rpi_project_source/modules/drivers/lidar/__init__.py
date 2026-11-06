@@ -1,4 +1,4 @@
-"""
-Plik inicjalizacyjny pakietu.
-Package initialization file.
+"""PL: Inicjalizuje pakiet sterowników LiDAR.
+
+EN: Initializes the LiDAR driver package.
 """

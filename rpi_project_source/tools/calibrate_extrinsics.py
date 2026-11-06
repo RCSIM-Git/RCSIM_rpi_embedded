@@ -1,7 +1,6 @@
-"""
-Calibration tool for Camera <-> LiDAR extrinsics.
-Uses OpenCV chessboard detection to find camera pose relative to a physical target,
-and matches it with LiDAR points if possible (or manual measurement).
+"""PL: Pomocnicza kalibracja położenia kamery względem wzorca szachownicy.
+
+EN: Helper for calibrating camera pose relative to a chessboard target.
 """
 
 import argparse
@@ -14,9 +13,11 @@ import numpy as np
 def calibrate_extrinsics(
     image_path: str, square_size_mm: float = 25.0, pattern_size: tuple = (9, 6)
 ):
-    """
-    Very simplified extrinsic calibration script.
-    In real usage, you'd collect multiple frames.
+    """PL: Wyznacza przybliżone położenie kamery na podstawie obrazu wzorca.
+
+    EN: Estimate camera pose from an image of the calibration target.
+
+    The result is a configuration suggestion, not a full multi-frame calibration.
     """
     img = cv2.imread(image_path)
     if img is None:

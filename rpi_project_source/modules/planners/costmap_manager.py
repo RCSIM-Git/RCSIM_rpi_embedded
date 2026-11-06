@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Menadżer Mapy Kosztów (CostmapManager)
-Zarządza globalną siatką occupancy grid, aktualizuje ją danymi LiDAR i oblicza transformatę dystansu (Distance Transform).
-
-Separated from local_planner.py.
+"""PL: Aktualizuje lokalną mapę kosztów z LiDAR i nachylenia terenu.
+EN: Updates the local cost map from LiDAR and terrain slope data.
 """
 
 import logging
@@ -17,8 +14,8 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class CostmapManager:
-    """
-    Zarządza mapą zajętości 2D (Costmap) w systemie lokalnym RPi.
+    """PL: Przechowuje siatkę kosztów i wyznacza odległości od przeszkód.
+    EN: Stores the cost grid and computes distances from obstacles.
     """
 
     OBSTACLE_COST: float = 1.0
@@ -31,6 +28,9 @@ class CostmapManager:
         inflation_radius_cm: float = 10.0,
         config: dict[str, Any] = None,
     ) -> None:
+        """PL: Inicjalizuje mapę, rozdzielczość i parametry inflacji.
+        EN: Initializes the map, resolution, and inflation parameters.
+        """
         self.grid_size: int = grid_size
         self.resolution: float = resolution
         self.inflation_radius_cm: float = inflation_radius_cm
@@ -48,13 +48,17 @@ class CostmapManager:
         )
 
     def clear_map(self) -> None:
-        """Czyści grid costmapy."""
+        """PL: Zeruje komórki mapy kosztów.
+        EN: Resets the cells in the cost map.
+        """
         self.costmap.fill(0)
 
     def world_to_grid(
         self, x: float | np.ndarray, y: float | np.ndarray
     ) -> tuple[int | np.ndarray, int | np.ndarray]:
-        """Konwertuje globalne pozycje świata metrycznego na indeksy siatki."""
+        """PL: Przelicza współrzędne świata na ograniczone indeksy siatki.
+        EN: Converts world coordinates to clipped grid indices.
+        """
         center = self.grid_size // 2
         # [PLAN-004] Safe conversion with clipping BEFORE int casting
         if isinstance(x, np.ndarray):
@@ -72,16 +76,17 @@ class CostmapManager:
     def grid_to_world(
         self, gx: int | np.ndarray, gy: int | np.ndarray
     ) -> tuple[float | np.ndarray, float | np.ndarray]:
-        """Konwertuje indeksy siatki na pozycje świata metrycznego."""
+        """PL: Przelicza indeksy siatki na współrzędne świata w metrach.
+        EN: Converts grid indices to world coordinates in meters.
+        """
         center = self.grid_size // 2
         x = (gx - center) * self.resolution + self.map_offset_x
         y = (gy - center) * self.resolution + self.map_offset_y
         return x, y
 
     def check_and_scroll_map(self, rx: float, ry: float) -> None:
-        """
-        Centruje mapę na robocie kasując przeterminowane bloki,
-        jeśli zbytnio zbliża się do jej granic (1.5 metra ochrony = 30 komórek).
+        """PL: Przesuwa początek mapy i czyści ją, gdy robot zbliża się do brzegu.
+        EN: Recenters and clears the map when the robot nears its edge.
         """
         center = self.grid_size // 2
         gx = int(center + (rx - self.map_offset_x) / self.resolution)
@@ -108,8 +113,8 @@ class CostmapManager:
         lidar_points: list[tuple[float, float]],
         imu_orientation: dict[str, float] = None,  # [PLAN-010] Pitch/Roll
     ) -> None:
-        """
-        Główna rura aktualizacji costmapy na daną klatkę czasową.
+        """PL: Aktualizuje mapę z sensorów, wygasza koszty i rozszerza przeszkody.
+        EN: Updates sensor data, decays terrain costs, and inflates obstacles.
         """
         self._update_from_lidar(pose, lidar_points)
 
@@ -133,6 +138,9 @@ class CostmapManager:
     def _update_from_lidar(
         self, pose: tuple[float, float, float], lidar_points: list[tuple[float, float]]
     ) -> None:
+        """PL: Rzutuje punkty LiDAR na komórki mapy jako przeszkody.
+        EN: Projects LiDAR points onto map cells as obstacles.
+        """
         if not lidar_points:
             return
 
@@ -172,6 +180,9 @@ class CostmapManager:
         detections: list[dict[str, Any]],
         camera_extrinsics: dict[str, Any],
     ) -> None:
+        """PL: Rzutuje detekcje obrazu na mapę z użyciem kalibracji kamery.
+        EN: Projects image detections onto the map using camera calibration.
+        """
         robot_x, robot_y, robot_theta_deg = pose
 
         cam_config = self.config.get("camera", {})
@@ -235,8 +246,8 @@ class CostmapManager:
     def _update_from_terrain(
         self, pose: tuple[float, float, float], imu_orientation: dict[str, float]
     ) -> None:
-        """
-        Nanosi koszty trudu terenu na podstawie nachylenia (Pitch/Roll).
+        """PL: Oznacza teren wysokim kosztem na podstawie pitch i roll IMU.
+        EN: Marks terrain with a higher cost based on IMU pitch and roll.
         """
         pitch = imu_orientation.get("pitch", 0.0)
         roll = imu_orientation.get("roll", 0.0)
@@ -268,7 +279,9 @@ class CostmapManager:
                             self.costmap[nx, ny] = max(self.costmap[nx, ny], added_cost)
 
     def _decay_terrain_costs(self) -> None:
-        """Powolne zmniejszanie kosztów terenu, aby robot 'zapominał' o starych wstrząsach."""
+        """PL: Stopniowo zmniejsza koszty terenowe poza przeszkodami twardymi.
+        EN: Gradually reduces terrain costs outside hard obstacles.
+        """
         DECAY_RATE = 0.01  # Co klatkę odejmujemy 1% kosztu
 
         # Tylko dla komórek które NIE są przeszkodami twardymi
@@ -277,6 +290,9 @@ class CostmapManager:
         self.costmap[self.costmap < 0] = 0
 
     def _inflate_map(self, iterations: int = 1) -> None:
+        """PL: Rozszerza obszary zajęte o zadaną liczbę komórek.
+        EN: Dilates occupied areas by the requested number of cells.
+        """
         mask = (self.costmap >= self.OBSTACLE_COST).astype(np.uint8)
 
         if not np.any(mask):
@@ -292,7 +308,9 @@ class CostmapManager:
     def get_closest_obstacle_dist(
         self, robot_pose: tuple[float, float, float] = (0, 0, 0)
     ) -> float:
-        """Odszukuje na Distance Transform Map odległość robota od fizycznej granicy."""
+        """PL: Zwraca odległość robota od najbliższej przeszkody w metrach.
+        EN: Returns the robot's distance to the nearest obstacle in meters.
+        """
         rx, ry, _ = robot_pose
         gx, gy = self.world_to_grid(rx, ry)
 
@@ -304,8 +322,8 @@ class CostmapManager:
         return 0.0
 
     def is_line_free(self, x0: int, y0: int, x1: int, y1: int) -> bool:
-        """
-        Wektoryzowane sprawdzanie pustej widoczności linii między 2 grid blockami.
+        """PL: Sprawdza, czy odcinek między komórkami nie przecina przeszkody.
+        EN: Checks whether the segment between cells intersects an obstacle.
         """
         num_points = int(np.hypot(x1 - x0, y1 - y0))
         if num_points == 0:

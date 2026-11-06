@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""
-RCSIM - Narzędzie do kalibracji oscylatora PCA9685.
-RCSIM - PCA9685 Oscillator Calibration Tool.
+"""PL: Narzędzie do kalibracji oscylatora PCA9685.
 
-To narzędzie pozwala na ręczne wywołanie procedury autokalibracji zegara PCA9685.
-Wymaga zworki między wybranym kanałem PCA (domyślnie 15) a pinem GPIO (domyślnie 17).
+EN: Tool for calibrating the PCA9685 oscillator.
+
+Wymaga połączenia wybranego kanału PCA z pinem GPIO.
+Requires connecting the selected PCA channel to a GPIO pin.
 """
 
 import logging
@@ -21,6 +21,10 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("PCA_CALIB")
 
 def run_calibration():
+    """PL: Uruchamia potwierdzaną przez operatora kalibrację PCA9685.
+
+    EN: Run the PCA9685 calibration after operator confirmation.
+    """
     print("\n--- NARZĘDZIE KALIBRACJI OSCYLATORA PCA9685 ---")
     print("Upewnij się, że masz połączone:")
     print("PCA9685 Channel 15  <--->  Raspberry Pi GPIO 17 (Pin 11)")

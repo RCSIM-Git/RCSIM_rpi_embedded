@@ -1,3 +1,8 @@
+"""PL: Testy przetwarzania danych GPS i jakości RTK.
+
+EN: Tests for GPS data processing and RTK quality handling.
+"""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -5,22 +10,35 @@ from modules.gps import GPS_UART
 
 
 class TestGPSUART:
+    """PL: Sprawdza zachowanie interfejsu GPS_UART.
+
+    EN: Verify the behavior of the GPS_UART interface.
+    """
 
     @pytest.fixture
     def gps_uart(self):
-        """Fixture providing a GPS_UART instance with mocked dependencies."""
+        """PL: Tworzy GPS_UART z zamockowanymi zależnościami.
+
+        EN: Create a GPS_UART instance with mocked dependencies.
+        """
         with patch("modules.gps.HW_AVAILABLE", True):
             return GPS_UART(port="COM1", baudrate=9600)
 
     def test_rtk_quality_map_constant(self):
-        """Verify the RTK_QUALITY_MAP constant exists and has correct values."""
+        """PL: Sprawdza mapowanie wartości jakości RTK.
+
+        EN: Verify the mapping of RTK quality values.
+        """
         assert hasattr(GPS_UART, "RTK_QUALITY_MAP")
         assert GPS_UART.RTK_QUALITY_MAP[4] == "RTK Fixed"
         assert GPS_UART.RTK_QUALITY_MAP[5] == "RTK Float"
         assert GPS_UART.RTK_QUALITY_MAP[0] == "Brak"
 
     def test_get_latest_data_updates_rtk_status(self, gps_uart):
-        """Verify get_latest_data correctly maps 'quality' to 'rtk_status'."""
+        """PL: Sprawdza mapowanie jakości komunikatu na status RTK.
+
+        EN: Verify that message quality is mapped to the RTK status.
+        """
         # Mock a GGA message
         mock_msg = MagicMock()
         mock_msg.msgID = "GGA"
@@ -53,7 +71,10 @@ class TestGPSUART:
         assert data["rtk_status"] == "N/A (99)"
 
     def test_get_latest_data_handles_empty_queue(self, gps_uart):
-        """Verify get_latest_data returns last_data when queue is empty."""
+        """PL: Sprawdza zwracanie ostatnich danych przy pustej kolejce.
+
+        EN: Verify that the last data is returned when the queue is empty.
+        """
         gps_uart.last_data["fix"] = 1
         gps_uart.last_data["rtk_status"] = "SPS"
 
@@ -62,7 +83,10 @@ class TestGPSUART:
         assert data["rtk_status"] == "SPS"
 
     def test_zero_coordinates_discard_fix(self, gps_uart):
-        """Verify that a fix is discarded if coordinates are 0.0, 0.0."""
+        """PL: Sprawdza odrzucenie poprawki o zerowych współrzędnych.
+
+        EN: Verify that a fix with zero coordinates is discarded.
+        """
         # Initialize with non-zero coordinates
         gps_uart.last_data["lat"] = 52.2297
         gps_uart.last_data["lon"] = 21.0122

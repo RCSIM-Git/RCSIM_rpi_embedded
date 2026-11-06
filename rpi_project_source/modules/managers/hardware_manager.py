@@ -1,9 +1,5 @@
-"""
-Menedżer Sprzętu - Warstwa Abstrakcji Sprzętowej (HAL).
-Hardware Manager - Hardware Abstraction Layer (HAL).
-
-Zrefaktoryzowana Powłoka-Fasada API Głównego Menedżera sprzętu RPi.
-Deleguje połączenia logiki do osobnych pakietów (SRP).
+"""PL: Udostępnia fasadę do zarządzania czujnikami i elementami wykonawczymi.
+EN: Provides a facade for managing sensors and actuators.
 """
 
 import logging
@@ -24,14 +20,16 @@ logger = logging.getLogger(__name__)
 
 
 class HardwareManager:
-    """
-    Zrefaktoryzowana Fasada API zarządzająca RPi cyklem życia sprzętu
-    Manages the entire hardware lifecycle acting as a transparent proxy.
+    """PL: Łączy inicjalizację I2C, agregację czujników i sterowanie PWM.
+    EN: Combines I2C initialization, sensor aggregation, and PWM control.
     """
 
     def __init__(
         self, hardware_config: dict[str, Any], init_pca_neutral: bool = False
     ) -> None:
+        """PL: Inicjalizuje magistralę I2C i podmoduły sprzętowe.
+        EN: Initializes the I2C bus and hardware submodules.
+        """
         self.config: dict[str, Any] = hardware_config
         self.init_pca_neutral = init_pca_neutral
         self.i2c = self._init_i2c()
@@ -41,7 +39,9 @@ class HardwareManager:
         self.actuators = ActuatorController(self.config, self.i2c, init_pca_neutral)
 
     def _init_i2c(self) -> Any | None:
-        """Fizyczne otwarcie portu szyny I2C (Bus 1) dla warstwy komunikacji RPi."""
+        """PL: Otwiera magistralę I2C numer 1, jeśli sterownik jest dostępny.
+        EN: Opens I2C bus 1 when its driver is available.
+        """
         if I2CWrapper is None:
             logger.warning(
                 "Native I2C/smbus2 drivers not found. Running in mock hardware mode."
@@ -67,22 +67,37 @@ class HardwareManager:
 
     @property
     def lidar(self) -> Any:
+        """PL: Zwraca sterownik LiDAR z agregatora czujników.
+        EN: Returns the LiDAR driver from the sensor aggregator.
+        """
         return self.sensors.lidar
 
     @property
     def gps(self) -> Any:
+        """PL: Zwraca odbiornik GPS z agregatora czujników.
+        EN: Returns the GPS receiver from the sensor aggregator.
+        """
         return self.sensors.gps
 
     @property
     def imu(self) -> Any:
+        """PL: Zwraca czujnik IMU z agregatora czujników.
+        EN: Returns the IMU sensor from the sensor aggregator.
+        """
         return self.sensors.imu
 
     @property
     def ups(self) -> Any:
+        """PL: Zwraca monitor zasilania UPS z agregatora czujników.
+        EN: Returns the UPS power monitor from the sensor aggregator.
+        """
         return self.sensors.ups
 
     @property
     def pca(self) -> Any:
+        """PL: Zwraca kontroler PWM PCA9685.
+        EN: Returns the PCA9685 PWM controller.
+        """
         return self.actuators.pca
 
     # ==============================================================
@@ -90,42 +105,69 @@ class HardwareManager:
     # ==============================================================
 
     def read_sensors(self) -> dict[str, Any]:
-        """Polowanie odczytów skondensowane w Aggregatorze."""
+        """PL: Zwraca zagregowane odczyty czujników.
+        EN: Returns aggregated sensor readings.
+        """
         return self.sensors.read_sensors()
 
     def set_steering(self, value: float) -> None:
-        """Popycha pozycję układu kierowniczego za pomocą mapowania krzywych PWM wewnątrz."""
+        """PL: Przekazuje wychylenie kierownicy do sterownika PWM.
+        EN: Sends the steering command to the PWM actuator controller.
+        """
         self.actuators.set_steering(value)
 
     def set_throttle(self, value: float) -> None:
-        """Zapisanie wychylenia gazu (dla korekt) oraz transfer logiczny sygnału ESC."""
+        """PL: Zapisuje gaz dla kompensacji IMU i ustawia wyjście ESC.
+        EN: Stores throttle for IMU compensation and sets the ESC output.
+        """
         self.sensors.notify_throttle_change(value)
         self.actuators.set_throttle(value)
 
     def set_channel_pulse(self, channel: int, pulse_us: int) -> None:
+        """PL: Ustawia impuls PWM na wskazanym kanale.
+        EN: Sets a PWM pulse on the selected channel.
+        """
         self.actuators.set_channel_pulse(channel, pulse_us)
 
     def write_controls(
         self, steering: float, throttle: float, extra: dict[int, int]
     ) -> None:
+        """PL: Zapisuje sterowanie kierownicą, gazem i kanałami dodatkowymi.
+        EN: Writes steering, throttle, and additional channel controls.
+        """
         self.set_steering(steering)
         self.set_throttle(throttle)
         for ch, pulse_us in extra.items():
             self.set_channel_pulse(ch, pulse_us)
 
     def set_pwm(self, pulse_us: int, force: bool = False, channel: int = -1) -> None:
+        """PL: Przekazuje bezpośrednie ustawienie impulsu PWM.
+        EN: Forwards a direct PWM pulse command.
+        """
         self.actuators.set_pwm(pulse_us, force, channel)
 
     def calibrate_esc(self, channel: int = -1) -> None:
+        """PL: Uruchamia kalibrację wskazanego regulatora ESC.
+        EN: Starts calibration for the selected ESC.
+        """
         self.actuators.calibrate_esc(channel)
 
     def disable_all_channels(self) -> None:
+        """PL: Wyłącza wszystkie wyjścia kontrolera PCA9685.
+        EN: Disables all PCA9685 controller outputs.
+        """
         self.actuators.disable_all_channels()
 
     def arm_pca(self) -> None:
+        """PL: Ustawia neutralne sygnały i uzbraja kontroler PCA.
+        EN: Sets neutral signals and arms the PCA controller.
+        """
         self.actuators.arm_pca()
 
     def calibrate_imu(self) -> bool:
+        """PL: Rozpoczyna kalibrację IMU i zwraca jej wynik.
+        EN: Starts IMU calibration and returns its result.
+        """
         return self.sensors.calibrate_imu()
 
     def estimate_motion(
@@ -135,7 +177,9 @@ class HardwareManager:
         dt: float,
         imu_data: dict[str, Any] | None = None,
     ) -> tuple[float, float, float]:
-        """Statyczny bypass do biblioteki matematyki w utilsach oddzielonej od I2C."""
+        """PL: Szacuje ruch pojazdu z wejść sterujących i odczytów IMU.
+        EN: Estimates vehicle motion from control inputs and IMU readings.
+        """
         max_s = self.config.get("max_speed_mps", 2.0)
         max_str = self.config.get("max_steer_rad", 0.52)
         wb = self.config.get("wheelbase_m", 0.25)
@@ -151,7 +195,9 @@ class HardwareManager:
         )
 
     def cleanup(self) -> None:
-        """Sekwencyjne zwalnianie przerw i zasilania UART i I2C."""
+        """PL: Zamyka elementy wykonawcze i czujniki sprzętowe.
+        EN: Shuts down hardware actuators and sensors.
+        """
         logger.info("HardwareManager / Facade: Cleanup...")
         self.actuators.cleanup()
         self.sensors.cleanup()

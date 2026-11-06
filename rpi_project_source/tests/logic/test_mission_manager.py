@@ -1,3 +1,7 @@
+"""PL: Testuje uruchamianie, aktualizację, planowanie i pętlę misji.
+EN: Tests mission start, updates, replanning, and looping.
+"""
+
 import os
 import sys
 import unittest
@@ -10,7 +14,14 @@ from logic.mission_manager import MissionManager
 
 
 class TestMissionManager(unittest.TestCase):
+    """PL: Testy obsługi kolejki punktów misji.
+    EN: Tests for mission waypoint queue handling.
+    """
+
     def setUp(self):
+        """PL: Tworzy menedżera misji z atrapą nawigacji.
+        EN: Creates a mission manager with a navigation mock.
+        """
         self.mock_nav_manager = MagicMock()
         # Setup nav_manager attributes that MissionManager accesses
         self.mock_nav_manager.current_path = None
@@ -18,7 +29,9 @@ class TestMissionManager(unittest.TestCase):
         self.mission_manager = MissionManager(self.mock_nav_manager)
 
     def test_start_mission(self):
-        """Test starting a mission with waypoints."""
+        """PL: Sprawdza inicjalizację kolejki i pierwszego punktu misji.
+        EN: Checks mission queue and first waypoint initialization.
+        """
         waypoints = [(10.0, 10.0), (20.0, 20.0)]
         self.mission_manager.start_mission(waypoints, loop=False)
 
@@ -34,7 +47,9 @@ class TestMissionManager(unittest.TestCase):
         self.assertEqual(self.mission_manager.current_waypoint_index, 1)
 
     def test_stop_mission(self):
-        """Test stopping a mission."""
+        """PL: Sprawdza zatrzymanie misji i wyczyszczenie bieżącej ścieżki.
+        EN: Checks mission shutdown and clearing of the current path.
+        """
         self.mission_manager.is_running = True
         self.mission_manager.stop_mission()
 
@@ -43,7 +58,9 @@ class TestMissionManager(unittest.TestCase):
         self.mock_nav_manager.clear_path.assert_called()
 
     def test_update_reached_waypoint(self):
-        """Test update logic when a waypoint is reached."""
+        """PL: Sprawdza przejście do kolejnego punktu po osiągnięciu celu.
+        EN: Checks advancement to the next waypoint after reaching a target.
+        """
         waypoints = [(10.0, 10.0), (20.0, 20.0)]
         self.mission_manager.start_mission(waypoints)
 
@@ -62,7 +79,9 @@ class TestMissionManager(unittest.TestCase):
         self.mock_nav_manager.clear_path.assert_called()
 
     def test_update_replanning(self):
-        """Test that update triggers replanning if path is missing and not at target."""
+        """PL: Sprawdza ponowne planowanie, gdy brakuje aktywnej ścieżki.
+        EN: Checks replanning when no active path exists.
+        """
         waypoints = [(10.0, 10.0)]
         self.mission_manager.start_mission(waypoints)
 
@@ -81,7 +100,9 @@ class TestMissionManager(unittest.TestCase):
         )
 
     def test_loop_mission(self):
-        """Test mission looping behavior."""
+        """PL: Sprawdza powrót do początku kolejki w misji zapętlonej.
+        EN: Checks that a looping mission returns to its first waypoint.
+        """
         waypoints = [(10.0, 10.0)]
         self.mission_manager.start_mission(waypoints, loop=True)
 

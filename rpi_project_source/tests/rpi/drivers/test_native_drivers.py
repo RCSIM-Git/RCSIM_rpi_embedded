@@ -1,4 +1,7 @@
-# rpi_project_source/tests/rpi/drivers/test_native_drivers.py
+"""PL: Testy natywnych sterowników czujników i fabryki sensorów.
+
+EN: Tests for native sensor drivers and the sensor factory.
+"""
 import os
 import struct
 import sys
@@ -21,14 +24,17 @@ sys.path.insert(0, project_root)
 
 @pytest.fixture
 def mock_i2c_wrapper():
-    """Fixture to create a mocked I2CWrapper that simulates the real one."""
+    """PL: Tworzy mock I2CWrapper zgodny z interfejsem sprzętowym.
+
+    EN: Create a mocked I2CWrapper that follows the hardware interface.
+    """
     return MagicMock(spec=I2CWrapper)
 
 
 def test_bmp280_read_data_with_datasheet_values(mock_i2c_wrapper):
-    """
-    Testuje, czy sterownik NativeBMP280 poprawnie oblicza temperaturę i ciśnienie,
-    używając danych referencyjnych z noty katalogowej Bosch.
+    """PL: Sprawdza obliczenia BMP280 na danych z noty katalogowej.
+
+    EN: Verify BMP280 calculations against Bosch datasheet reference data.
     """
     # Arrange
     mock_i2c_wrapper.read_byte_data.return_value = 0x58  # BMP280 Chip ID
@@ -98,8 +104,9 @@ def test_bmp280_read_data_with_datasheet_values(mock_i2c_wrapper):
 
 
 def test_sensor_factory_detection_logic(mock_i2c_wrapper):
-    """
-    Test a SensorManager poprawnie wykrywa i inicjalizuje sterowniki.
+    """PL: Sprawdza wykrywanie i inicjalizację dostępnych sterowników.
+
+    EN: Verify detection and initialization of available sensor drivers.
     """
     # Arrange
     factory = SensorManager(mock_i2c_wrapper)
@@ -109,6 +116,10 @@ def test_sensor_factory_detection_logic(mock_i2c_wrapper):
     with patch.object(factory, "_scan_bus", return_value=[0x68, 0x77, 0x76]):
 
         def read_byte_data_side_effect(address, register):
+            """PL: Zwraca identyfikatory urządzeń lub symuluje błąd odczytu.
+
+            EN: Return device identifiers or simulate a read failure.
+            """
             if address == 0x68 and register == 0x75:
                 return 0x71
             if address == 0x77 and register == 0xD0:
@@ -128,9 +139,9 @@ def test_sensor_factory_detection_logic(mock_i2c_wrapper):
 
 
 def test_pca9685_set_pwm_logic(mock_i2c_wrapper):
-    """
-    Testuje, czy sterownik NativePCA9685 poprawnie oblicza i zapisuje
-    wartości PWM do odpowiednich rejestrów.
+    """PL: Sprawdza obliczenie wartości PWM i zapis rejestrów.
+
+    EN: Verify PWM value calculation and register writes.
     """
     # Arrange
     mock_i2c_wrapper.read_byte_data.return_value = 0x10
@@ -148,12 +159,17 @@ def test_pca9685_set_pwm_logic(mock_i2c_wrapper):
 
 def test_ak8963_magnetometer_logic(mock_i2c_wrapper):
     """
-    Testuje, czy sterownik NativeAK8963 prawidłowo konfiguruje tryby bit_output
-    oraz poprawnie oblicza odczyty skalowane.
+    PL: Sprawdza konfigurację trybów bit_output i skalowanie odczytów AK8963.
+
+    EN: Verify AK8963 bit_output mode configuration and measurement scaling.
     """
     # Arrange
     # 1. Zwróć poprawny Who Am I (0x48)
     def read_byte_side_effect(addr, reg):
+        """PL: Symuluje odczyt rejestru identyfikatora magnetometru.
+
+        EN: Simulate a read from the magnetometer identity register.
+        """
         if reg == 0x00:  # _WIA
             return 0x48
         return 0
@@ -208,8 +224,9 @@ def test_ak8963_magnetometer_logic(mock_i2c_wrapper):
 
 def test_mpu9250_compatible_chip_ids(mock_i2c_wrapper):
     """
-    Testuje, czy NativeMPU9250 poprawnie akceptuje wszystkie kompatybilne identyfikatory chipów
-    oraz odrzuca nieznane/nieobsługiwane identyfikatory.
+    PL: Sprawdza akceptację zgodnych i odrzucanie nieznanych identyfikatorów.
+
+    EN: Verify compatible chip identifiers are accepted and unknown ones rejected.
     """
     # Lista wszystkich kompatybilnych chipów do przetestowania
     compatible_ids = [0x71, 0x73, 0x70, 0x68, 0x60]
@@ -231,8 +248,9 @@ def test_mpu9250_compatible_chip_ids(mock_i2c_wrapper):
 
 def test_sensor_factory_handles_mpu9255_and_6500(mock_i2c_wrapper):
     """
-    Testuje, czy fabryka SensorManager poprawnie wykrywa i inicjalizuje NativeMPU9250
-    dla chipów MPU-9255 (0x73) oraz MPU-6500 (0x70).
+    PL: Sprawdza obsługę układów MPU-9255 i MPU-6500 przez fabrykę.
+
+    EN: Verify the factory supports MPU-9255 and MPU-6500 chips.
     """
     factory = SensorManager(mock_i2c_wrapper)
     dummy_calib_data = [0] * 24
@@ -253,13 +271,18 @@ def test_sensor_factory_handles_mpu9255_and_6500(mock_i2c_wrapper):
 
 def test_mpu9250_enable_bypass_mode(mock_i2c_wrapper):
     """
-    Testuje, czy NativeMPU9250 poprawnie włącza tryb bypass na magistrali I2C
-    podczas swojej inicjalizacji, co jest wymagane do komunikacji z AK8963.
+    PL: Sprawdza włączenie trybu I2C bypass wymaganego przez AK8963.
+
+    EN: Verify I2C bypass is enabled for communication with the AK8963.
     """
     # 1. Zwróć MPU-9250 (0x71) dla rejestru WHO_AM_I (0x75)
     # 2. Zwróć I2C Master jako włączony (0x20) dla USER_CTRL (0x6A), aby przetestować wyłączenie go
     # 3. Zwróć INT_PIN_CFG (0x37) jako 0x00, a potem 0x02 dla weryfikacji włączenia bypassu
     def read_byte_side_effect(addr, reg):
+        """PL: Symuluje odczyt rejestrów IMU używanych przy inicjalizacji.
+
+        EN: Simulate reads from IMU registers used during initialization.
+        """
         if reg == 0x75:  # WHO_AM_I
             return 0x71
         if reg == 0x6A:  # USER_CTRL

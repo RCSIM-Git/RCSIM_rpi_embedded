@@ -1,3 +1,8 @@
+"""PL: Analizuje logi detekcji i tworzy tekstową mapę cieplną.
+
+EN: Analyze detection logs and render a text-based heat map.
+"""
+
 import argparse
 import json
 import os
@@ -6,6 +11,10 @@ from collections import Counter
 
 
 def analyze_log(log_path):
+    """PL: Podsumowuje detekcje z pliku i opcjonalnie zapisuje wykres.
+
+    EN: Summarize detections from a file and optionally save a plot.
+    """
     if not os.path.exists(log_path):
         print(f"Error: File {log_path} not found.")
         return

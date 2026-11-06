@@ -1,12 +1,6 @@
-"""
-Pytest configuration file for the RPi project.
-Plik konfiguracyjny Pytest dla projektu RPi.
+"""PL: Konfiguracja pytest i mocki zależności sprzętowych projektu RPI.
 
-This file defines fixtures that are automatically discovered and used by pytest.
-The `autouse=True` fixtures are applied to all tests in the suite.
-
-Ten plik definiuje fixture'y, które są automatycznie wykrywane i używane przez pytest.
-Fixture'y z `autouse=True` są stosowane do wszystkich testów w pakiecie.
+EN: Pytest configuration and hardware-dependency mocks for the RPI project.
 """
 
 import sys
@@ -32,9 +26,9 @@ for module_name in hardware_modules:
 
 @pytest.fixture(autouse=True)
 def mock_rpi_hardware(monkeypatch):
-    """
-    Ensures mocks are maintained during tests (redundant but safe).
-    Zapewnia utrzymanie mocków podczas testów (nadmiarowe, ale bezpieczne).
+    """PL: Zapewnia dostępność mocków sprzętowych podczas każdego testu.
+
+    EN: Ensure hardware mocks remain available during each test.
     """
     for module_name in hardware_modules:
         if module_name not in sys.modules:

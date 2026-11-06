@@ -19,9 +19,9 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""
-Native PCA9685 Driver using a shared I2C wrapper.
-Natywny sterownik PCA9685 używający współdzielonego wrappera I2C.
+"""PL: Natywny sterownik PCA9685 używający współdzielonego wrappera I2C.
+
+EN: Native PCA9685 driver using a shared I2C wrapper.
 
 This driver provides a low-level interface to the PCA9685 16-channel, 12-bit
 PWM/Servo Driver. It is designed to be lightweight and depends only on the
@@ -38,11 +38,9 @@ from .native_i2c import I2CWrapper
 
 
 class NativePCA9685:
-    """
-    A lightweight, direct-register-access driver for the PCA9685 PWM
-    controller.
-    Lekki sterownik z bezpośrednim dostępem do rejestrów dla kontrolera PWM
-    PCA9685.
+    """PL: Steruje kanałami PWM PCA9685 przez bezpośredni dostęp do rejestrów.
+
+    EN: Controls PCA9685 PWM channels through direct register access.
     """
 
     # --- Register Definitions ---
@@ -75,9 +73,9 @@ class NativePCA9685:
         address: int = 0x40,
         reference_clock_speed: int = 25000000,
     ) -> None:
-        """
-        Initializes the PCA9685 driver.
-        Inicjalizuje sterownik PCA9685.
+        """PL: Inicjalizuje PCA9685 i ustawia domyślną częstotliwość 50 Hz.
+
+        EN: Initializes the PCA9685 and sets the default frequency to 50 Hz.
         """
         self.i2c: I2CWrapper = i2c_wrapper
         self.address: int = address
@@ -87,9 +85,9 @@ class NativePCA9685:
         self.set_frequency(50)  # Default to 50Hz, common for servos
 
     def reset(self) -> None:
-        """
-        Resets the PCA9685 device to its default state.
-        Resetuje urządzenie PCA9685 do stanu domyślnego.
+        """PL: Ustawia podstawowe rejestry trybu PCA9685.
+
+        EN: Sets the PCA9685's basic mode registers.
         """
         # Set MODE1: disable sleep, enable AUTOINC [PLAN-003]
         self.i2c.write_byte_data(self.address, self._MODE1, self._AUTOINC)
@@ -100,11 +98,15 @@ class NativePCA9685:
         time.sleep(0.01)
 
     def set_frequency(self, freq: int) -> None:
-        """
-        Sets the PWM frequency for all channels.
+        """PL: Ustawia częstotliwość PWM wspólną dla wszystkich kanałów.
 
         Args:
-            freq (int): The desired frequency in Hz.
+            freq: Żądana częstotliwość w hercach.
+
+        EN: Sets the PWM frequency shared by all channels.
+
+        Args:
+            freq: Requested frequency in hertz.
         """
         self._frequency = freq  # Update stored frequency
 
@@ -123,21 +125,29 @@ class NativePCA9685:
         self.i2c.write_byte_data(self.address, self._MODE1, old_mode | self._AUTOINC)
 
     def set_all_pwm(self, on: int, off: int) -> None:
-        """Sets all PWM channels."""
+        """PL: Ustawia wspólne wartości ON i OFF dla wszystkich kanałów PWM.
+
+        EN: Sets shared ON and OFF tick values for all PWM channels.
+        """
         self.i2c.write_byte_data(self.address, self._ALL_LED_ON_L, on & 0xFF)
         self.i2c.write_byte_data(self.address, self._ALL_LED_ON_H, on >> 8)
         self.i2c.write_byte_data(self.address, self._ALL_LED_OFF_L, off & 0xFF)
         self.i2c.write_byte_data(self.address, self._ALL_LED_OFF_H, off >> 8)
 
     def set_pwm(self, channel: int, on_tick: int, off_tick: int) -> None:
-        """
-        Sets a single PWM channel's on and off ticks.
-        Ustawia tiki "on" i "of" dla pojedynczego kanału PWM.
+        """PL: Ustawia znaczniki włączenia i wyłączenia pojedynczego kanału.
 
         Args:
-            channel (int): The channel to set (0-15).
-            on_tick (int): The tick (0-4095) when the signal should go high.
-            off_tick (int): The tick (0-4095) when the signal should go low.
+            channel: Numer kanału PWM od 0 do 15.
+            on_tick: Znacznik włączenia sygnału w cyklu 12-bitowym.
+            off_tick: Znacznik wyłączenia sygnału w cyklu 12-bitowym.
+
+        EN: Sets the on and off ticks for one PWM channel.
+
+        Args:
+            channel: PWM channel number from 0 to 15.
+            on_tick: Tick at which the signal goes high in the 12-bit cycle.
+            off_tick: Tick at which the signal goes low in the 12-bit cycle.
         """
         if not 0 <= channel <= 15:
             raise ValueError("Channel must be between 0 and 15.")
@@ -150,9 +160,9 @@ class NativePCA9685:
         self.i2c.write_i2c_block_data(self.address, base_reg, data)
 
     def set_us(self, channel: int, microseconds: int) -> None:
-        """
-        Sets the PWM pulse width for a channel in microseconds.
-        Ustawia szerokość impulsu PWM dla kanału w mikrosekundach.
+        """PL: Ustawia szerokość impulsu kanału PWM podaną w mikrosekundach.
+
+        EN: Sets a PWM channel pulse width specified in microseconds.
         """
         # Calculate the duration of a single tick in microseconds
         tick_duration_us = (1000000.0 / self._frequency) / 4096.0

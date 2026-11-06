@@ -1,6 +1,6 @@
-"""
-Połączony sterownik dla modułu 10-DoF (BMX160 + BMP388).
-Combined driver for 10-DoF module (BMX160 + BMP388).
+"""PL: Łączy odczyty IMU BMX160 i barometru BMP388.
+
+EN: Combines readings from the BMX160 IMU and BMP388 barometer.
 """
 
 import logging
@@ -18,9 +18,9 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 @SensorRegistry.register
 class NativeBMX160BMP388(IMUBase):
-    """
-    Sterownik obsługujący kaskadowe połączenie BMX160 i BMP388 na jednej magistrali.
-    Driver handling the cascaded connection of BMX160 and BMP388 on a single bus.
+    """PL: Obsługuje BMX160 i BMP388 na współdzielonej magistrali I2C.
+
+    EN: Operates the BMX160 and BMP388 on a shared I2C bus.
     """
 
     DRIVER_NAME = "native_bmx160_bmp388"
@@ -29,7 +29,10 @@ class NativeBMX160BMP388(IMUBase):
 
     @classmethod
     def scan(cls, i2c) -> bool:
-        """Check for BMX160 (0xD1/0xD8) + BMP388."""
+        """PL: Sprawdza identyfikatory BMX160 i BMP388 na magistrali I2C.
+
+        EN: Checks for BMX160 and BMP388 chip identifiers on the I2C bus.
+        """
         try:
             chip = i2c.read_byte_data(0x68, 0x00)
             if chip not in [0xD1, 0xD8]:
@@ -47,12 +50,15 @@ class NativeBMX160BMP388(IMUBase):
             return False
 
     def __init__(self, i2c_wrapper: I2CWrapper) -> None:
-        """
-        Inicjalizuje oba sensory.
-        Initializes both sensors.
+        """PL: Inicjalizuje sensory, próbując obsługiwane adresy I2C.
 
         Args:
-            i2c_wrapper (I2CWrapper): Wrapper magistrali I2C. / I2C bus wrapper.
+            i2c_wrapper: Wrapper współdzielonej magistrali I2C.
+
+        EN: Initializes the sensors, trying their supported I2C addresses.
+
+        Args:
+            i2c_wrapper: Wrapper for the shared I2C bus.
         """
         self.bmx: NativeBMX160 | None = None
         self.bmp: NativeBMP388 | None = None
@@ -86,12 +92,15 @@ class NativeBMX160BMP388(IMUBase):
                 logger.debug(f"BMP388 init failed completely: {e2}")
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Odczytuje dane z BMX160 i BMP388, łącząc je w jeden słownik.
-        Reads data from BMX160 and BMP388, merging them into a single dictionary.
+        """PL: Łączy dostępne pomiary BMX160 i BMP388 w jednym słowniku.
 
         Returns:
-            dict[str, Any]: Połączone dane 10-DoF. / Merged 10-DoF data.
+            Słownik z danymi sensorów, które udało się odczytać.
+
+        EN: Merges available BMX160 and BMP388 readings into one dictionary.
+
+        Returns:
+            A dictionary containing readings from sensors that were available.
         """
         data: dict[str, Any] = {}
         if self.bmx:
@@ -101,9 +110,9 @@ class NativeBMX160BMP388(IMUBase):
         return data
 
     def calibrate(self) -> bool:
-        """
-        Przeprowadza kalibrację sensora BMX160.
-        Performs calibration of the BMX160 sensor.
+        """PL: Deleguje kalibrację do BMX160, jeśli sensor jest dostępny.
+
+        EN: Delegates calibration to the BMX160 when the sensor is available.
         """
         if self.bmx:
             return self.bmx.calibrate()

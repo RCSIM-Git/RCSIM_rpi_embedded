@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""
-Simple telemetry GUI for debugging purposes.
+"""PL: Tekstowy interfejs curses do podglądu telemetrii UDP.
+
+EN: Curses-based text interface for viewing UDP telemetry.
 """
 
 import curses
@@ -15,12 +16,12 @@ from typing import Any
 
 # Initialize curses
 def init_curses() -> Any:
-    """
-    Inicjalizuje interfejs biblioteki curses.
-    Initializes the curses library interface.
+    """PL: Inicjalizuje curses i zwraca główne okno terminala.
+
+    EN: Initialize curses and return the main terminal window.
 
     Returns:
-        Any: Okno główne stdscr. / Main stdscr window.
+        Any: Główne okno curses / Main curses window.
     """
     stdscr = curses.initscr()
     curses.noecho()
@@ -39,18 +40,18 @@ from core.utils.system_info import get_board_info  # noqa: E402
 
 
 class TelemetryGUI:
-    """
-    Klasa obsługująca interfejs tekstowy telemetrii (z użyciem curses).
-    Class handling the text-based telemetry interface (using curses).
+    """PL: Obsługuje terminalowy podgląd telemetrii i informacji systemowych.
+
+    EN: Provide a terminal view of telemetry and system information.
     """
 
     def __init__(self, stdscr: Any) -> None:
-        """
-        Inicjalizuje GUI telemetrii.
-        Initializes the telemetry GUI.
+        """PL: Konfiguruje okno, gniazdo UDP i dane systemowe.
+
+        EN: Configure the window, UDP socket, and system information.
 
         Args:
-            stdscr (Any): Ekran tekstowy biblioteki curses. / Text screen of curses library.
+            stdscr: Główne okno curses / The main curses window.
         """
         self.stdscr = stdscr
         self.udp_ip = "0.0.0.0"
@@ -63,9 +64,9 @@ class TelemetryGUI:
         self.board_info = get_board_info()
 
     def listen(self) -> None:
-        """
-        Nasłuchuje przychodzących pakietów danych po UDP.
-        Listens for incoming data packets over UDP.
+        """PL: Odbiera pakiety UDP i aktualizuje dane wyświetlane w GUI.
+
+        EN: Receive UDP packets and update the data displayed by the GUI.
         """
         while self.running:
             try:
@@ -79,9 +80,9 @@ class TelemetryGUI:
                 pass
 
     def draw(self) -> None:
-        """
-        Rysuje elementy interfejsu (nagłówek, system info, dane).
-        Draws interface elements (header, system info, data).
+        """PL: Rysuje nagłówek, informacje systemowe i telemetrię.
+
+        EN: Draw the header, system information, and telemetry.
         """
         self.stdscr.clear()
         height, width = self.stdscr.getmaxyx()
@@ -119,9 +120,9 @@ class TelemetryGUI:
         self.stdscr.refresh()
 
     def run(self) -> None:
-        """
-        Główna pętla uruchomieniowa programu.
-        Main run loop of the program.
+        """PL: Uruchamia wątek odbioru i odświeża interfejs terminala.
+
+        EN: Start the receive thread and refresh the terminal interface.
         """
         listen_thread = Thread(target=self.listen, daemon=True)
         listen_thread.start()
@@ -137,12 +138,12 @@ class TelemetryGUI:
 
 
 def main(stdscr: Any) -> None:
-    """
-    Główna funkcja wywoływana przez wrapper curses.
-    Main function called by curses wrapper.
+    """PL: Tworzy GUI telemetrii i uruchamia jego pętlę.
+
+    EN: Create the telemetry GUI and run its event loop.
 
     Args:
-        stdscr (Any): Ekran tekstowy biblioteki curses. / Text screen of curses library.
+        stdscr: Główne okno curses / The main curses window.
     """
     gui = TelemetryGUI(stdscr)
     gui.run()

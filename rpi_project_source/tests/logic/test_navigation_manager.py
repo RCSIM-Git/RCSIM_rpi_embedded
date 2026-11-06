@@ -1,3 +1,7 @@
+"""PL: Testuje obliczenia geograficzne, regulator PID i logikę powrotu RTH.
+EN: Tests geographic calculations, PID control, and return-to-home behavior.
+"""
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -8,8 +12,8 @@ from modules.map_utils import calculate_bearing, haversine_distance
 
 
 def test_calculate_bearing_new_york_to_los_angeles():
-    """
-    Testuje obliczanie azymutu na długiej trasie.
+    """PL: Sprawdza azymut na trasie z Nowego Jorku do Los Angeles.
+    EN: Checks the bearing from New York to Los Angeles.
     """
     lat1, lon1 = 40.7128, -74.0060  # New York
     lat2, lon2 = 34.0522, -118.2437  # Los Angeles
@@ -20,9 +24,8 @@ def test_calculate_bearing_new_york_to_los_angeles():
 
 
 def test_haversine_distance_london_to_paris():
-    """
-    Testuje obliczanie odległości między dwoma punktami.
-    Wartość oczekiwana zweryfikowana za pomocą kalkulatora online.
+    """PL: Sprawdza odległość Haversine między Londynem a Paryżem.
+    EN: Checks the Haversine distance between London and Paris.
     """
     lat1, lon1 = 51.5072, -0.1276  # London
     lat2, lon2 = 48.8566, 2.3522  # Paris
@@ -37,9 +40,8 @@ def test_haversine_distance_london_to_paris():
 
 
 def test_pid_proportional_term(monkeypatch):
-    """
-    Testuje, czy człon proporcjonalny (P) działa poprawnie.
-    Wynik jest obcinany do zakresu [-1.0, 1.0].
+    """PL: Sprawdza człon proporcjonalny i ograniczenie sterowania do zakresu.
+    EN: Checks the proportional term and steering output clamping.
     """
     monkeypatch.setattr(
         "logic.navigation_manager.calculate_bearing", lambda *args: 90.0
@@ -56,9 +58,8 @@ def test_pid_proportional_term(monkeypatch):
 
 
 def test_pid_error_wrapping(monkeypatch):
-    """
-    Testuje, czy logika "zawijania" kątów działa poprawnie.
-    Błąd > 180 stopni powinien być traktowany jako błąd ujemny.
+    """PL: Sprawdza normalizację błędu kursu przez granicę ±180 stopni.
+    EN: Checks heading error normalization across the ±180 degree boundary.
     """
     monkeypatch.setattr(
         "logic.navigation_manager.calculate_bearing", lambda *args: 10.0
@@ -70,8 +71,8 @@ def test_pid_error_wrapping(monkeypatch):
 
 
 def test_pid_derivative_term_with_dt_zero(monkeypatch):
-    """
-    Testuje, czy człon różniczkujący (D) jest zerowany, gdy dt=0.
+    """PL: Sprawdza zerowanie członu D przy zerowym kroku czasu.
+    EN: Checks that the derivative term is zero when the time step is zero.
     """
     monkeypatch.setattr(
         "logic.navigation_manager.calculate_bearing", lambda *args: 90.0
@@ -83,8 +84,8 @@ def test_pid_derivative_term_with_dt_zero(monkeypatch):
 
 
 def test_pid_integral_anti_windup(monkeypatch):
-    """
-    Testuje, czy zabezpieczenie anti-windup dla członu całkującego (I) działa.
+    """PL: Sprawdza ograniczenie całki PID przez zabezpieczenie anti-windup.
+    EN: Checks PID integral clamping through anti-windup protection.
     """
     monkeypatch.setattr(
         "logic.navigation_manager.calculate_bearing", lambda *args: 90.0
@@ -104,8 +105,8 @@ def test_pid_integral_anti_windup(monkeypatch):
 
 
 def test_update_rth_inactive(monkeypatch):
-    """
-    Testuje, czy funkcja zwraca (0,0,False), gdy RTH jest nieaktywny.
+    """PL: Sprawdza neutralne sterowanie, gdy RTH jest nieaktywny.
+    EN: Checks neutral controls when RTH is inactive.
     """
     nav_manager = NavigationManager()
     steering, throttle, arrived = nav_manager.update_rth(
@@ -117,8 +118,8 @@ def test_update_rth_inactive(monkeypatch):
 
 
 def test_update_rth_arrived_at_home(monkeypatch):
-    """
-    Testuje, czy funkcja zwraca (0,0,True), gdy pojazd dotrze do celu.
+    """PL: Sprawdza sygnalizację dotarcia do domu w granicy tolerancji.
+    EN: Checks the arrival flag when the vehicle is within home tolerance.
     """
     monkeypatch.setattr(
         "logic.navigation_manager.haversine_distance", lambda *args: 1.5
@@ -135,8 +136,8 @@ def test_update_rth_arrived_at_home(monkeypatch):
 
 
 def test_update_rth_calculates_steering_when_active(monkeypatch):
-    """
-    Testuje, czy funkcja poprawnie wywołuje `calculate_steering`, gdy RTH jest aktywny.
+    """PL: Sprawdza wywołanie regulatora skrętu podczas aktywnego RTH.
+    EN: Checks steering controller invocation while RTH is active.
     """
     monkeypatch.setattr(
         "logic.navigation_manager.haversine_distance", lambda *args: 100
@@ -158,8 +159,8 @@ def test_update_rth_calculates_steering_when_active(monkeypatch):
 
 
 def test_update_rth_deceleration_near_home(monkeypatch):
-    """
-    Testuje, czy gaz jest płynnie zmniejszany przy zbliżaniu się do celu (< 10m).
+    """PL: Sprawdza redukcję gazu w pobliżu pozycji domowej.
+    EN: Checks throttle reduction near the home position.
     """
     monkeypatch.setattr(
         "logic.navigation_manager.haversine_distance", lambda *args: 5.0

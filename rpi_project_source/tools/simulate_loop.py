@@ -1,7 +1,6 @@
-"""
-Simulation Loop for RCSIM logic validation.
-Mocks sensors (LiDAR, IMU, Camera) and runs the control loop to verify
-LocalPlanner fusion, SafetySupervisor overrides, and ControlSelector decisions.
+"""PL: Symuluje pętlę sterowania do weryfikacji planowania i bezpieczeństwa.
+
+EN: Simulate the control loop to validate planning and safety behavior.
 """
 
 import logging
@@ -19,6 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 def simulate_loop(iterations=50):
+    """PL: Uruchamia pętlę z syntetycznymi danymi i raportuje sterowanie.
+
+    EN: Run the loop with synthetic inputs and report the control decisions.
+    """
     # 1. Initialize Components
     config = {
         "safety": {"emergency_stop_dist_m": 0.3, "avoid_dist_m": 0.8},

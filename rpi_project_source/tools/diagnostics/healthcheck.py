@@ -1,3 +1,8 @@
+"""PL: Sprawdza lokalną dostępność usługi Supervisor przez UDP.
+
+EN: Check local Supervisor service availability over UDP.
+"""
+
 import json
 import socket
 import sys

@@ -1,6 +1,6 @@
-"""
-RCSIM Workshop - Przykładowy Sterownik IMU (Starter Kit)
-RCSIM Workshop - Example IMU Driver (Starter Kit)
+"""PL: Przykładowy warsztatowy sterownik IMU dla twórców społecznościowych.
+
+EN: Example workshop IMU driver for community creators.
 
 Ten plik służy jako referencja dla twórców społecznościowych.
 Został zaprojektowany tak, aby pokazać jak mapować surowe dane na standard RCSIM.
@@ -17,9 +17,10 @@ logger = logging.getLogger(__name__)
 
 @SensorRegistry.register
 class StarterKitIMU(IMUBase):
-    """
+    """PL:
     Przykładowa klasa sterownika. 
     System automatycznie wykryje ten plik w folderze 'workshop/'.
+    EN: Example driver class discovered automatically from the workshop folder.
     """
     
     DRIVER_NAME = "workshop_starter_kit"
@@ -30,9 +31,10 @@ class StarterKitIMU(IMUBase):
     PRIORITY = 200 # Niższy priorytet niż drivery natywne
 
     def __init__(self, i2c_wrapper):
-        """
+        """PL:
         Inicjalizacja sensora.
         i2c_wrapper udostępnia metody read_byte_data, write_byte_data itp.
+        EN: Stores the I2C wrapper used by the example sensor driver.
         """
         self.i2c = i2c_wrapper
         logger.info(f"[{self.DRIVER_NAME}] Inicjalizacja Starter Kit IMU...")
@@ -46,9 +48,10 @@ class StarterKitIMU(IMUBase):
             logger.warning(f"Błąd inicjalizacji: {e}")
 
     def read_data(self) -> dict:
-        """
+        """PL:
         Główna metoda odczytu danych.
         Musi zwracać słownik z ustandaryzowanymi kluczami.
+        EN: Generates sample readings using the standardized sensor keys.
         """
         # W prawdziwym sterowniku tutaj odczytałbyś rejestry I2C
         # In a real driver, you would read I2C registers here
@@ -67,8 +70,9 @@ class StarterKitIMU(IMUBase):
         }
 
     def calibrate(self) -> bool:
-        """
+        """PL:
         Logika kalibracji (np. zerowanie żyroskopu).
+        EN: Example calibration hook, such as resetting the gyroscope.
         """
         logger.info(f"[{self.DRIVER_NAME}] Kalibracja zakończona sukcesem.")
         return True

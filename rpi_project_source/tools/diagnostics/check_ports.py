@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""
-Diagnostic script to check available serial ports and video devices on Raspberry Pi.
-Run this inside the container or on the host to see what's available.
+"""PL: Pokazuje dostępne porty szeregowe, urządzenia wideo i magistrale I2C.
+
+EN: List available serial ports, video devices, and I2C buses.
 """
 
 import glob
@@ -9,6 +9,10 @@ import os
 
 
 def check_devices():
+    """PL: Wypisuje wykryte urządzenia systemowe używane przez RPI.
+
+    EN: Print detected system devices used by the RPI application.
+    """
     print("=== Serial Ports (/dev/tty* and /dev/serial*) ===")
 
     # Check standard serial aliases

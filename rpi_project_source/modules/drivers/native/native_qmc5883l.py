@@ -19,9 +19,9 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 # OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""
-Native QMC5883L Magnetometer Driver using a shared I2C wrapper.
-Natywny sterownik magnetometru QMC5883L używający współdzielonego wrappera I2C.
+"""PL: Odczytuje surowe próbki magnetometru QMC5883L przez wspólny wrapper I2C.
+
+EN: Reads raw QMC5883L magnetometer samples through a shared I2C wrapper.
 """
 
 import logging
@@ -30,10 +30,9 @@ from .native_i2c import I2CWrapper
 
 
 class NativeQMC5883L:
-    """
-    A lightweight, direct-register-access driver for the QMC5883L magnetometer.
-    Lekki sterownik z bezpośrednim dostępem do rejestrów dla magnetometru
-    QMC5883L.
+    """PL: Steruje QMC5883L bezpośrednio przez rejestry I2C.
+
+    EN: Controls the QMC5883L directly through its I2C registers.
     """
 
     # --- I2C and Register Definitions ---
@@ -53,13 +52,17 @@ class NativeQMC5883L:
     def __init__(
         self, i2c_wrapper: I2CWrapper, address: int = _DEFAULT_ADDRESS
     ) -> None:
-        """
-        Initializes the QMC5883L driver and sets the measurement mode.
-        Inicjalizuje sterownik QMC5883L i ustawia tryb pomiaru.
+        """PL: Ustawia tryb pomiaru i inicjalizuje kompensację magnetometru.
 
         Args:
-            i2c_wrapper (I2CWrapper): The shared I2C wrapper instance.
-            address (int): The I2C address of the QMC5883L. Defaults to 0x0D.
+            i2c_wrapper: Współdzielony wrapper magistrali I2C.
+            address: Adres QMC5883L, domyślnie 0x0D.
+
+        EN: Sets the measurement mode and initializes magnetometer compensation.
+
+        Args:
+            i2c_wrapper: Shared I2C bus wrapper.
+            address: QMC5883L address, defaulting to 0x0D.
         """
         self.i2c: I2CWrapper = i2c_wrapper
         self.address: int = address
@@ -72,18 +75,23 @@ class NativeQMC5883L:
         logging.info(f"✓ Initialized QMC5883L at address {hex(self.address)}")
 
     def _bytes_to_int(self, low: int, high: int) -> int:
-        """
-        Converts two bytes (low and high) to a signed 16-bit integer
-        (little-endian).
-        Konwertuje dwa bajty (dolny i górny) na 16-bitową liczbę całkowitą
-        ze znakiem (little-endian).
+        """PL: Łączy dwa bajty little-endian w 16-bitową liczbę ze znakiem.
 
         Args:
-            low (int): The least significant byte.
-            high (int): The most significant byte.
+            low: Młodszy bajt wartości.
+            high: Starszy bajt wartości.
 
         Returns:
-            int: The combined signed 16-bit integer value.
+            Zdekodowaną liczbę całkowitą ze znakiem.
+
+        EN: Combines two little-endian bytes into a signed 16-bit integer.
+
+        Args:
+            low: Least significant byte.
+            high: Most significant byte.
+
+        Returns:
+            The decoded signed integer.
         """
         value: int = (high << 8) | low
         # Two's complement conversion for negative numbers
@@ -91,24 +99,18 @@ class NativeQMC5883L:
         return value if value < 32768 else value - 65536
 
     def read_scaled(self, throttle: float = 0.0) -> tuple[float, float, float]:
-        """
-        Reads the raw magnetometer data and returns it.
-        Odczytuje surowe dane magnetometru i je zwraca.
+        """PL: Odczytuje osie magnetometru i odejmuje kompensację zależną od gazu.
 
-        Note: The QMC5883L datasheet does not specify a standard sensitivity or
-        scaling factor. The raw integer values are returned, which are
-        proportional to the magnetic field strength. Further calibration would
-        be needed for absolute measurements in
-
-        Uwaga: Nota katalogowa QMC5883L nie specyfikuje standardowej czułości
-        ani współczynnika skalowania. Zwracane są surowe wartości całkowite,
-        które są proporcjonalne do natężeniu pola magnetycznego. Dalsza
-        kalibracja byłaby wymagana do uzyskania absolutnych pomiarów w
-        Gausach.
+        Zwraca wartości surowe proporcjonalne do pola; nie są przeliczane na gausy.
 
         Returns:
-            tuple[float, float, float]: A tuple containing (mx, my, mz) proportional values.
-                                        Krotka zawierająca proporcjonalne wartości (mx, my, mz).
+            Krotkę surowych wartości osi mx, my i mz.
+
+        EN: Reads magnetometer axes and subtracts throttle-dependent compensation.
+
+        Returns:
+            A tuple of raw mx, my, and mz values proportional to the field;
+            values are not converted to gauss.
         """
         try:
             # Read 6 data registers starting from X_LSB
@@ -134,13 +136,15 @@ class NativeQMC5883L:
             return (0.0, 0.0, 0.0)
 
     def read_data(self, throttle: float = 0.0) -> dict[str, float]:
-        """
-        Odczytuje dane i zwraca je w formacie słownika (kompatybilność z innymi sensorami).
-        Reads data and returns it in dictionary format (compatibility with other sensors).
+        """PL: Zwraca próbki magnetometru w słowniku zgodnym z innymi sensorami.
 
         Returns:
-            dict[str, float]: Słownik zawierający 'mx', 'my', 'mz'.
-                              Dictionary containing 'mx', 'my', 'mz'.
+            Słownik z wartościami mx, my i mz.
+
+        EN: Returns magnetometer samples in a dictionary compatible with other sensors.
+
+        Returns:
+            A dictionary containing mx, my, and mz values.
         """
         mx, my, mz = self.read_scaled(throttle=throttle)
         return {"mx": mx, "my": my, "mz": mz}

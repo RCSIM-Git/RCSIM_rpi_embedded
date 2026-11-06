@@ -1,6 +1,6 @@
-"""
-Test jednostkowy dla TelemetryBuilder.
-Weryfikuje poprawność pakowania binarnego LiDAR (struct -> zlib -> base64).
+"""PL: Testy TelemetryBuilder, w tym pakowania skanów LiDAR.
+
+EN: Tests for TelemetryBuilder, including LiDAR scan packing.
 """
 
 import base64
@@ -18,7 +18,16 @@ from core.telemetry_builder import TelemetryBuilder
 
 
 class TestTelemetryBuilder(unittest.TestCase):
+    """PL: Sprawdza przygotowanie i kodowanie pakietów telemetrycznych.
+
+    EN: Verify preparation and encoding of telemetry packets.
+    """
+
     def setUp(self):
+        """PL: Przygotowuje mock pracownika i testowany builder.
+
+        EN: Prepare a mocked worker and the builder under test.
+        """
         # Mock TelemetryWorker
         self.worker = MagicMock()
         self.worker.telemetry_packet_idx = 100
@@ -34,7 +43,10 @@ class TestTelemetryBuilder(unittest.TestCase):
         self.builder = TelemetryBuilder(self.worker)
 
     def test_lidar_packing_and_integrity(self):
-        """Weryfikuje skompresowany blob LiDAR (360H)."""
+        """PL: Sprawdza pakowanie, kompresję i zawartość skanu LiDAR.
+
+        EN: Verify packing, compression, and contents of a LiDAR scan.
+        """
         # 1. Generuj skan: 4 punkty na krzyż
         # (angle, distance)
         raw_scan = [
@@ -72,7 +84,10 @@ class TestTelemetryBuilder(unittest.TestCase):
         self.assertEqual(unpacked[45], 0)
 
     def test_lidar_clamping(self):
-        """Sprawdza odporność na ekstremalne wartości."""
+        """PL: Sprawdza ograniczanie skrajnych wartości odległości.
+
+        EN: Verify clamping of extreme distance values.
+        """
         # Wartości powyżej 65535 i poniżej 0
         raw_scan = [(10.0, 70000), (20.0, -500), (30.0, None)]
         sensor_data = {"lidar": raw_scan}
@@ -85,6 +100,10 @@ class TestTelemetryBuilder(unittest.TestCase):
             self.fail(f"TelemetryBuilder failed on invalid data: {e}")
 
     def test_raw_sample_separate_from_estimated_orientation(self):
+        """PL: Sprawdza rozdzielenie surowych próbek i orientacji estymowanej.
+
+        EN: Verify raw samples remain separate from estimated orientation.
+        """
         imu = {"ax": 0.0, "ay": 0.0, "az": 9.81, "roll": 1.0, "pitch": 2.0,
                "source": "rpi_raw", "sample_time_us": 1, "sample_sequence": 8}
         packet = self.builder.prepare_telemetry({"imu": imu})

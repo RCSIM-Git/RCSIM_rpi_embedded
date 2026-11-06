@@ -2,8 +2,9 @@
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Supervisor Module - A Lightweight Process Manager for RCSIM.
-Moduł Supervisora - Lekki Menedżer Procesów dla RCSIM.
+PL: Lekki menedżer procesów, który uruchamia i nadzoruje usługę telemetrii.
+
+EN: Lightweight process manager that launches and supervises the telemetry service.
 
 This service runs as the main process inside the Docker container. Its primary
 task is to manage the telemetry application (`main_service.py`) as a subprocess,
@@ -31,19 +32,23 @@ logging.basicConfig(
 
 
 class SupervisorService:
-    """
-    Główna klasa usługi Supervisora, działająca jako menedżer procesów dla RCSIM.
-    Main Supervisor service class, acting as a process manager for RCSIM.
+    """PL: Zarządza procesem telemetrii i zdalnymi poleceniami UDP.
+
+    EN: Manages the telemetry process and remote UDP commands.
     """
 
     def __init__(self, host: str = "0.0.0.0", port: int = 12348) -> None:
-        """
-        Inicjalizuje usługę Supervisora.
-        Initializes the Supervisor service.
+        """PL: Tworzy gniazdo UDP i przygotowuje nadzór procesu oraz watchdog.
 
         Args:
-            host (str): Adres hosta dla gniazda UDP. / Host address for UDP socket.
-            port (int): Port dla gniazda UDP. / Port for UDP socket.
+            host: Adres, na którym usługa nasłuchuje.
+            port: Port UDP usługi.
+
+        EN: Creates the UDP socket and prepares process and watchdog supervision.
+
+        Args:
+            host: Address on which the service listens.
+            port: UDP port used by the service.
         """
         self.host: str = host
         self.port: int = port
@@ -78,9 +83,10 @@ class SupervisorService:
                 )
 
     def run(self) -> None:
-        """
-        Uruchamia główną pętlę usługi. Zarządza podprocesem telemetrii i watchdogiem.
-        Starts the main service loop. Manages the telemetry subprocess and watchdog.
+        """PL: Uruchamia pętlę UDP, karmi watchdog i wznawia zakończoną usługę.
+
+        EN: Runs the UDP loop, feeds the watchdog, and restarts the telemetry
+        service if its subprocess exits unexpectedly.
         """
         try:
             self.sock.bind((self.host, self.port))
@@ -125,9 +131,9 @@ class SupervisorService:
             time.sleep(0.1)  # Main loop delay (reduced for responsiveness)
 
     def _start_telemetry_process(self) -> None:
-        """
-        Uruchamia `main_service.py` jako podproces.
-        Starts `main_service.py` as a subprocess.
+        """PL: Uruchamia main_service.py jako podproces telemetryczny.
+
+        EN: Starts main_service.py as the telemetry subprocess.
         """
         try:
             main_service_path = os.path.join(
@@ -143,14 +149,17 @@ class SupervisorService:
             self.telemetry_process = None
 
     def handle_command(self, message: dict[str, Any], addr: tuple[str, int]) -> None:
-        """
-        Przetwarza otrzymane polecenie i wysyła odpowiedź.
-        Processes a received command and sends a response.
+        """PL: Obsługuje polecenie JSON i odsyła odpowiedź do nadawcy.
 
         Args:
-            message (dict[str, Any]): Otrzymana wiadomość (JSON). /
-                                     Received message (JSON).
-            addr (tuple[str, int]): Adres nadawcy. / Sender address.
+            message: Otrzymana wiadomość polecenia.
+            addr: Adres IP i port nadawcy.
+
+        EN: Handles a JSON command and sends a response to its sender.
+
+        Args:
+            message: Received command message.
+            addr: Sender IP address and port.
         """
         cmd = message.get("cmd")
         response: dict[str, Any] = {}
@@ -216,25 +225,30 @@ class SupervisorService:
         self.sock.sendto(json.dumps(response).encode("utf-8"), addr)
 
     def is_service_active(self) -> bool:
-        """
-        Sprawdza, czy podproces telemetrii jest uruchomiony.
-        Checks if the telemetry subprocess is running.
+        """PL: Sprawdza, czy podproces telemetrii nadal działa.
 
         Returns:
-            bool: True jeśli proces działa, False w przeciwnym razie. /
-                  True if process is running, else False.
+            True, jeśli proces działa; w przeciwnym razie False.
+
+        EN: Checks whether the telemetry subprocess is still running.
+
+        Returns:
+            True if the process is running, otherwise False.
         """
         return (
             self.telemetry_process is not None and self.telemetry_process.poll() is None
         )
 
     def _get_config(self) -> dict[str, Any]:
-        """
-        Odczytuje i zwraca plik konfiguracyjny.
-        Reads and returns the configuration file.
+        """PL: Wczytuje konfigurację i zwraca ją z polem statusu.
 
         Returns:
-            dict[str, Any]: Słownik statusu i konfiguracji. / Status and configuration dictionary.
+            Słownik zawierający konfigurację albo informację o błędzie.
+
+        EN: Loads the configuration and returns it with a status field.
+
+        Returns:
+            A dictionary containing the configuration or an error description.
         """
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
@@ -244,15 +258,21 @@ class SupervisorService:
             return {"status": "ERROR", "message": f"Config file error: {e}"}
 
     def _set_config(self, new_config: dict[str, Any]) -> dict[str, str]:
-        """
-        Zapisuje nową konfigurację do pliku w sposób atomowy.
-        Atomically writes the new configuration to a file.
+        """PL: Zapisuje konfigurację atomowo i zwraca status operacji.
 
         Args:
-            new_config (dict[str, Any]): Nowa konfiguracja. / New configuration.
+            new_config: Nowy słownik konfiguracji.
 
         Returns:
-            dict[str, str]: Status operacji. / Operation status.
+            Słownik statusu, opcjonalnie z opisem błędu.
+
+        EN: Atomically writes the new configuration and returns the operation status.
+
+        Args:
+            new_config: New configuration dictionary.
+
+        Returns:
+            A status dictionary, optionally containing an error description.
         """
         tmp_path = self.config_path + ".tmp"
         try:
@@ -283,12 +303,15 @@ class SupervisorService:
             return {"status": "ERROR", "message": str(e)}
 
     def _restart_service(self) -> dict[str, str]:
-        """
-        Restartuje podproces telemetrii.
-        Restarts the telemetry subprocess.
+        """PL: Zatrzymuje bieżący podproces i uruchamia go ponownie.
 
         Returns:
-            dict[str, str]: Status operacji. / Operation status.
+            Słownik ze statusem restartu.
+
+        EN: Stops the current subprocess and starts it again.
+
+        Returns:
+            A dictionary containing the restart status.
         """
         logging.info("Restart command received for telemetry service.")
         if self.telemetry_process:
@@ -309,12 +332,15 @@ class SupervisorService:
         return {"status": "OK" if self.is_service_active() else "ERROR"}
 
     def _reboot(self) -> dict[str, str]:
-        """
-        Restartuje system operacyjny (wymaga uprzywilejowanego kontenera).
-        Reboots the operating system (requires a privileged container).
+        """PL: Próbuje ponownie uruchomić system operacyjny.
 
         Returns:
-            dict[str, str]: Status operacji. / Operation status.
+            Słownik ze statusem ponownego uruchomienia lub błędu.
+
+        EN: Attempts to reboot the operating system.
+
+        Returns:
+            A dictionary with the reboot status or error details.
         """
         try:
             logging.warning("Reboot command received. Rebooting system.")
@@ -334,9 +360,9 @@ class SupervisorService:
             return {"status": "ERROR", "message": f"Reboot command failed: {e}"}
 
     def __del__(self) -> None:
-        """
-        Zapewnia zamknięcie watchdoga przy wyjściu.
-        Ensures the watchdog is closed on exit.
+        """PL: Zamyka plik urządzenia watchdog podczas zwalniania obiektu.
+
+        EN: Closes the watchdog device file when the object is finalized.
         """
         if self.watchdog_file:
             self.watchdog_file.close()

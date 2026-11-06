@@ -1,9 +1,15 @@
-"""
+"""PL: Nadzoruje stan bezpieczeństwa pojazdu na podstawie danych czujników.
+
+Moduł implementuje maszynę stanów obejmującą m.in. przeszkody, baterię,
+łączność, wydajność AI i dostępne miejsce na dysku.
+
+EN: Monitors vehicle safety using sensor data.
+
+The module implements a state machine for obstacles, battery, connectivity,
+AI performance, and available storage.
+
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
-Safety Supervisor Module for RCSIM.
-Implements a Finite State Machine (FSM) to handle safety-critical situations.
 """
 
 import logging
@@ -16,6 +22,11 @@ logger = logging.getLogger(__name__)
 
 
 class SafetyState(Enum):
+    """PL: Stany pracy wyznaczane przez nadzór bezpieczeństwa.
+
+    EN: Operating states determined by the safety supervisor.
+    """
+
     NORMAL = "NORMAL"
     AVOID = "AVOID"
     STOP = "STOP"
@@ -26,11 +37,22 @@ class SafetyState(Enum):
 
 
 class SafetySupervisor:
-    """
-    Manages vehicle safety by monitoring sensors and overriding controls.
+    """PL: Wyznacza stan bezpieczeństwa i ogranicza polecenia sterujące.
+
+    EN: Determines the safety state and applies limits to control commands.
     """
 
     def __init__(self, config: dict[str, Any] | None = None):
+        """PL: Wczytuje progi bezpieczeństwa i inicjalizuje stan nadzoru.
+
+        Args:
+            config: Opcjonalna konfiguracja sekcji ``safety``.
+
+        EN: Loads safety thresholds and initializes the supervisor state.
+
+        Args:
+            config: Optional configuration containing the ``safety`` section.
+        """
         self.config = config or {}
         self.state = SafetyState.NORMAL
 
@@ -62,11 +84,19 @@ class SafetySupervisor:
         self.lidar_sector_deg = safety_cfg.get("lidar_sector_deg", 60.0)
 
     def update(self, sensor_data: dict[str, Any], ai_ready: bool = True) -> SafetyState:
-        """
-        Updates the safety state based on current sensor data.
+        """PL: Aktualizuje stan bezpieczeństwa na podstawie bieżących odczytów.
+
+        Analizuje m.in. IMU, LiDAR, baterię, stan AI, łącza i pamięci masowej.
 
         Returns:
-            SafetyState: The updated safety state.
+            Nowy lub zachowany stan bezpieczeństwa.
+
+        EN: Updates the safety state using current sensor readings.
+
+        Checks, among other inputs, IMU, LiDAR, battery, AI status, links, and storage.
+
+        Returns:
+            The updated or retained safety state.
         """
         new_state = SafetyState.NORMAL
         self.thermal_throttle_mult = 1.0
@@ -216,8 +246,23 @@ class SafetySupervisor:
         return self.state
 
     def process_controls(self, steering: float, throttle: float) -> tuple[float, float]:
-        """
-        Applies safety overrides and [SAFETY-007] Dynamic Scaling to control commands.
+        """PL: Stosuje ograniczenia stanu bezpieczeństwa i skalowanie przepustnicy.
+
+        Args:
+            steering: Żądana wartość skrętu.
+            throttle: Żądana wartość przepustnicy.
+
+        Returns:
+            Para wartości skrętu i przepustnicy po zastosowaniu ograniczeń.
+
+        EN: Applies safety-state overrides and throttle scaling to control commands.
+
+        Args:
+            steering: Requested steering value.
+            throttle: Requested throttle value.
+
+        Returns:
+            Steering and throttle values after safety limits are applied.
         """
         if self.state == SafetyState.STOP or self.state == SafetyState.CRITICAL:
             return steering, 0.0  # Force stop
@@ -240,9 +285,25 @@ class SafetySupervisor:
         return steering, effective_throttle
 
     def _get_min_forward_dist(self, lidar_points: list) -> float:
-        """
-        Checks forward sector for closest obstacle.
-        Uses a robust linear scan to handle unsorted or rotation-shifted LiDAR data.
+        """PL: Zwraca najkrótszą odległość w przednim sektorze LiDAR.
+
+        Skanuje punkty bez zakładania ich kolejności; wynik podaje w metrach.
+
+        Args:
+            lidar_points: Lista par kąt i odległość w milimetrach.
+
+        Returns:
+            Najmniejsza odległość w sektorze lub 8 metrów, gdy brak punktów.
+
+        EN: Returns the shortest LiDAR distance in the forward sector.
+
+        Scans points without assuming an order and returns the distance in meters.
+
+        Args:
+            lidar_points: List of angle and distance pairs, with distance in millimeters.
+
+        Returns:
+            The minimum sector distance, or 8 meters when no points are found.
         """
         if not lidar_points:
             return 8.0
@@ -261,6 +322,14 @@ class SafetySupervisor:
         return min_dist_mm / 1000.0 if found else 8.0
 
     def reset_impact(self) -> None:
+        """PL: Czyści flagę uderzenia i wstrzyknięte błędy bezpieczeństwa.
+
+        Jeśli bieżący stan to STOP, przywraca stan NORMAL.
+
+        EN: Clears the impact flag and injected safety faults.
+
+        If the current state is STOP, restores the NORMAL state.
+        """
         self.impact_detected = False
         self.faults = {k: False for k in self.faults}  # Reset all faults
         if self.state == SafetyState.STOP:
@@ -269,6 +338,18 @@ class SafetySupervisor:
             logger.info("Safety STOP reset by user.")
 
     def inject_fault(self, fault_type: str, enabled: bool = True) -> None:
+        """PL: Włącza lub wyłącza obsługiwany błąd testowy.
+
+        Args:
+            fault_type: Klucz błędu obecny w słowniku ``faults``.
+            enabled: Określa, czy błąd ma być włączony.
+
+        EN: Enables or disables a supported test fault.
+
+        Args:
+            fault_type: Fault key present in the ``faults`` dictionary.
+            enabled: Whether to enable the fault.
+        """
         if fault_type in self.faults:
             self.faults[fault_type] = enabled
             logger.warning(f"FAULT INJECTED: {fault_type} = {enabled}")

@@ -1,6 +1,5 @@
-"""
-Unit tests for the SupervisorService.
-Testy jednostkowe dla SupervisorService.
+"""PL: Testuje odpowiedzi SupervisorService na polecenia administracyjne.
+EN: Tests SupervisorService responses to administrative commands.
 """
 
 import json
@@ -18,9 +17,8 @@ sys.path.insert(0, project_root)
 
 @pytest.fixture
 def supervisor_service():
-    """
-    Provides a SupervisorService instance with a mocked socket for each test.
-    Dostarcza instancję SupervisorService z zamockowanym socketem dla każdego testu.
+    """PL: Tworzy usługę supervisor z atrapą gniazda dla każdego testu.
+    EN: Creates a supervisor service with a socket mock for each test.
     """
     with patch("socket.socket"):
         service = SupervisorService()
@@ -31,9 +29,8 @@ def supervisor_service():
 
 
 def test_handle_ping_command(supervisor_service: SupervisorService):
-    """
-    Tests if the 'PING' command returns a valid status response.
-    Testuje, czy komenda 'PING' zwraca poprawną odpowiedź statusową.
+    """PL: Sprawdza status, model i aktywność usługi w odpowiedzi PING.
+    EN: Checks service status, model, and activity in the PING response.
     """
     # Arrange
     with patch("core.supervisor.get_board_info", return_value={"model_name": "TestPi"}):
@@ -59,9 +56,8 @@ def test_handle_ping_command(supervisor_service: SupervisorService):
 def test_handle_reboot_command(
     mock_subprocess_run: MagicMock, supervisor_service: SupervisorService
 ):
-    """
-    Tests if the 'REBOOT' command correctly calls the reboot command.
-    Testuje, czy komenda 'REBOOT' poprawnie wywołuje komendę reboot.
+    """PL: Sprawdza wywołanie polecenia restartu i odpowiedź OK.
+    EN: Checks that reboot is invoked and an OK response is returned.
     """
     # Arrange
     command = {"cmd": "REBOOT"}
@@ -77,9 +73,8 @@ def test_handle_reboot_command(
 
 
 def test_handle_get_config_command(supervisor_service: SupervisorService):
-    """
-    Tests if the 'GET_CONFIG' command correctly reads and returns the config file.
-    Testuje, czy komenda 'GET_CONFIG' poprawnie odczytuje i zwraca plik konfiguracyjny.
+    """PL: Sprawdza odczyt i zwrócenie zawartości konfiguracji.
+    EN: Checks that configuration contents are read and returned.
     """
     # Arrange
     mock_config_data = {"setting": "value"}
@@ -109,9 +104,8 @@ def test_handle_set_config_command_atomic_write(
     mock_os_access,
     supervisor_service: SupervisorService,
 ):
-    """
-    Tests if 'SET_CONFIG' performs an atomic write by mocking json.dump.
-    Testuje, czy 'SET_CONFIG' wykonuje atomowy zapis, mockując json.dump.
+    """PL: Weryfikuje zapis tymczasowy, atomową podmianę i odpowiedź OK.
+    EN: Verifies the temporary write, atomic replacement, and OK response.
     """
     # Arrange
     new_config = {"new_setting": "new_value"}
@@ -139,9 +133,8 @@ def test_handle_set_config_command_atomic_write(
 
 
 def test_handle_set_config_invalid_data(supervisor_service: SupervisorService):
-    """
-    Tests that 'SET_CONFIG' returns an error if 'config' data is missing or not a dict.
-    Testuje, czy 'SET_CONFIG' zwraca błąd, gdy brakuje danych 'config' lub nie są one słownikiem.
+    """PL: Sprawdza błąd odpowiedzi dla nieprawidłowych danych konfiguracji.
+    EN: Checks for an error response when configuration data is invalid.
     """
     # Arrange
     command = {"cmd": "SET_CONFIG", "config": "not-a-dict"}
@@ -157,9 +150,8 @@ def test_handle_set_config_invalid_data(supervisor_service: SupervisorService):
 
 
 def test_handle_unknown_command(supervisor_service: SupervisorService):
-    """
-    Tests that an unknown command returns an appropriate error message.
-    Testuje, czy nieznana komenda zwraca odpowiedni komunikat o błędzie.
+    """PL: Sprawdza błąd odpowiedzi dla nieobsługiwanej komendy.
+    EN: Checks the error response for an unsupported command.
     """
     # Arrange
     command = {"cmd": "UNKNOWN_COMMAND"}

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-AI Data Logger - utility to collect real-world frames and YOLO detections.
-Records to "tubs" for future training/fine-tuning.
+"""PL: Zbiera klatki i detekcje AI do późniejszego trenowania modeli.
+
+EN: Collect frames and AI detections for later model training.
 """
 
 import json
@@ -19,6 +19,10 @@ logger = logging.getLogger("DataLogger")
 
 
 def run_logger(duration_s=60, output_dir="data/tubs"):
+    """PL: Zapisuje klatki kamery, detekcje i nakładki przez zadany czas.
+
+    EN: Save camera frames, detections, and overlays for the requested duration.
+    """
     # 1. Setup Config
     config = {
         "camera": {"mode": "local", "resolution": [640, 480], "fps": 15},
@@ -89,12 +93,11 @@ def run_logger(duration_s=60, output_dir="data/tubs"):
 
 
 def export_for_labeling(tub_path: str, output_dir: str, class_names: list = None):
-    """
-    Exports collected frames and (optional) detections to YOLO format.
-    Creates:
-    - images/
-    - labels/ (empty for manual annotation or with zero-shot boxes)
-    - dataset.yaml
+    """PL: Eksportuje zebrane klatki i etykiety do formatu zbioru YOLO.
+
+    EN: Export collected frames and labels to a YOLO dataset layout.
+
+    Creates image and label directories and a dataset configuration file.
     """
     import shutil
 

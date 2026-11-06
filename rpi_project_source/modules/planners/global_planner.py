@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-Global Planner (A*) for Raspberry Pi.
+"""PL: Planuje ścieżkę A* na siatce zajętości i uwzględnia koszty terenu.
+EN: Plans A* paths on an occupancy grid and accounts for terrain costs.
 
-Wyznacza ścieżkę na mapie zajętości (SLAM Grid) od punktu startowego do celu.
-Calculates a path on the occupancy grid (SLAM Grid) from start to goal.
-
-[COORDINATE SYSTEM]
-- X (meters) -> Map Columns (c)
-- Y (meters) -> Map Rows (r)
-- Center (0,0) meters is grid center (rows//2, cols//2)
+PL: Początek układu współrzędnych znajduje się w środku siatki.
+EN: The coordinate origin is at the center of the grid.
 """
 
 import heapq
@@ -22,9 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class GlobalPlanner:
-    """
-    Planer globalny wykorzystujący algorytm A* na siatce zajętości.
-    Global planner using A* algorithm on occupancy grid.
+    """PL: Wyszukuje trasę A* z karami za przeszkody i bliskość ścian.
+    EN: Searches for an A* route with penalties for obstacles and nearby walls.
     """
 
     def __init__(
@@ -33,11 +27,8 @@ class GlobalPlanner:
         resolution: float = 0.05,
         inflation_radius: float = 0.2,
     ):
-        """
-        Args:
-            logger (logging.Logger): Logger instance.
-            resolution (float): Map resolution [m/pixel].
-            inflation_radius (float): Obstacle inflation radius [m].
+        """PL: Konfiguruje logger, rozdzielczość siatki i promień inflacji.
+        EN: Configures the logger, grid resolution, and inflation radius.
         """
         self.logger = logger or logging.getLogger(__name__)
         self.resolution = resolution
@@ -56,9 +47,8 @@ class GlobalPlanner:
         ]
 
     def calc_cost_map(self, grid: np.ndarray) -> np.ndarray:
-        """
-        Wycznacza mapę kosztów (Hallway Costmap) dla A*.
-        Omija ściany trzymając robota możliwie na środku pomieszczeń/korytarzy.
+        """PL: Oblicza koszt przestrzeni wolnej według odległości od przeszkód.
+        EN: Computes free-space costs based on distance from obstacles.
         """
         # Free space = 255, Obstacle (and unknown > 127) = 0
         free_mask = np.zeros_like(grid, dtype=np.uint8)
@@ -83,15 +73,8 @@ class GlobalPlanner:
         goal_pose: tuple[float, float],
         origin: tuple[float, float] = (0.0, 0.0),
     ) -> list[tuple[float, float]] | None:
-        """
-        Planuje ścieżkę z punktu Start do Celu.
-        Plans path from Start to Goal.
-
-        Args:
-            grid (np.ndarray): Mapa zajętości (0=wolne, >0=zajęte/nieznane).
-            start_pose (x, y): Pozycja startowa [m].
-            goal_pose (x, y): Pozycja celu [m].
-            origin (x, y): Central map point in meters.
+        """PL: Wyszukuje trasę A* od pozycji startowej do celu na mapie.
+        EN: Searches an A* route from the start position to the goal on the map.
         """
         rows, cols = grid.shape
 

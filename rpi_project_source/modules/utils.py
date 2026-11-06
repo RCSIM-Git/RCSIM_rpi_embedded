@@ -1,9 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Narzędzia pomocnicze.
-Utility functions.
+PL: Udostępnia pomocnicze funkcje do czyszczenia danych.
+EN: Provides helper functions for sanitizing data.
 """
 
 import logging
@@ -13,23 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 def sanitize_payload(obj: Any) -> Any:
-    """
-    Rekursywnie usuwa niedozwolone typy danych z payloadu.
-    Recursively removes non-serializable data types from the payload.
-
-    Funkcja przechodzi przez zagnieżdżone struktury (słowniki, listy)
-    i konwertuje typy, które nie są serializowalne przez JSON, na bezpieczne
-    odpowiedniki.
-
-    The function traverses nested structures (dictionaries, lists)
-    and converts types that are not JSON serializable into safe
-    equivalents.
-
-    Args:
-        obj (Any): Obiekt do oczyszczenia (np. słownik, lista, wartość). / Object to sanitize (e.g., dict, list, value).
-
-    Returns:
-        Any: Oczyszczony obiekt, bezpieczny do serializacji. / Sanitized object, safe for serialization.
+    """PL: Rekurencyjnie zamienia lub usuwa wartości nieobsługiwane przez JSON.
+    EN: Recursively converts or removes values unsupported by JSON.
     """
     if isinstance(obj, dict):
         return {k: sanitize_payload(v) for k, v in obj.items()}

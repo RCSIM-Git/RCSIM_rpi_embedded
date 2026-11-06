@@ -1,6 +1,6 @@
-"""
-A simple I2C wrapper for smbus2.
-Prosty wrapper I2C dla smbus2.
+"""PL: Prosty wrapper magistrali I2C dla biblioteki smbus2.
+
+EN: A simple I2C bus wrapper for the smbus2 library.
 """
 
 import logging
@@ -15,56 +15,79 @@ try:
 except Exception:  # pragma: no cover - platform-specific fallback
 
     class SMBus:  # type: ignore
-        """
-        Zastępcza klasa SMBus dla platform Windows/Mac.
-        Mock SMBus class for non-Linux platforms.
+        """PL: Zastępcza klasa SMBus dla platform bez obsługi smbus2.
+
+        EN: Fallback SMBus class for platforms without smbus2 support.
         """
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            """Inicjalizacja (MOCK). / Init (MOCK)."""
+            """PL: Inicjalizuje atrapę magistrali i zgłasza tryb emulacji.
+
+            EN: Initializes the bus stub and reports emulation mode.
+            """
             logging.getLogger("I2CWrapper").warning(
                 "SMBus is not available on this platform. Using Emulation Mode."
             )
 
         def read_byte_data(self, *args: Any, **kwargs: Any) -> int:
-            """Odczyt bajtu (MOCK). / Read byte (MOCK)."""
+            """PL: Zwraca zero jako atrapę odczytu bajtu.
+
+            EN: Returns zero as a stub byte read.
+            """
             return 0
 
         def write_byte_data(self, *args: Any, **kwargs: Any) -> None:
-            """Zapis bajtu (MOCK). / Write byte (MOCK)."""
+            """PL: Przyjmuje zapis bajtu bez operacji sprzętowej.
+
+            EN: Accepts a byte write without hardware access.
+            """
 
         def read_word_data(self, *args: Any, **kwargs: Any) -> int:
-            """Odczyt słowa (MOCK). / Read word (MOCK)."""
+            """PL: Zwraca zero jako atrapę odczytu słowa.
+
+            EN: Returns zero as a stub word read.
+            """
             return 0
 
         def read_i2c_block_data(self, *args: Any, **kwargs: Any) -> list[int]:
-            """Odczyt bloku (MOCK). / Read block (MOCK)."""
+            """PL: Zwraca 32 zera jako atrapę odczytu bloku.
+
+            EN: Returns 32 zeros as a stub block read.
+            """
             return [0] * 32
 
         def write_i2c_block_data(self, *args: Any, **kwargs: Any) -> None:
-            """Zapis bloku (MOCK). / Write block (MOCK)."""
+            """PL: Przyjmuje zapis bloku bez operacji sprzętowej.
+
+            EN: Accepts a block write without hardware access.
+            """
 
         def close(self, *args: Any, **kwargs: Any) -> None:
-            """Zamyka połączenie (MOCK). / Closes connection (MOCK)."""
+            """PL: Udostępnia zgodną metodę close bez zasobu do zamknięcia.
+
+            EN: Provides a compatible close method when there is no resource.
+            """
 
 
 from typing import Any
 
 
 class I2CWrapper:
-    """
-    A wrapper for the smbus2.SMBus class to handle I2C communication.
-    Wrapper dla klasy smbus2.SMBus do obsługi komunikacji I2C.
+    """PL: Serializuje dostęp do magistrali I2C i ponawia nieudane operacje.
+
+    EN: Serializes I2C bus access and retries failed operations.
     """
 
     def __init__(self, bus_num: int = 1) -> None:
-        """
-        Initializes the I2C bus.
-        Inicjalizuje magistralę I2C.
+        """PL: Otwiera magistralę lub przełącza wrapper w tryb emulacji.
 
         Args:
-            bus_num (int): The I2C bus number (e.g., 1 for Raspberry Pi).
-                           Numer magistrali I2C (np. 1 dla Raspberry Pi).
+            bus_num: Numer magistrali I2C, zwykle 1 na Raspberry Pi.
+
+        EN: Opens the I2C bus or switches the wrapper to emulation mode.
+
+        Args:
+            bus_num: I2C bus number, usually 1 on Raspberry Pi.
         """
         self.bus_num = bus_num
         self.logger = logging.getLogger("I2CWrapper")
@@ -91,9 +114,9 @@ class I2CWrapper:
             self.logger.info(f"I2CWrapper initialized on Bus {bus_num}")
 
     def reconnect(self) -> bool:
-        """
-        Próbuje zamknąć i otworzyć ponownie magistralę I2C. [PLAN-011]
-        Attempts to close and reopen the I2C bus.
+        """PL: Próbuje ponownie otworzyć magistralę, ograniczając częstotliwość prób.
+
+        EN: Attempts to reopen the bus while rate-limiting reconnection attempts.
         """
         if self.emulation_mode:
             return True
@@ -120,9 +143,9 @@ class I2CWrapper:
                 return False
 
     def read_byte_data(self, address: int, register: int, retries: int = 3) -> int:
-        """
-        Odczytuje pojedynczy bajt z zadanego rejestru I2C z ponowieniami.
-        Reads a single byte from a given register of an I2C device with retries.
+        """PL: Odczytuje bajt z rejestru, ponawiając operację po błędzie I/O.
+
+        EN: Reads a register byte, retrying the operation after I/O errors.
         """
         for i in range(retries):
             try:
@@ -139,8 +162,9 @@ class I2CWrapper:
     def write_byte_data(
         self, address: int, register: int, value: int, retries: int = 3
     ) -> None:
-        """
-        Zapisuje pojedynczy bajt do danego rejestru urządzenia I2C z ponowieniami.
+        """PL: Zapisuje bajt do rejestru, ponawiając operację po błędzie I/O.
+
+        EN: Writes a register byte, retrying the operation after I/O errors.
         """
         for i in range(retries):
             try:
@@ -159,8 +183,9 @@ class I2CWrapper:
                 time.sleep(0.005)
 
     def read_word_data(self, address: int, register: int, retries: int = 3) -> int:
-        """
-        Odczytuje dwubajtowe słowo z rejestru urządzenia z ponowieniami.
+        """PL: Odczytuje słowo z rejestru z ponowieniami po błędach I/O.
+
+        EN: Reads a register word with retries after I/O errors.
         """
         for i in range(retries):
             try:
@@ -177,8 +202,9 @@ class I2CWrapper:
     def read_i2c_block_data(
         self, address: int, register: int, length: int, retries: int = 3
     ) -> list[int]:
-        """
-        Odczytuje blok danych z danego rejestru z ponowieniami.
+        """PL: Odczytuje blok bajtów z rejestru z ponowieniami po błędach I/O.
+
+        EN: Reads a register block with retries after I/O errors.
         """
         for i in range(retries):
             try:
@@ -195,8 +221,9 @@ class I2CWrapper:
     def write_i2c_block_data(
         self, address: int, register: int, data: list[int], retries: int = 3
     ) -> None:
-        """
-        Zapisuje blok danych do danego rejestru z ponowieniami.
+        """PL: Zapisuje blok bajtów do rejestru z ponowieniami po błędach I/O.
+
+        EN: Writes a register block with retries after I/O errors.
         """
         for i in range(retries):
             try:
@@ -215,8 +242,9 @@ class I2CWrapper:
                 time.sleep(0.005)
 
     def close(self) -> None:
-        """
-        Closes the I2C bus connection.
+        """PL: Zamyka połączenie z magistralą I2C.
+
+        EN: Closes the I2C bus connection.
         """
         with self._lock:
             try:

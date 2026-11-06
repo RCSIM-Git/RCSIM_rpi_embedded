@@ -1,9 +1,18 @@
+"""PL: Testy konfiguracji i inicjalizacji menedżera sprzętu.
+
+EN: Tests for hardware manager configuration and initialization.
+"""
+
 import pytest
 from modules.managers.hardware_manager import HardwareManager
 
 
 @pytest.fixture
 def hardware_config():
+    """PL: Udostępnia minimalną konfigurację sprzętu do testów.
+
+    EN: Provide a minimal hardware configuration for tests.
+    """
     return {
         "i2c": {"bus": 1},
         "pca9685": {"frequency": 50},
@@ -18,9 +27,9 @@ def hardware_config():
 
 
 def test_hardware_manager_init(hardware_config, mock_rpi_hardware):
-    """
-    Testuje inicjalizację HardwareManager z mockami.
-    Tests HardwareManager initialization with mocks.
+    """PL: Sprawdza inicjalizację menedżera z zamockowanym sprzętem.
+
+    EN: Verify manager initialization with mocked hardware.
     """
     try:
         hw = HardwareManager(hardware_config, init_pca_neutral=False)
@@ -31,7 +40,10 @@ def test_hardware_manager_init(hardware_config, mock_rpi_hardware):
 
 
 def test_hardware_manager_channels(hardware_config, mock_rpi_hardware):
-    """Tests if channels are set correctly."""
+    """PL: Sprawdza przypisanie kanałów i zakresu sterowania.
+
+    EN: Verify channel assignments and control range.
+    """
     hw = HardwareManager(hardware_config, init_pca_neutral=False)
     assert hw.steering_channel == 0
     assert hw.throttle_channel == 1

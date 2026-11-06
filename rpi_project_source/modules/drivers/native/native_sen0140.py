@@ -1,6 +1,6 @@
-"""
-Połączony sterownik natywny dla modułu DFRobot SEN0140 (10-DoF IMU).
-Combined native driver for the DFRobot SEN0140 module (10-DoF IMU).
+"""PL: Łączy sterowniki komponentów modułu DFRobot SEN0140.
+
+EN: Combines drivers for the components of a DFRobot SEN0140 module.
 
 Ten moduł zawiera implementację niskopoziomowego odczytu danych dla:
 - ADXL345 (Akcelerometr)
@@ -33,7 +33,10 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class NativeADXL345:
-    """Sterownik akcelerometru ADXL345."""
+    """PL: Niskopoziomowy sterownik akcelerometru ADXL345.
+
+    EN: Low-level driver for the ADXL345 accelerometer.
+    """
     
     _DEFAULT_ADDRESS = 0x53
     _REG_POWER_CTL = 0x2D
@@ -41,6 +44,10 @@ class NativeADXL345:
     _REG_DATAX0 = 0x32
 
     def __init__(self, i2c: I2CWrapper, address: int = _DEFAULT_ADDRESS) -> None:
+        """PL: Weryfikuje identyfikator i konfiguruje pomiar przyspieszenia.
+
+        EN: Verifies the device identifier and configures acceleration readings.
+        """
         self.i2c = i2c
         self.address = address
         
@@ -59,6 +66,10 @@ class NativeADXL345:
         self.scale = 0.0039 * 9.80665
         
     def read_scaled(self) -> tuple[float, float, float]:
+        """PL: Odczytuje trzy osie przyspieszenia i przelicza je na m/s².
+
+        EN: Reads the three acceleration axes and scales them to m/s².
+        """
         data = self.i2c.read_i2c_block_data(self.address, self._REG_DATAX0, 6)
         
         # ADXL345 is Little Endian
@@ -75,7 +86,10 @@ class NativeADXL345:
 
 
 class NativeITG3205:
-    """Sterownik żyroskopu ITG3205 (ITG3200)."""
+    """PL: Sterownik żyroskopu ITG3205/ITG3200.
+
+    EN: Driver for the ITG3205/ITG3200 gyroscope.
+    """
     
     _DEFAULT_ADDRESS = 0x68
     _REG_DLPF_FS = 0x16
@@ -84,6 +98,10 @@ class NativeITG3205:
     _REG_TEMP_OUT_H = 0x1B
     
     def __init__(self, i2c: I2CWrapper, address: int = _DEFAULT_ADDRESS) -> None:
+        """PL: Konfiguruje filtr, zakres żyroskopu i źródło zegara.
+
+        EN: Configures the filter, gyroscope range, and clock source.
+        """
         self.i2c = i2c
         self.address = address
         
@@ -101,6 +119,10 @@ class NativeITG3205:
         self.scale = 0.001214142
 
     def read_scaled(self) -> tuple[float, float, float]:
+        """PL: Odczytuje i skaluje prędkość kątową w radianach na sekundę.
+
+        EN: Reads and scales angular velocity in radians per second.
+        """
         data = self.i2c.read_i2c_block_data(self.address, self._REG_TEMP_OUT_H, 8)
         
         # ITG3205 is Big Endian
@@ -118,7 +140,10 @@ class NativeITG3205:
 
 
 class NativeHMC5883L:
-    """Sterownik magnetometru HMC5883L / VCM5883L."""
+    """PL: Sterownik magnetometru HMC5883L/VCM5883L.
+
+    EN: Driver for the HMC5883L/VCM5883L magnetometer.
+    """
     
     _DEFAULT_ADDRESS = 0x1E
     _REG_CONFIG_A = 0x00
@@ -127,6 +152,10 @@ class NativeHMC5883L:
     _REG_DATA_OUT = 0x03
     
     def __init__(self, i2c: I2CWrapper, address: int = _DEFAULT_ADDRESS) -> None:
+        """PL: Konfiguruje tryb pomiaru oraz zakres magnetometru.
+
+        EN: Configures the magnetometer measurement mode and range.
+        """
         self.i2c = i2c
         self.address = address
         
@@ -138,6 +167,10 @@ class NativeHMC5883L:
         self.i2c.write_byte_data(self.address, self._REG_MODE, 0x00)
         
     def read_scaled(self) -> tuple[float, float, float]:
+        """PL: Odczytuje trzy osie pola magnetycznego i stosuje współczynnik skali.
+
+        EN: Reads the three magnetic field axes and applies the scale factor.
+        """
         data = self.i2c.read_i2c_block_data(self.address, self._REG_DATA_OUT, 6)
         
         # Big Endian, order is X, Z, Y
@@ -156,9 +189,9 @@ class NativeHMC5883L:
 
 @SensorRegistry.register
 class NativeSEN0140(IMUBase):
-    """
-    Sterownik dla modułu DFRobot SEN0140 (10-DoF).
-    Driver for DFRobot SEN0140 module (10-DoF).
+    """PL: Łączy pomiary komponentów modułu DFRobot SEN0140.
+
+    EN: Combines measurements from the components of the DFRobot SEN0140 module.
     """
 
     DRIVER_NAME = "native_sen0140"
@@ -168,7 +201,10 @@ class NativeSEN0140(IMUBase):
 
     @classmethod
     def scan(cls, i2c) -> bool:
-        """Sprawdza obecność ADXL345 (0x53) i ITG3205 (0x68)."""
+        """PL: Sprawdza identyfikator ADXL345 i odpowiedź ITG3205.
+
+        EN: Checks the ADXL345 identifier and ITG3205 response.
+        """
         try:
             # ADXL345 check
             dev_id = i2c.read_byte_data(0x53, 0x00)
@@ -181,6 +217,10 @@ class NativeSEN0140(IMUBase):
             return False
 
     def __init__(self, i2c_wrapper: I2CWrapper) -> None:
+        """PL: Inicjalizuje dostępne sensory modułu pod typowymi adresami.
+
+        EN: Initializes available module sensors at their common addresses.
+        """
         self.i2c: I2CWrapper = i2c_wrapper
         self.accel = None
         self.gyro = None
@@ -229,9 +269,9 @@ class NativeSEN0140(IMUBase):
             logger.warning("✗ SEN0140: Barometer init failed")
 
     def read_data(self) -> dict[str, Any]:
-        """
-        Zwraca dane ze wszystkich dostępnych czujników modułu.
-        Returns data from all available sensors of the module.
+        """PL: Łączy dane ze wszystkich dostępnych sensorów modułu.
+
+        EN: Combines readings from all available module sensors.
         """
         data: dict[str, Any] = {}
         
@@ -274,9 +314,13 @@ class NativeSEN0140(IMUBase):
         return data
 
     def calibrate(self) -> bool:
-        """
-        Brak natywnej procedury kalibracji sprzętowej w jednym układzie (jak MPU).
-        Returns True if sensors are functional.
+        """PL: Zgłasza gotowość, jeśli działają akcelerometr i żyroskop.
+
+        Moduł nie udostępnia wspólnej sprzętowej procedury kalibracji.
+
+        EN: Reports readiness when the accelerometer and gyroscope are available.
+
+        The module has no shared hardware calibration routine.
         """
         logger.info("SEN0140: Software calibration routines apply here.")
         return bool(self.accel and self.gyro)

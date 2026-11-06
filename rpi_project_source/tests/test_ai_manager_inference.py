@@ -1,3 +1,8 @@
+"""PL: Testy inferencji, postprocessingu i inicjalizacji modelu AI.
+
+EN: Tests for AI inference, postprocessing, and model initialization.
+"""
+
 import logging
 import os
 import sys
@@ -13,7 +18,16 @@ from modules.ai_manager import AIManager
 
 
 class TestAIManagerInference(unittest.TestCase):
+    """PL: Sprawdza ścieżki inferencji mockowej i Hailo.
+
+    EN: Verify mocked and Hailo inference paths.
+    """
+
     def setUp(self):
+        """PL: Przygotowuje logger, mocki i konfigurację modelu.
+
+        EN: Prepare the logger, mocks, and model configuration.
+        """
         self.logger = logging.getLogger("TestAI")
         self.logger = logging.getLogger("TestAI")
         self.logger.setLevel(logging.DEBUG)
@@ -38,11 +52,18 @@ class TestAIManagerInference(unittest.TestCase):
         }
 
     def tearDown(self):
+        """PL: Usuwa tymczasowy plik modelu utworzony przez test.
+
+        EN: Remove the temporary model file created by the test.
+        """
         if os.path.exists("dummy.he"):
             os.remove("dummy.he")
 
     def test_mock_inference(self):
-        """Test inference when Hailo is not available (mock mode)"""
+        """PL: Sprawdza strukturę wyniku inferencji bez dostępnego Hailo.
+
+        EN: Verify inference output structure when Hailo is unavailable.
+        """
         # Patch HAILO_AVAILABLE to False within the module
         with patch("modules.ai_manager.HAILO_AVAILABLE", False):
             manager = AIManager(self.logger, self.config)
@@ -69,7 +90,10 @@ class TestAIManagerInference(unittest.TestCase):
             self.assertIn(shape[2], [4 + num_classes, 5 + num_classes])
 
     def test_infer_and_postprocess(self):
-        """Test inference + postprocessing (Mock mode)"""
+        """PL: Sprawdza inferencję mockową i postprocessing detekcji.
+
+        EN: Verify mocked inference and detection postprocessing.
+        """
         with patch("modules.ai_manager.HAILO_AVAILABLE", False):
             manager = AIManager(self.logger, self.config)
             frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
@@ -107,7 +131,10 @@ class TestAIManagerInference(unittest.TestCase):
     def test_hailo_loading(
         self, mock_hailo_interface, mock_infer_vstreams, mock_vdevice
     ):
-        """Test Hailo model loading (mocked libraries)"""
+        """PL: Sprawdza ładowanie modelu Hailo z zamockowanymi bibliotekami.
+
+        EN: Verify Hailo model loading with mocked libraries.
+        """
 
         # Mock HailoStreamInterface enum
         mock_hailo_interface.PCIe = "PCIe"

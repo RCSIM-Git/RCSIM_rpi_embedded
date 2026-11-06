@@ -1,5 +1,5 @@
-"""
-Tests for AIManager refactoring (using map_utils).
+"""PL: Testuje użycie funkcji map_utils w wektorze sensorowym AIManager.
+EN: Tests use of map_utils functions in the AIManager sensor vector.
 """
 
 import os
@@ -22,11 +22,17 @@ from modules.ai_manager import AIManager
 
 @pytest.fixture
 def mock_logger():
+    """PL: Zwraca atrapę loggera używaną przy tworzeniu AIManager.
+    EN: Returns a logger mock used when creating AIManager.
+    """
     return MagicMock()
 
 
 @pytest.fixture
 def ai_manager(mock_logger):
+    """PL: Tworzy AIManager z zamockowanym ładowaniem modelu.
+    EN: Creates AIManager with model loading mocked.
+    """
     config = {"model_path": "dummy.tflite"}
     # Patch load_model to avoid file checks and real loading
     with patch.object(AIManager, "load_model", return_value=True):
@@ -35,9 +41,8 @@ def ai_manager(mock_logger):
 
 
 def test_create_sensor_vector_uses_map_utils(ai_manager):
-    """
-    Test that _create_sensor_vector calls haversine_distance and calculate_bearing
-    from map_utils (which we imported in ai_manager.py).
+    """PL: Sprawdza wywołania map_utils i normalizację pól wektora.
+    EN: Checks map_utils calls and normalization of sensor vector fields.
     """
     telemetry_data = {
         "position": {"lat": 10.0, "lon": 20.0, "speed": 10.0},

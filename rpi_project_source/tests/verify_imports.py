@@ -1,3 +1,8 @@
+"""PL: Skrypt sprawdzający importy wybranych modułów RPI.
+
+EN: Script that checks imports of selected RPI modules.
+"""
+
 import os
 import sys
 

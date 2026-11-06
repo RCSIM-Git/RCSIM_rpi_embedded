@@ -1,3 +1,8 @@
+"""PL: Skrypt weryfikujący import i inicjalizację TelemetryWorker.
+
+EN: Script that verifies TelemetryWorker import and initialization.
+"""
+
 import os
 import sys
 from unittest.mock import MagicMock

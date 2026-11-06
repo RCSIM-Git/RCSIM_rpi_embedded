@@ -1,9 +1,5 @@
-"""
-Menedżer SLAM (Simultaneous Localization and Mapping) dla Raspberry Pi.
-SLAM Manager for the Raspberry Pi.
-
-Obsługuje algorytm RMHC_SLAM (BreezySLAM) w osobnym wątku.
-Supports RMHC_SLAM algorithm (BreezySLAM) in a separate thread.
+"""PL: Aktualizuje estymację pozycji i mapę SLAM w osobnym wątku.
+EN: Updates the SLAM pose estimate and map in a separate thread.
 """
 
 import logging
@@ -28,18 +24,13 @@ except ImportError:
 
 
 class SlamManager(threading.Thread):
-    """
-    Zarządza silnikiem SLAM w osobnym wątku.
-    Manages the SLAM engine in a separate thread.
+    """PL: Przetwarza skany LiDAR i odometrię przy użyciu silnika SLAM.
+    EN: Processes LiDAR scans and odometry with the SLAM engine.
     """
 
     def __init__(self, config: dict[str, Any]) -> None:
-        """
-        Inicjalizuje menedżera SLAM.
-        Initializes the SLAM manager.
-
-        Args:
-            config (dict[str, Any]): Konfiguracja SLAM. / SLAM configuration.
+        """PL: Przygotowuje silnik, stan mapy i kolejkę wejściową SLAM.
+        EN: Prepares the SLAM engine, map state, and input queue.
         """
         super().__init__(daemon=True)
         self.config = config
@@ -81,9 +72,8 @@ class SlamManager(threading.Thread):
         self._new_data_event = threading.Event()
 
     def run(self) -> None:
-        """
-        Główna pętla wątku SLAM.
-        Main loop of the SLAM thread.
+        """PL: Przetwarza kolejkę skanów i aktualizuje estymowaną pozycję.
+        EN: Processes queued scans and updates the estimated pose.
         """
         self.running = True
         logging.info("SLAM thread started.")
@@ -135,14 +125,8 @@ class SlamManager(threading.Thread):
         scan: list[tuple[float, float]],
         odometry: tuple[float, float, float, float],
     ) -> None:
-        """
-        Dodaje nowe dane do przetworzenia przez SLAM.
-        Adds new data to be processed by SLAM.
-
-        Args:
-            scan (list[tuple[float, float]]): Lista krotek (kąt, dystans). / List of tuples (angle, distance).
-            odometry (tuple[float, float, float, float]): Zmiana pozycji (dx, dy, dyaw, dt). / Pose change (dx, dy, dyaw, dt).
-                                                          Note: dt is packed into the 4th element locally before calling this.
+        """PL: Dodaje skan i zmianę odometrii do kolejki przetwarzania.
+        EN: Adds a scan and odometry delta to the processing queue.
         """
         with self.lock:
             # Utrzymuj krótką kolejkę, aby uniknąć opóźnień
@@ -151,23 +135,15 @@ class SlamManager(threading.Thread):
             self._new_data_event.set()
 
     def get_pose(self) -> tuple[float, float, float]:
-        """
-        Zwraca aktualną estymowaną pozycję.
-        Returns the current estimated pose.
-
-        Returns:
-            tuple[float, float, float]: (x, y, theta_deg).
+        """PL: Zwraca chronioną blokadą aktualną estymację pozycji.
+        EN: Returns the current pose estimate while holding the lock.
         """
         with self.lock:
             return self.current_pose
 
     def get_map(self) -> bytearray:
-        """
-        Pobiera aktualną mapę zajętości.
-        Retrieves the current occupancy grid map.
-
-        Returns:
-            bytearray: Dane mapy. / Map data.
+        """PL: Pobiera aktualne dane mapy zajętości z silnika SLAM.
+        EN: Retrieves the current occupancy map data from the SLAM engine.
         """
         if RPI_SLAM_AVAILABLE and self.slam:
             try:
@@ -177,17 +153,15 @@ class SlamManager(threading.Thread):
         return self.map_data
 
     def get_grid_array(self) -> np.ndarray:
-        """
-        Zwraca mapę jako tablicę numpy (H, W).
-        Returns the map as a numpy array.
+        """PL: Zwraca mapę zajętości jako dwuwymiarową tablicę NumPy.
+        EN: Returns the occupancy map as a two-dimensional NumPy array.
         """
         # Ensure we have fresh data
         arr = np.frombuffer(self.get_map(), dtype=np.uint8)
         return arr.reshape((self.MAP_SIZE_PIXELS, self.MAP_SIZE_PIXELS))
 
     def stop(self) -> None:
-        """
-        Zatrzymuje wątek SLAM.
-        Stops the SLAM thread.
+        """PL: Sygnalizuje wątkowi SLAM zakończenie pracy.
+        EN: Signals the SLAM thread to stop running.
         """
         self.running = False

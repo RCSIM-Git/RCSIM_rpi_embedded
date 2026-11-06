@@ -1,15 +1,26 @@
+"""PL: Testuje wybór punktu prowadzącego na ścieżce i osiągnięcie celu.
+EN: Tests path lookahead selection and goal arrival behavior.
+"""
+
 import pytest
 from logic.navigation_manager import NavigationManager
 
 
 class TestPurePursuit:
+    """PL: Testy punktu lookahead wyznaczanego przez menedżera nawigacji.
+    EN: Tests lookahead waypoint behavior from the navigation manager.
+    """
+
     @pytest.fixture
     def nav_manager(self):
+        """PL: Tworzy menedżera nawigacji dla testów punktów trasy.
+        EN: Creates a navigation manager for waypoint tests.
+        """
         return NavigationManager()
 
     def test_lookahead_point_straight_line(self, nav_manager):
-        """
-        Test if the lookahead point is correctly identified on a straight line.
+        """PL: Sprawdza wybór punktu na prostej przekraczającego dystans lookahead.
+        EN: Checks selection of the point beyond the lookahead distance on a straight path.
         """
         # Path: (0,0) -> (0, 0.0001) -> (0, 0.0002) ... (approx 11m per 0.0001 deg lat)
         # 1 deg lat is approx 111km. 0.00001 is approx 1.11m.
@@ -39,8 +50,8 @@ class TestPurePursuit:
         assert carrot == path[2]
 
     def test_lookahead_point_end_of_path(self, nav_manager):
-        """
-        Test if the lookahead point becomes the goal when close to end.
+        """PL: Sprawdza zwrócenie końcowego punktu krótkiej ścieżki.
+        EN: Checks that the endpoint is returned for a short path.
         """
         start_pose = (50.0, 19.0)
         path = [(50.0, 19.0), (50.00001, 19.0)]  # 1.1m path
@@ -54,8 +65,8 @@ class TestPurePursuit:
         assert carrot == path[-1]
 
     def test_goal_tolerance_reached(self, nav_manager):
-        """
-        Test if the path is cleared when the goal is reached within tolerance.
+        """PL: Sprawdza czyszczenie ścieżki po osiągnięciu celu w tolerancji.
+        EN: Checks that the path is cleared when the goal is within tolerance.
         """
         goal = (50.00001, 19.0)
         start_pose = (50.00001, 19.0)  # Robot at goal
@@ -70,8 +81,8 @@ class TestPurePursuit:
         assert nav_manager.current_path is None
 
     def test_off_path_behavior(self, nav_manager):
-        """
-        Test behavior when robot is off-path.
+        """PL: Sprawdza wybór punktu prowadzącego, gdy robot jest poza ścieżką.
+        EN: Checks lookahead selection when the robot is off the path.
         """
         # Path goes North
         path = [(50.0, 19.0), (50.0001, 19.0)]  # 0 to ~11m

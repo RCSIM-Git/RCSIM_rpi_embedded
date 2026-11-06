@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""
-Diagnostic script for GY-91 (MPU9250 + BMP280) Magnetometer issues.
-Diagnostyka problemów z magnetometrem GY-91 (MPU9250 + BMP280).
+"""PL: Diagnozuje magistralę I2C i dostępność magnetometru w module GY-91.
+
+EN: Diagnoses the I2C bus and magnetometer availability on a GY-91 module.
 
 Usage:
     python3 diagnose_imu.py
@@ -25,36 +25,64 @@ except ImportError:
 
 
 class I2CWrapper:
-    """
-    A wrapper for the smbus2.SMBus class to handle I2C communication.
-    Wrapper dla klasy smbus2.SMBus do obsługi komunikacji I2C.
+    """PL: Zapewnia blokowany dostęp do operacji magistrali I2C skryptu.
+
+    EN: Provides locked access to the diagnostic script's I2C bus operations.
     """
 
     def __init__(self, bus_num: int = 1):
+        """PL: Otwiera magistralę I2C o podanym numerze.
+
+        EN: Opens the I2C bus with the specified number.
+        """
         self.bus = SMBus(bus_num)
         self._lock = threading.Lock()
 
     def read_byte_data(self, address: int, register: int) -> int:
+        """PL: Odczytuje bajt z rejestru pod wskazanym adresem.
+
+        EN: Reads a register byte from the specified device address.
+        """
         with self._lock:
             return self.bus.read_byte_data(address, register)
 
     def write_byte_data(self, address: int, register: int, value: int) -> None:
+        """PL: Zapisuje bajt do rejestru pod wskazanym adresem.
+
+        EN: Writes a byte to a register at the specified device address.
+        """
         with self._lock:
             self.bus.write_byte_data(address, register, value)
 
     def read_word_data(self, address: int, register: int) -> int:
+        """PL: Odczytuje słowo z rejestru pod wskazanym adresem.
+
+        EN: Reads a word from a register at the specified device address.
+        """
         with self._lock:
             return self.bus.read_word_data(address, register)
 
     def read_i2c_block_data(self, address: int, register: int, length: int) -> list:
+        """PL: Odczytuje blok danych z rejestru urządzenia I2C.
+
+        EN: Reads a data block from an I2C device register.
+        """
         with self._lock:
             return self.bus.read_i2c_block_data(address, register, length)
 
     def write_i2c_block_data(self, address: int, register: int, data: list) -> None:
+        """PL: Zapisuje blok danych do rejestru urządzenia I2C.
+
+        EN: Writes a data block to an I2C device register.
+        """
         with self._lock:
             self.bus.write_i2c_block_data(address, register, data)
 
     def close(self) -> None:
+        """PL: Zamyka magistralę I2C.
+
+        EN: Closes the I2C bus.
+        """
         with self._lock:
             self.bus.close()
 
@@ -73,9 +101,17 @@ AK_WHO_AM_I = 0x00
 
 
 def scan_i2c(i2c, label="I2C Scan"):
-    """
-    Skanuje magistralę I2C.
-    Scans the I2C bus.
+    """PL: Skanuje standardowy zakres adresów i zwraca urządzenia z ACK.
+
+    Args:
+        i2c: Wrapper magistrali I2C do użycia w skanowaniu.
+        label: Etykieta wypisywana nad wynikami.
+
+    EN: Scans the standard address range and returns devices that acknowledge.
+
+    Args:
+        i2c: I2C bus wrapper used for the scan.
+        label: Label printed above the results.
     """
     print(f"\n--- {label} ---")
     found = []
@@ -94,6 +130,10 @@ def scan_i2c(i2c, label="I2C Scan"):
 
 
 def main():
+    """PL: Uruchamia diagnostykę MPU-9250 i trybu bypass dla AK8963.
+
+    EN: Runs MPU-9250 diagnostics and checks AK8963 bypass mode.
+    """
     print("Initializing I2C Bus 1...")
     try:
         i2c = I2CWrapper(bus_num=1)

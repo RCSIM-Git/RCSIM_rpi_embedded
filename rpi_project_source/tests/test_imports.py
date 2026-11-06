@@ -1,3 +1,8 @@
+"""PL: Testy importowania kluczowych modułów aplikacji RPI.
+
+EN: Tests that import key modules from the RPI application.
+"""
+
 import importlib
 
 import pytest
@@ -34,9 +39,9 @@ MODULES_TO_TEST = [
 
 @pytest.mark.parametrize("module_name", MODULES_TO_TEST)
 def test_import_module(module_name):
-    """
-    Sprawdza, czy dany moduł importuje się poprawnie.
-    Checks if the given module imports correctly.
+    """PL: Sprawdza, czy wskazany moduł można zaimportować.
+
+    EN: Verify that the selected module can be imported.
     """
     try:
         importlib.import_module(module_name)

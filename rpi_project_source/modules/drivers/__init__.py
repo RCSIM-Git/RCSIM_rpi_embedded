@@ -1,4 +1,4 @@
-"""
-Plik inicjalizacyjny pakietu.
-Package initialization file.
+"""PL: Plik inicjalizacyjny pakietu.
+
+EN: Initializes the sensor drivers package.
 """

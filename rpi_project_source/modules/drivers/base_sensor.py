@@ -1,6 +1,6 @@
-"""
-Moduł klas bazowych dla sensorów sprzętowych.
-Base classes module for hardware sensors.
+"""PL: Moduł klas bazowych dla sensorów sprzętowych.
+
+EN: Base classes module for hardware sensors.
 """
 
 from __future__ import annotations
@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 class IMUBase(ABC):
-    """
+    """PL:
     Abstrakcyjna klasa bazowa dla czujników inercyjnych (IMU).
-    Abstract base class for Inertial Measurement Unit (IMU) sensors.
+    EN: Abstract base class for Inertial Measurement Unit (IMU) sensors.
 
     Podklasy powinny nadpisać DRIVER_NAME, I2C_ADDRESSES i PRIORITY
     aby umożliwić automatyczną detekcję przez SensorRegistry.
@@ -28,19 +28,22 @@ class IMUBase(ABC):
 
     # --- Metadane Registry Pattern / Registry Pattern metadata ---
     DRIVER_NAME: str = ""
-    """Unikalna nazwa sterownika, np. 'native_bno08x'. / Unique driver name."""
+    """PL: Unikalna nazwa sterownika. EN: Unique driver name."""
 
     I2C_ADDRESSES: list[int] = []
-    """Lista adresów I2C sensora. / I2C addresses list."""
+    """PL: Lista adresów I2C sensora. EN: Sensor I2C addresses."""
 
     PRIORITY: int = 100
-    """Priorytet detekcji — niższy = wyższy priorytet. / Detection priority — lower = higher."""
+    """PL: Priorytet detekcji; niższa wartość jest sprawdzana wcześniej.
+
+    EN: Detection priority; lower values are checked first.
+    """
 
     @classmethod
     def scan(cls, i2c: I2CWrapper) -> bool:
-        """
+        """PL:
         Sprawdza czy sensor jest obecny na magistrali I2C.
-        Checks whether the sensor is present on the I2C bus.
+        EN: Checks whether the sensor is present on the I2C bus.
 
         Domyślna implementacja próbuje odczytać bajt z każdego adresu.
         Podklasy mogą nadpisać tę metodę aby dokonać weryfikacji WHO_AM_I.
@@ -63,9 +66,9 @@ class IMUBase(ABC):
 
     @abstractmethod
     def read_data(self) -> dict[str, Any]:
-        """
+        """PL:
         Odczytuje dane z sensora i zwraca je w ustandaryzowanym formacie.
-        Reads data from the sensor and returns it in a standardized format.
+        EN: Reads data from the sensor and returns it in a standardized format.
 
         Returns:
             dict[str, Any]: Słownik z danymi sensora. / Dictionary with sensor data.
@@ -77,9 +80,9 @@ class IMUBase(ABC):
 
     @abstractmethod
     def calibrate(self) -> bool:
-        """
+        """PL:
         Przeprowadza kalibrację sensora (np. wyznaczenie biasu).
-        Performs sensor calibration (e.g., bias estimation).
+        EN: Performs sensor calibration (e.g., bias estimation).
 
         Returns:
             bool: True jeśli kalibracja się powiodła, False w przeciwnym razie.

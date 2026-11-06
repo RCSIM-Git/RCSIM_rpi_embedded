@@ -1,9 +1,8 @@
-"""
-Copyright (c) 2026 RCSIM / Mateusz Buzek
+"""Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Narzędzia matematyczne do obsługi mapy opartej na kafelkach (slippy map).
-Mathematical tools for tile-based map handling (slippy map).
+PL: Zawiera obliczenia kafelków mapy i odległości geograficznych.
+EN: Provides map tile and geographic distance calculations.
 """
 
 import math
@@ -12,17 +11,8 @@ TILE_SIZE = 256
 
 
 def deg_to_num(lat_deg: float, lon_deg: float, zoom: int) -> tuple[int, int]:
-    """
-    Przelicza współrzędne geograficzne na numer kafelka (x, y) dla danego zoomu.
-    Converts geographic coordinates to tile number (x, y) for a given zoom level.
-
-    Args:
-        lat_deg (float): Szerokość geograficzna w stopniach. / Latitude in degrees.
-        lon_deg (float): Długość geograficzna w stopniach. / Longitude in degrees.
-        zoom (int): Poziom przybliżenia. / Zoom level.
-
-    Returns:
-        tuple[int, int]: Numer kafelka (x, y). / Tile number (x, y).
+    """PL: Przelicza współrzędne GPS na indeks kafelka dla poziomu zoomu.
+    EN: Converts GPS coordinates to a tile index at the specified zoom level.
     """
     lat_rad = math.radians(lat_deg)
     n = 2.0**zoom
@@ -34,18 +24,8 @@ def deg_to_num(lat_deg: float, lon_deg: float, zoom: int) -> tuple[int, int]:
 def get_pixel_offset(
     lat_deg: float, lon_deg: float, zoom: int
 ) -> tuple[int, int, int, int]:
-    """
-    Oblicza kafelek centralny i przesunięcie w pikselach pojazdu względem lewego górnego rogu tego kafelka.
-    Calculates the center tile and the pixel offset of the vehicle relative to the top-left corner of that tile.
-
-    Args:
-        lat_deg (float): Szerokość geograficzna w stopniach. / Latitude in degrees.
-        lon_deg (float): Długość geograficzna w stopniach. / Longitude in degrees.
-        zoom (int): Poziom przybliżenia. / Zoom level.
-
-    Returns:
-        tuple[int, int, int, int]:
-            center_tile_x, center_tile_y, pixel_x_offset, pixel_y_offset
+    """PL: Zwraca indeks kafelka oraz pikselowe przesunięcie punktu GPS.
+    EN: Returns a tile index and the GPS point's pixel offset within it.
     """
     lat_rad = math.radians(lat_deg)
     n = 2.0**zoom
@@ -69,18 +49,8 @@ def get_pixel_offset(
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """
-    Oblicza dystans w metrach między dwoma punktami GPS.
-    Calculates the distance in meters between two GPS points.
-
-    Args:
-        lat1 (float): Szerokość geograficzna punktu startowego. / Latitude of the starting point.
-        lon1 (float): Długość geograficzna punktu startowego. / Longitude of the starting point.
-        lat2 (float): Szerokość geograficzna punktu docelowego. / Latitude of the target point.
-        lon2 (float): Długość geograficzna punktu docelowego. / Longitude of the target point.
-
-    Returns:
-        float: Dystans między punktami w metrach. / Distance between points in meters.
+    """PL: Oblicza odległość po powierzchni Ziemi między punktami GPS w metrach.
+    EN: Computes the surface distance between GPS points in meters.
     """
     R = 6371000  # Promień Ziemi w metrach / Radius of Earth in meters
     lat1_rad, lon1_rad = math.radians(lat1), math.radians(lon1)
@@ -96,18 +66,8 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 
 def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """
-    Oblicza azymut (bearing) między dwoma punktami GPS.
-    Calculates the bearing between two GPS points.
-
-    Args:
-        lat1 (float): Szerokość geograficzna punktu startowego. / Latitude of the starting point.
-        lon1 (float): Długość geograficzna punktu startowego. / Longitude of the starting point.
-        lat2 (float): Szerokość geograficzna punktu docelowego. / Latitude of the target point.
-        lon2 (float): Długość geograficzna punktu docelowego. / Longitude of the target point.
-
-    Returns:
-        float: Azymut w stopniach [0, 360). / Bearing in degrees [0, 360).
+    """PL: Oblicza początkowy azymut do drugiego punktu GPS w stopniach.
+    EN: Computes the initial bearing to the second GPS point in degrees.
     """
     lat1_rad, lon1_rad = math.radians(lat1), math.radians(lon1)
     lat2_rad, lon2_rad = math.radians(lat2), math.radians(lon2)

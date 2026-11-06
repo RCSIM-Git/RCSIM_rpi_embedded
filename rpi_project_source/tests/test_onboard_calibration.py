@@ -1,10 +1,10 @@
-"""
+"""PL: Testy kalibracji IMU wykonywanej przez SensorAggregator.
+
+EN: Tests for IMU calibration performed by SensorAggregator.
+
 Copyright (c) 2026 RCSIM / Mateusz Buzek
 Licensed under the MIT License.
 See LICENSE file in the project root for full license information.
-
-Testy jednostkowe dla pokładowej kalibracji IMU w SensorAggregatorze.
-Unit tests for onboard IMU calibration in SensorAggregator.
 """
 
 import sys
@@ -32,7 +32,10 @@ from modules.hardware.sensor_aggregator import SensorAggregator  # noqa: E402
 
 
 def test_apply_imu_calibration():
-    """Weryfikacja matematyczna nakładania kalibracji IMU pokładowo."""
+    """PL: Sprawdza korekcję próbek IMU według kalibracji pokładowej.
+
+    EN: Verify IMU sample corrections using onboard calibration data.
+    """
     # Setup mock config
     config = {
         "imu": {"driver": "auto"},

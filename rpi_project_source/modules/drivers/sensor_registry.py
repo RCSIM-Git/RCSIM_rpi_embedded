@@ -1,6 +1,6 @@
-"""
+"""PL:
 Centralny rejestr sensorów IMU (Registry Pattern).
-Central IMU sensor registry (Registry Pattern).
+EN: Central IMU sensor registry (Registry Pattern).
 
 Sensory rejestrują się samodzielnie poprzez dekorator @SensorRegistry.register.
 Sensors self-register via @SensorRegistry.register decorator.
@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 class SensorRegistry:
-    """
+    """PL:
     Centralny rejestr klas sensorów IMU.
-    Central registry for IMU sensor classes.
+    EN: Central registry for IMU sensor classes.
 
     Drivery rejestrują się automatycznie przy imporcie za pomocą
     dekoratora ``@SensorRegistry.register``.
@@ -33,9 +33,9 @@ class SensorRegistry:
 
     @classmethod
     def register(cls, sensor_class: type[IMUBase]) -> type[IMUBase]:
-        """
+        """PL:
         Dekorator rejestrujący klasę sensora w globalnym rejestrze.
-        Decorator that registers a sensor class in the global registry.
+        EN: Decorator that registers a sensor class in the global registry.
 
         Args:
             sensor_class: Klasa sensora do zarejestrowania.
@@ -58,9 +58,9 @@ class SensorRegistry:
 
     @classmethod
     def detect(cls, i2c: I2CWrapper) -> type[IMUBase] | None:
-        """
+        """PL:
         Skanuje magistralę I2C i zwraca pierwszy pasujący driver.
-        Scans the I2C bus and returns the first matching driver.
+        EN: Scans the I2C bus and returns the first matching driver.
 
         Drivery są sprawdzane w kolejności priorytetu (niższy
         priorytet = wyższy ranking).
@@ -97,9 +97,9 @@ class SensorRegistry:
 
     @classmethod
     def get_by_name(cls, driver_name: str) -> type[IMUBase] | None:
-        """
+        """PL:
         Zwraca klasę sensora po nazwie sterownika.
-        Returns a sensor class by driver name.
+        EN: Returns a sensor class by driver name.
 
         Args:
             driver_name: Nazwa sterownika, np. 'native_bno08x'.
@@ -117,18 +117,18 @@ class SensorRegistry:
 
     @classmethod
     def all_drivers(cls) -> list[type[IMUBase]]:
-        """
+        """PL:
         Zwraca listę wszystkich zarejestrowanych driverów.
-        Returns list of all registered drivers.
+        EN: Returns the list of all registered drivers.
         """
         cls._ensure_drivers_loaded()
         return list(cls._registry)
 
     @classmethod
     def _ensure_drivers_loaded(cls) -> None:
-        """
+        """PL:
         Ładuje moduły driverów, aby dekoratory @register się wykonały.
-        Loads driver modules so that @register decorators fire.
+        EN: Loads driver modules so that @register decorators fire.
 
         Wspiera ładowanie wbudowanych sterowników oraz zewnętrznych
         modułów z folderu 'workshop/'.

@@ -38,6 +38,21 @@ class TestSafetySupervisor(unittest.TestCase):
         self.assertEqual(self.supervisor.stop_dist_m, 0.5)
         self.assertEqual(self.supervisor.state, SafetyState.NORMAL)
 
+    def test_runtime_battery_failsafe_config_changes_enforced_reaction(self):
+        self.supervisor.update_safety_config({
+            "battery_failsafe_reaction": "stop",
+            "critical_battery_v": 10.5,
+            "warning_battery_v": 11.0,
+            "battery_throttle_limit_us": 1600,
+        })
+        state = self.supervisor.update({"battery": {"voltage": 10.0}})
+        self.assertEqual(state, SafetyState.STOP)
+        self.assertEqual(self.supervisor.process_controls(0.4, 0.8), (0.4, 0.0))
+
+    def test_runtime_battery_failsafe_config_rejects_unknown_reaction(self):
+        with self.assertRaises(ValueError):
+            self.supervisor.update_safety_config({"battery_failsafe_reaction": "ignore"})
+
     def test_update_normal(self):
         """PL: Sprawdza normalny stan bez zagrożeń sensorowych.
         EN: Checks the normal state when sensor data shows no threats.

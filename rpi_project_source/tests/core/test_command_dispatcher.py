@@ -138,6 +138,15 @@ class TestCommandDispatcher(unittest.TestCase):
         self.dispatcher.on_data_received(packet)
         self.assertEqual(self.mock_worker.current_mode, "MANUAL")
 
+    def test_update_config_applies_battery_safety_settings(self):
+        self.mock_worker.safety_supervisor = MagicMock()
+        safety = {"battery_failsafe_reaction": "rth", "critical_battery_v": 10.4}
+        self.dispatcher.handle_command({
+            "command": "UPDATE_CONFIG",
+            "payload": {"safety": safety},
+        })
+        self.mock_worker.safety_supervisor.update_safety_config.assert_called_once_with(safety)
+
 
 if __name__ == "__main__":
     unittest.main()

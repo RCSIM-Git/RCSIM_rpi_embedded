@@ -327,6 +327,18 @@ class CommandDispatcher:
 
         elif cmd == "UPDATE_CONFIG":
             payload = msg.get("payload", {})
+            safety_config = payload.get("safety") if isinstance(payload, dict) else None
+            if safety_config is not None:
+                supervisor = getattr(w, "safety_supervisor", None)
+                if supervisor is None:
+                    self.logger.warning("COMMAND: safety config ignored; supervisor unavailable.")
+                else:
+                    try:
+                        supervisor.update_safety_config(safety_config)
+                    except (TypeError, ValueError) as exc:
+                        self.logger.warning("COMMAND: safety config rejected: %s", exc)
+                    else:
+                        self.logger.info("COMMAND: battery safety config updated.")
             hw_config = payload.get("hardware")
             if hw_config:
                 if w.hw_manager:
@@ -564,11 +576,3 @@ class CommandDispatcher:
             self.worker.mavlink_service.master.mav.command_ack_send(
                 msg.command, mavutil.mavlink.MAV_RESULT_ACCEPTED
             )
-
-    def _try_exit_failsafe(self, source: str) -> None:
-        """Służy do wyjścia z trybu FAILSAFE po odebraniu sterowania."""
-        w = self.worker
-        if getattr(w, "current_mode", None) == "FAILSAFE":
-            w.current_mode = "MANUAL"
-            self.logger.info(f"Link recovered via {source} - Exiting FAILSAFE.")
-

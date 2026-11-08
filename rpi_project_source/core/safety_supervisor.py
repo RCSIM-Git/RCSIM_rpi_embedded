@@ -83,6 +83,42 @@ class SafetySupervisor:
         self.last_state_change = time.time()
         self.lidar_sector_deg = safety_cfg.get("lidar_sector_deg", 60.0)
 
+    def update_safety_config(self, safety_cfg: dict[str, Any]) -> None:
+        """Validate and apply runtime safety settings received from the GCS."""
+        if not isinstance(safety_cfg, dict):
+            raise ValueError("safety config must be an object")
+
+        reaction = safety_cfg.get("battery_failsafe_reaction", self.battery_failsafe_reaction)
+        if not isinstance(reaction, str) or reaction not in {"limit_power", "stop", "rth"}:
+            raise ValueError("unsupported battery failsafe reaction")
+
+        def finite_voltage(name: str, current: float) -> float:
+            value = safety_cfg.get(name, current)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(f"{name} must be numeric")
+            value = float(value)
+            if not math.isfinite(value) or not 0.0 < value < 100.0:
+                raise ValueError(f"{name} is out of range")
+            return value
+
+        critical = finite_voltage("critical_battery_v", self.critical_battery_v)
+        warning = finite_voltage("warning_battery_v", self.warning_battery_v)
+        limit = safety_cfg.get("battery_throttle_limit_us", self.battery_throttle_limit_us)
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1000 <= limit <= 2000:
+            raise ValueError("battery_throttle_limit_us is out of range")
+
+        self.critical_battery_v = critical
+        self.warning_battery_v = warning
+        self.battery_failsafe_reaction = reaction
+        self.battery_throttle_limit_us = limit
+        self.battery_throttle_limit_pct = max(0.0, (limit - 1500) / 500.0)
+        self.config.setdefault("safety", {}).update({
+            "critical_battery_v": critical,
+            "warning_battery_v": warning,
+            "battery_failsafe_reaction": reaction,
+            "battery_throttle_limit_us": limit,
+        })
+
     def update(self, sensor_data: dict[str, Any], ai_ready: bool = True) -> SafetyState:
         """PL: Aktualizuje stan bezpieczeństwa na podstawie bieżących odczytów.
 
